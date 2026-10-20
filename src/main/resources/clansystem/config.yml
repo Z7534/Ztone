@@ -1,0 +1,136 @@
+# ==============================================================================
+#                      CLANSYSTEM - EINSTELLUNGEN
+# ==============================================================================
+# Diese Konfiguration steuert alle clan-spezifischen Einstellungen.
+# Globale Einstellungen (Datenbank, Modul-Aktivierung) befinden sich in:
+# plugins/Clansystem/config.yml
+# ==============================================================================
+
+# Clan-Einstellungen
+clan:
+  # Namensbeschränkungen
+  name:
+    min-length: 3
+    max-length: 16
+    # Erlaubte Zeichen (Regex)
+    allowed-characters: "^[a-zA-ZÄÜÖäüö0-9_]+$"
+
+  # Cooldown in Sekunden nach Verlassen eines Clans, bevor ein neuer erstellt/beigetreten werden kann
+  leave-cooldown: 300
+
+  # Standard-Beitrittsart für neue Clans (OPEN, INVITE, APPLY)
+  default-join-type: "INVITE"
+
+# Suffix/Tag-Einstellungen
+suffix:
+  max-length: 10
+  # HINWEIS: Der Suffix hat keine eigene Farbe/Fett/Kursiv mehr - seine Farbe
+  # ist immer identisch mit der Clan-Farbe (siehe ClanColorGUI in den
+  # Clan-Einstellungen). Auch "Durchgestrichen" wird dort zentral für
+  # Clan-Name UND Suffix gemeinsam eingestellt.
+  # Formatierungen erlauben?
+  allow-magic: false
+  # Verbotene Wörter im Suffix
+  blacklist:
+    - "admin"
+    - "mod"
+    - "owner"
+    - "staff"
+    - "sup"
+    - "Moderator"
+    - "Supporter"
+    - "Developer"
+    - "Dev"
+    - "nigger"
+    - "nigga"
+    - "niggä"
+    - "penis"
+    - "Penis"
+    - "cum"
+    - "adhs"
+    - "ADHS"
+    - "goonergang"
+    - "goons"
+    - "gooner"
+
+# Teleport-Einstellungen
+teleport:
+  # Warmup in Sekunden (0 = deaktiviert)
+  warmup: 3
+  # Cooldown in Sekunden zwischen Teleports
+  cooldown: 60
+  # Teleport bei Bewegung abbrechen?
+  cancel-on-move: true
+  # Teleport bei Schaden abbrechen?
+  cancel-on-damage: true
+
+# PvP-Punkte-Einstellungen
+pvp:
+  # Punkte für Kills im Krieg
+  war-kill-points: 5
+  # Punkte für Kills außerhalb des Krieges
+  normal-kill-points: 1
+  # Kills außerhalb des Krieges zählen?
+  count-normal-kills: true
+  # Friendly Fire innerhalb des Clans deaktivieren?
+  disable-friendly-fire: true
+  # Friendly Fire mit Allianzen deaktivieren?
+  disable-ally-fire: true
+
+# Broadcast-Einstellungen (Server-weite Nachrichten)
+# NUR diese vier Ereignisse sind server-weit sichtbar - alles andere (Kick,
+# Level-Aufstieg, Allianzen, Kriege, ...) ist bewusst nur clan-intern bzw. nur
+# für die direkt beteiligten Spieler sichtbar, siehe jeweilige Manager-Klassen.
+broadcasts:
+  clan-created: true
+  clan-disbanded: true
+  member-joined: true
+  member-left: true
+
+# Standard-Ränge für neue Clans
+# Hinweis: "Leader" ist bewusst KEIN Rang mehr - der Clan-Ersteller (bzw. der aktuelle
+# Eigentümer nach einer Übertragung) hat IMMER alle Berechtigungen, unabhängig vom
+# zugewiesenen Rang. Das ist nicht über die Rang-Verwaltung veränderbar.
+default-ranks:
+  - name: "Co. Owner"
+    priority: 100
+    permissions:
+      - "INVITE"
+      - "KICK"
+      - "PROMOTE"
+      - "DEMOTE"
+      - "SET_HOME"
+      - "DEL_HOME"
+      - "SET_WARP"
+      - "DEL_WARP"
+      - "CHEST_ACCESS"
+      - "CHEST_WITHDRAW"
+      - "ALLY_MANAGE"
+      - "WAR_MANAGE"
+      - "SETTINGS"
+      - "RANK_MANAGE"
+      - "SET_SUFFIX"
+      - "BANK_DEPOSIT"
+      - "BANK_WITHDRAW"
+      - "BANK_VIEW_TRANSACTIONS"
+      - "WAR_ALWAYS_PVP"
+  - name: "Member"
+    priority: 5
+    permissions:
+      - "CHEST_ACCESS"
+      - "CHEST_WITHDRAW"
+      - "BANK_DEPOSIT"
+      - "BANK_VIEW_TRANSACTIONS"
+
+# Clan-Chest Logging aktivieren?
+chest-logging: true
+
+# Glow-Effekt (leuchtender Umriss für Clan-Mitglieder, sichtbar durch Wände)
+# HINWEIS: Es gibt bewusst KEINE Farbauswahl - der Umriss ist immer Weiß.
+# Grund: In Vanilla-Minecraft ist die Umriss-Farbe technisch untrennbar mit der
+# Namensfarbe (Nametag/Tab-Liste) über Scoreboard-Teams verbunden. Damit Spielernamen
+# IMMER normal/unverändert bleiben, wird bewusst auf eine Team-Farbe verzichtet.
+# Zusätzlich ist ProtocolLib (https://www.spigotmc.org/resources/protocollib.1997/)
+# als Server-Plugin erforderlich, damit der Glow WIRKLICH nur fürs eigene Team
+# sichtbar ist (siehe GlowManager/GlowPacketHook). Ohne ProtocolLib bleibt Glow
+# aus Sicherheitsgründen komplett deaktiviert.

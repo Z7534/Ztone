@@ -1,0 +1,176 @@
+# =========================================================
+#  Claims - Konfiguration
+# =========================================================
+
+# ---------------------------------------------------------
+# Spawn-Schutzzone: In diesem Radius um die Spawn-Location
+# kann NICHT geclaimt werden (Mittelpunkt = spawn-location)
+# ---------------------------------------------------------
+spawn-protection:
+  enabled: true
+  world: "world"
+  x: 0.0
+  y: 202.0
+  z: 0.0
+  radius: 50
+
+# ---------------------------------------------------------
+# End-Schutzzone: In diesem Radius um die End-Location
+# kann im End NICHT geclaimt werden (z.B. Hauptinsel / Spawn)
+# ---------------------------------------------------------
+end-protection:
+  enabled: true
+  world: "world_the_end"
+  x: 0.0
+  y: 65.0
+  z: 0.0
+  radius: 100
+
+# ---------------------------------------------------------
+# Claimen pro Dimension erlauben/verbieten (Standard: erlaubt)
+# Welt-Namen wie sie in server.properties / bukkit.yml stehen
+# ---------------------------------------------------------
+dimensions:
+  world: true
+  world_nether: true
+  world_the_end: true
+
+# ---------------------------------------------------------
+# AFK-Erkennung: nach X Sekunden ohne Bewegung/Aktion gilt
+# ein Spieler als AFK und sammelt keine Spielzeit für neue
+# Claim-Slots mehr
+# ---------------------------------------------------------
+afk:
+  timeout-seconds: 120
+
+# ---------------------------------------------------------
+# Automatischer Erhalt von Claim-Slots über Spielzeit
+# ---------------------------------------------------------
+claims:
+  award-interval-minutes: 30
+  award-amount: 1
+  # Legt fest, ob der Bypass (/staffclaim bypass, Berechtigung
+  # claims.admin.bypass) zusätzlich auch das Claim-Slot-Limit umgeht
+  # (true = unendlich viele Claims, unabhängig von Spielzeit/
+  # claims.start.<n>-Rechten). Bei false gilt das normale Limit auch
+  # für Spieler mit aktivem Bypass.
+  bypass-ignores-limit: false
+
+# ---------------------------------------------------------
+# Claim umbenennen (Chat-Eingabe)
+# ---------------------------------------------------------
+rename:
+  input-time-seconds: 45
+  min-length: 3
+  max-length: 24
+  forbidden-characters: "&$@#%{}[];"
+
+# ---------------------------------------------------------
+# Claims an andere Spieler payen (/claim pay <spieler> <anzahl>)
+# ---------------------------------------------------------
+pay:
+  # Zeit in Sekunden, in der der Befehl mit den selben Angaben (Spieler
+  # + Anzahl) erneut ausgeführt werden muss, um die Zahlung zu bestätigen.
+  confirm-seconds: 15
+  # Obergrenze, wie viele Claims auf einmal gepayt werden können
+  # (rein technische Absicherung gegen Zahlendreher/Missbrauch).
+  max-amount: 1000
+
+# ---------------------------------------------------------
+# Spieler-Suche per Chat (Trust/Ban hinzufügen)
+# ---------------------------------------------------------
+search:
+  input-time-seconds: 45
+
+# ---------------------------------------------------------
+# Bannen: Suchradius für den nächsten "Safe Spot" außerhalb
+# des Claims (in Blöcken), danach Fallback zum Welt-Spawn
+# ---------------------------------------------------------
+ban:
+  safe-spot-search-radius: 50
+
+# ---------------------------------------------------------
+# Explosionen (Creeper, TNT, TNT-Loren): Jeder Spieler stellt in den
+# /claims Einstellungen selbst ein, ob auf ALL seinen Claims explodiert
+# werden darf (Standard: aus). Betrifft nur die eigenen Claims - hat
+# keinen Einfluss auf fremde Claims oder unberührte Natur (dort ist es
+# immer wie im Vanilla-Spiel erlaubt).
+#
+# claim-border-radius: Radius in Blöcken um jeden Claim herum, in dem
+# ebenfalls nicht explodiert werden kann, wenn der Besitzer Explosionen
+# deaktiviert hat. Verhindert, dass direkt an der Claim-Grenze gezündet
+# wird, um trotzdem etwas im Claim zu zerstören.
+# ---------------------------------------------------------
+explosions:
+  claim-border-radius: 5
+
+# ---------------------------------------------------------
+# Partikel-Grenzmarkierung
+# ---------------------------------------------------------
+particles:
+  render-radius-chunks: 4
+  update-interval-ticks: 20
+  points-per-chunk-edge: 16
+  own-claim-color: "#00FF33"
+  trusted-claim-color: "#3399FF"
+  foreign-claim-color: "#FF3333"
+
+# ---------------------------------------------------------
+# Item-Models für die GUI-Items (Resourcepack-Modelle).
+# Leer lassen = Vanilla-Standardmodell des Items wird benutzt.
+# Format: "namespace:pfad/zum/modell"
+# ---------------------------------------------------------
+item-models:
+  main-menu-info: ""
+  main-menu-claims: ""
+  main-menu-create: ""
+  main-menu-settings: ""
+  claims-list-entry: ""
+  claims-list-back: ""
+  claim-settings-back: ""
+  claim-settings-rename: ""
+  claim-settings-delete: ""
+  claim-settings-trust: ""
+  claim-settings-ban: ""
+  claim-settings-transfer: ""
+  transfer-back: ""
+  trust-add-player: ""
+  trust-visitor-settings: ""
+  trust-back: ""
+  ban-add-player: ""
+  ban-back: ""
+  permissions-back: ""
+  permissions-allow-all: ""
+  permissions-deny-all: ""
+  permissions-right-build: ""
+  permissions-right-buckets: ""
+  permissions-right-containers: ""
+  permissions-right-doors: ""
+  permissions-right-redstone: ""
+  permissions-right-items: ""
+  permissions-right-attack_mobs: ""
+  permissions-right-pvp: ""
+  permissions-right-vehicles: ""
+  permissions-right-entity_interact: ""
+  permissions-right-fire_explosions: ""
+  permissions-right-bells_noteblocks: ""
+  permissions-right-spawner: ""
+  addplayer-back: ""
+  addplayer-search: ""
+  settings-back: ""
+  settings-claimmap: ""
+  settings-boardline: ""
+  settings-fenceline: ""
+  settings-entryhint: ""
+  settings-explosions: ""
+  page-prev: ""
+  page-next: ""
+  confirm-yes: ""
+  confirm-no: ""
+  claimmode-save: ""
+  claimmode-cancel: ""
+
+# ---------------------------------------------------------
+# Texte / Nachrichten liegen jetzt in einer eigenen Datei:
+# messages.yml (im selben Plugin-Ordner)
+# ---------------------------------------------------------

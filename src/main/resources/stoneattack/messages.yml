@@ -1,0 +1,108 @@
+# =====================================================================
+#  Stoneattack - Nachrichten (MiniMessage-Format)
+#  Platzhalter stehen jeweils direkt bei der Nachricht. "%prefix%"
+#  kann in jeder Nachricht verwendet werden.
+# =====================================================================
+
+prefix: "<gradient:#55C4FF:#1E90FF><bold>ꜱᴛᴏɴᴇᴀᴛᴛᴀᴄᴋ</bold></gradient> <dark_gray>»</dark_gray> "
+
+general:
+  no-permission: "%prefix%<red>ᴅᴀᴢᴜ ʜᴀꜱᴛ ᴅᴜ ᴋᴇɪɴᴇ ʙᴇʀᴇᴄʜᴛɪɢᴜɴɢ.</red>"
+  player-only: "%prefix%<red>ᴅɪᴇꜱᴇʀ ᴄᴏᴍᴍᴀɴᴅ ᴋᴀɴɴ ɴᴜʀ ᴠᴏɴ ᴇɪɴᴇᴍ ꜱᴘɪᴇʟᴇʀ ᴀᴜꜱɢᴇꜰüʜʀᴛ ᴡᴇʀᴅᴇɴ.</red>"
+  console-only: "%prefix%<red>ᴅɪᴇꜱᴇʀ ᴄᴏᴍᴍᴀɴᴅ ᴋᴀɴɴ ɴᴜʀ ᴠᴏɴ ᴅᴇʀ ᴋᴏɴꜱᴏʟᴇ ᴀᴜꜱɢᴇꜰüʜʀᴛ ᴡᴇʀᴅᴇɴ.</red>"
+  unknown-subcommand: "%prefix%<red>ᴜɴʙᴇᴋᴀɴɴᴛᴇʀ ᴜɴᴛᴇʀʙᴇꜰᴇʜʟ. ɴᴜᴛᴢᴜɴɢ: %usage%</red>"
+  invalid-number: "%prefix%<red>'%input%' ɪꜱᴛ ᴋᴇɪɴᴇ ɢüʟᴛɪɢᴇ ᴢᴀʜʟ.</red>"
+  player-not-found: "%prefix%<red>ᴅᴇʀ ꜱᴘɪᴇʟᴇʀ '%player%' ᴋᴏɴɴᴛᴇ ɴɪᴄʜᴛ ɢᴇꜰᴜɴᴅᴇɴ ᴡᴇʀᴅᴇɴ (ᴀᴜᴄʜ ɴɪᴄʜᴛ ᴏꜰꜰʟɪɴᴇ).</red>"
+  reload-success: "%prefix%<green>ᴋᴏɴꜰɪɢᴜʀᴀᴛɪᴏɴ ᴜɴᴅ ᴀʟʟᴇ ᴍᴏᴅᴜʟᴇ ᴡᴜʀᴅᴇɴ ɴᴇᴜ ɢᴇʟᴀᴅᴇɴ.</green>"
+
+# =====================================================================
+#  MODUL 1: SPIELERLIMIT
+# =====================================================================
+playerlimit:
+  set-success: "%prefix%<green>ᴅᴀꜱ ꜱᴘɪᴇʟᴇʀʟɪᴍɪᴛ ᴡᴜʀᴅᴇ ᴀᴜꜰ <white>%limit%</white> ɢᴇꜱᴇᴛᴢᴛ.</green>"
+  off-success: "%prefix%<green>ᴅᴀꜱ ꜱᴘɪᴇʟᴇʀʟɪᴍɪᴛ ᴡᴜʀᴅᴇ ᴅᴇᴀᴋᴛɪᴠɪᴇʀᴛ.</green>"
+  get-info: "%prefix%<gray>ʟɪᴍɪᴛ: <white>%limit%</white> | ᴏɴʟɪɴᴇ: <white>%current%</white></gray>"
+  get-info-unlimited: "%prefix%<gray>ʟɪᴍɪᴛ: <white>ᴅᴇᴀᴋᴛɪᴠɪᴇʀᴛ</white> | ᴏɴʟɪɴᴇ: <white>%current%</white></gray>"
+  reload-success: "%prefix%<green>ꜱᴘɪᴇʟᴇʀʟɪᴍɪᴛ-ᴍᴏᴅᴜʟ ɴᴇᴜ ɢᴇʟᴀᴅᴇɴ.</green>"
+  invalid-limit: "%prefix%<red>ᴅᴀꜱ ʟɪᴍɪᴛ ᴍᴜꜱꜱ ᴇɪɴᴛᴡᴇᴅᴇʀ -1 (ᴅᴇᴀᴋᴛɪᴠɪᴇʀᴛ) ᴏᴅᴇʀ >= 0 ꜱᴇɪɴ.</red>"
+
+  list-header: "%prefix%<gray>ᴏɴʟɪɴᴇ-ꜱᴘɪᴇʟᴇʀ ɪɴ ᴊᴏɪɴ-ʀᴇɪʜᴇɴꜰᴏʟɢᴇ (<white>%count%</white>):</gray>"
+  list-entry: "<gray>%position%.</gray> <white>%player%</white>"
+  list-entry-bypass: "<gray>%position%.</gray> <white>%player%</white> <yellow>[ʙʏᴘᴀꜱꜱ]</yellow>"
+
+  # Kick-Nachricht, wenn ein Spieler wegen eines verkleinerten Limits
+  # getrennt wird. %limit% = neues Limit, %position% = seine alte
+  # Position in der Join-Reihenfolge.
+  kick-message: "<red>ᴅᴇʀ ꜱᴇʀᴠᴇʀ ᴡᴜʀᴅᴇ ᴀᴜꜰ <white>%limit%</white> ᴘʟäᴛᴢᴇ ᴠᴇʀᴋʟᴇɪɴᴇʀᴛ.\n<gray>ᴅᴜ ᴡᴀʀꜱᴛ ᴀᴜꜰ ᴘᴏꜱɪᴛɪᴏɴ <white>%position%</white> ᴜɴᴅ ᴡᴜʀᴅᴇꜱᴛ ᴅᴀʜᴇʀ ɢᴇᴛʀᴇɴɴᴛ.</gray></red>"
+
+  # Nachricht beim Login-Versuch, wenn das Limit bereits erreicht ist.
+  join-full-message: "<red>ᴅᴇʀ ꜱᴇʀᴠᴇʀ ɪꜱᴛ ᴀᴋᴛᴜᴇʟʟ ᴠᴏʟʟ.\n<gray>ʟɪᴍɪᴛ: <white>%limit%</white> ᴘʟäᴛᴢᴇ</gray></red>"
+
+  # Info an Spieler mit der staff-notify-permission, wenn ein Limit
+  # gesetzt wurde und dadurch Spieler gekickt wurden.
+  staff-notify: "<gray>[ꜱᴘɪᴇʟᴇʀʟɪᴍɪᴛ] <yellow>%executor%</yellow> ʜᴀᴛ ᴅᴀꜱ ʟɪᴍɪᴛ ᴀᴜꜰ <yellow>%limit%</yellow> ɢᴇꜱᴇᴛᴢᴛ ᴜɴᴅ ᴅᴀʙᴇɪ <yellow>%amount%</yellow> ꜱᴘɪᴇʟᴇʀ ɢᴇᴋɪᴄᴋᴛ.</gray>"
+
+  console-log-kick: "[ꜱᴘɪᴇʟᴇʀʟɪᴍɪᴛ] %executor% ʜᴀᴛ %player% (ᴘᴏꜱɪᴛɪᴏɴ %position%) ᴡᴇɢᴇɴ ᴅᴇꜱ ɴᴇᴜᴇɴ ʟɪᴍɪᴛꜱ (%limit%) ɢᴇᴋɪᴄᴋᴛ."
+
+# =====================================================================
+#  MODUL 2: PERFORMANCE
+# =====================================================================
+performance:
+  reload-success: "%prefix%<green>ᴘᴇʀꜰᴏʀᴍᴀɴᴄᴇ-ᴍᴏᴅᴜʟ ɴᴇᴜ ɢᴇʟᴀᴅᴇɴ.</green>"
+
+  # Titel/Subtitel-Warnung bei schlechten Werten
+  warning-title: "<gold>⚠ ꜱᴇʀᴠᴇʀ-ᴀᴜꜱʟᴀꜱᴛᴜɴɢ</gold>"
+  warning-subtitle: "<gray>ᴇꜱ ᴋᴀɴɴ ᴀᴋᴛᴜᴇʟʟ ᴢᴜ ʟᴀɢꜱ ᴋᴏᴍᴍᴇɴ</gray>"
+  warning-actionbar: "<gray>ᴛᴘꜱ: <white>%tps%</white> | ᴍꜱᴘᴛ: <white>%mspt%</white></gray>"
+
+  # Detaillierte Chat-Nachricht fuer performance.staff
+  staff-message: "%prefix%<gray>ᴛᴘꜱ: <white>%tps%</white> <dark_gray>|</dark_gray> ᴍꜱᴘᴛ: <white>%mspt%</white> <dark_gray>(ꜱᴄʜᴡᴇʟʟᴇɴ: ᴛᴘꜱ ᴜɴᴛᴇʀ %tps_schwelle%, ᴍꜱᴘᴛ üʙᴇʀ %mspt_schwelle%)</dark_gray></gray>"
+
+  # Entwarnung, sobald die Werte wieder ueber der Erholungsschwelle liegen
+  recovery-message: "%prefix%<green>✔ ᴅɪᴇ ꜱᴇʀᴠᴇʀ-ᴘᴇʀꜰᴏʀᴍᴀɴᴄᴇ ɪꜱᴛ ᴡɪᴇᴅᴇʀ ꜱᴛᴀʙɪʟ.</green>"
+
+  console-log-warning: "[ᴘᴇʀꜰᴏʀᴍᴀɴᴄᴇ] ᴡᴀʀɴᴜɴɢ ᴀᴜꜱɢᴇʟöꜱᴛ - ᴛᴘꜱ: %tps%, ᴍꜱᴘᴛ: %mspt%"
+  console-log-recovery: "[ᴘᴇʀꜰᴏʀᴍᴀɴᴄᴇ] ᴘᴇʀꜰᴏʀᴍᴀɴᴄᴇ ᴡɪᴇᴅᴇʀ ꜱᴛᴀʙɪʟ - ᴛᴘꜱ: %tps%, ᴍꜱᴘᴛ: %mspt%"
+
+  command:
+    header: "%prefix%<gray>--- ꜱᴇʀᴠᴇʀ-ᴘᴇʀꜰᴏʀᴍᴀɴᴄᴇ ---</gray>"
+    tps-line: "<gray>ᴛᴘꜱ (1ᴍ/5ᴍ/15ᴍ): %color%%tps1% <dark_gray>/</dark_gray> %color%%tps5% <dark_gray>/</dark_gray> %color%%tps15%</gray>\n"
+    mspt-line: "<gray>ᴍꜱᴘᴛ (ᴀᴠɢ/ᴍᴀx): %color%%mspt_avg%ᴍꜱ <dark_gray>/</dark_gray> %color%%mspt_max%ᴍꜱ</gray>\n"
+    ram-line: "<gray>ʀᴀᴍ: <white>%used%ᴍʙ</white> / <white>%max%ᴍʙ</white> (<white>%percent%%</white>)</gray>\n"
+    world-line: "<gray> - <white>%world%</white>: <white>%chunks%</white> ᴄʜᴜɴᴋꜱ, <white>%entities%</white> ᴇɴᴛɪᴛɪᴇꜱ</gray>"
+
+# =====================================================================
+#  MODUL 3: LEADERBOARD
+# =====================================================================
+leaderboard:
+  reload-success: "%prefix%<green>ʟᴇᴀᴅᴇʀʙᴏᴀʀᴅ-ᴍᴏᴅᴜʟ ɴᴇᴜ ɢᴇʟᴀᴅᴇɴ.</green>"
+  place-success: "%prefix%<green>ʜᴏʟᴏɢʀᴀᴍᴍ '%leaderboard%' ᴡᴜʀᴅᴇ ᴀɴ ᴅɪᴇ ᴡᴀɴᴅ ɢᴇʜäɴɢᴛ (ᴀᴜꜱʀɪᴄʜᴛᴜɴɢ: <white>%direction%</white>). ᴅᴇʀ ᴀɴɢᴇꜱᴄʜᴀᴜᴛᴇ ʙʟᴏᴄᴋ ɪꜱᴛ ᴅɪᴇ ᴜɴᴛᴇʀᴋᴀɴᴛᴇ - ᴅᴀꜱ ʙᴏᴀʀᴅ ᴡäᴄʜꜱᴛ ɴᴀᴄʜ ᴏʙᴇɴ.</green>"
+  move-success: "%prefix%<green>ʜᴏʟᴏɢʀᴀᴍᴍ '%leaderboard%' ᴡᴜʀᴅᴇ ᴠᴇʀꜱᴄʜᴏʙᴇɴ (ᴀᴜꜱʀɪᴄʜᴛᴜɴɢ: <white>%direction%</white>).</green>"
+  place-no-wall: "%prefix%<red>ꜱᴄʜᴀᴜ ᴀᴜꜰ ᴇɪɴᴇ ʙʟᴏᴄᴋᴡᴀɴᴅ (ᴍᴀxɪᴍᴀʟ %distance% ʙʟöᴄᴋᴇ ᴇɴᴛꜰᴇʀɴᴛ), ᴀɴ ᴅᴇʀ ᴅᴀꜱ ʟᴇᴀᴅᴇʀʙᴏᴀʀᴅ ʜäɴɢᴇɴ ꜱᴏʟʟ.</red>"
+  place-not-a-wall: "%prefix%<red>ᴅᴀꜱ ʟᴇᴀᴅᴇʀʙᴏᴀʀᴅ ᴋᴀɴɴ ɴᴜʀ ᴀɴ ᴇɪɴᴇ ꜱᴇɴᴋʀᴇᴄʜᴛᴇ ᴡᴀɴᴅ - ɴɪᴄʜᴛ ᴀᴜꜰ ʙᴏᴅᴇɴ ᴏᴅᴇʀ ᴅᴇᴄᴋᴇ. ꜱᴄʜᴀᴜ ᴀᴜꜰ ᴅɪᴇ ꜱᴇɪᴛᴇ ᴇɪɴᴇꜱ ʙʟᴏᴄᴋꜱ.</red>"
+  invalid-direction: "%prefix%<red>ᴜɴʙᴇᴋᴀɴɴᴛᴇ ʀɪᴄʜᴛᴜɴɢ '%input%'. ɢüʟᴛɪɢ: ɴᴏʀᴛʜ, ꜱᴏᴜᴛʜ, ᴇᴀꜱᴛ, ᴡᴇꜱᴛ.</red>"
+  height-success: "%prefix%<green>ʜöʜᴇ ᴠᴏɴ '%leaderboard%' ᴀᴜꜰ <white>%height%</white> ʙʟöᴄᴋᴇ ɢᴇꜱᴇᴛᴢᴛ - ᴇꜱ ᴘᴀꜱꜱᴇɴ ᴊᴇᴛᴢᴛ <white>%entries%</white> ᴇɪɴᴛʀäɢᴇ ᴘʀᴏ ꜱᴇɪᴛᴇ.</green>"
+  height-invalid: "%prefix%<red>'%input%' ɪꜱᴛ ᴋᴇɪɴᴇ ɢüʟᴛɪɢᴇ ʜöʜᴇ. ᴇʀʟᴀᴜʙᴛ ꜱɪɴᴅ %min% ʙɪꜱ %max% ɢᴀɴᴢᴇ ʙʟöᴄᴋᴇ.</red>"
+  remove-success: "%prefix%<green>ʜᴏʟᴏɢʀᴀᴍᴍ '%leaderboard%' ᴡᴜʀᴅᴇ ᴇɴᴛꜰᴇʀɴᴛ.</green>"
+  remove-not-found: "%prefix%<red>ꜰüʀ '%leaderboard%' ɪꜱᴛ ᴀᴋᴛᴜᴇʟʟ ᴋᴇɪɴ ʜᴏʟᴏɢʀᴀᴍᴍ ᴘʟᴀᴛᴢɪᴇʀᴛ.</red>"
+  invalid-type: "%prefix%<red>ᴜɴʙᴇᴋᴀɴɴᴛᴇꜱ ʟᴇᴀᴅᴇʀʙᴏᴀʀᴅ '%input%'. ɢüʟᴛɪɢᴇ ᴡᴇʀᴛᴇ: ᴘʟᴀʏᴛɪᴍᴇ, ᴋɪʟʟꜱ, ᴅᴇᴀᴛʜꜱ, ᴍᴏɴᴇʏ.</red>"
+  invalid-type-with-all: "%prefix%<red>ᴜɴʙᴇᴋᴀɴɴᴛᴇꜱ ʟᴇᴀᴅᴇʀʙᴏᴀʀᴅ '%input%'. ɢüʟᴛɪɢᴇ ᴡᴇʀᴛᴇ: ᴘʟᴀʏᴛɪᴍᴇ, ᴋɪʟʟꜱ, ᴅᴇᴀᴛʜꜱ, ᴍᴏɴᴇʏ, ᴀʟʟ.</red>"
+  console-needs-coords: "%prefix%<red>ᴠᴏɴ ᴅᴇʀ ᴋᴏɴꜱᴏʟᴇ ᴀᴜꜱ ʙᴇɴöᴛɪɢꜱᴛ ᴅᴜ ꜰᴇꜱᴛᴇ ᴋᴏᴏʀᴅɪɴᴀᴛᴇɴ ᴜɴᴅ ᴇɪɴᴇ ᴡᴇʟᴛ: /ʟᴇᴀᴅᴇʀʙᴏᴀʀᴅ ᴘʟᴀᴄᴇ|ᴍᴏᴠᴇ <leaderboard> <welt> <x> <y> <z> <north|south|east|west></red>"
+
+  excluded-add-success: "%prefix%<green>%player% ᴡᴜʀᴅᴇ ᴠᴏɴ '%leaderboard%' ᴀᴜꜱɢᴇꜱᴄʜʟᴏꜱꜱᴇɴ.</green>"
+  excluded-remove-success: "%prefix%<green>%player% ᴡᴜʀᴅᴇ ᴡɪᴇᴅᴇʀ ᴢᴜ '%leaderboard%' ᴢᴜɢᴇʟᴀꜱꜱᴇɴ.</green>"
+  excluded-list-header: "%prefix%<gray>ᴀᴜꜱɢᴇꜱᴄʜʟᴏꜱꜱᴇɴᴇ ꜱᴘɪᴇʟᴇʀ ꜰüʀ '%leaderboard%':</gray>"
+  excluded-list-empty: "%prefix%<gray>ᴋᴇɪɴᴇ ꜱᴘɪᴇʟᴇʀ ᴀᴜꜱɢᴇꜱᴄʜʟᴏꜱꜱᴇɴ.</gray>"
+  excluded-list-entry: "<gray> - %player%</gray>"
+
+  list-header: "%prefix%<gray>ᴘʟᴀᴛᴢɪᴇʀᴛᴇ ʜᴏʟᴏɢʀᴀᴍᴍᴇ:</gray>"
+  list-entry: "<gray> - <white>%leaderboard%</white>: ᴡᴇʟᴛ <white>%world%</white> (<white>%x%</white>, <white>%y%</white>, <white>%z%</white>), ᴀᴜꜱʀɪᴄʜᴛᴜɴɢ <white>%direction%</white>, ʜöʜᴇ <white>%height%</white> ʙʟöᴄᴋᴇ (<white>%entries%</white> ᴇɪɴᴛʀäɢᴇ)</gray>"
+  list-entry-none: "<gray> - <white>%leaderboard%</white>: <dark_gray>ɴɪᴄʜᴛ ᴘʟᴀᴛᴢɪᴇʀᴛ</dark_gray></gray>"
+
+  tp-success: "%prefix%<green>ᴅᴜ ᴡᴜʀᴅᴇꜱᴛ ᴢᴜ '%leaderboard%' ᴛᴇʟᴇᴘᴏʀᴛɪᴇʀᴛ.</green>"
+  tp-not-found: "%prefix%<red>'%leaderboard%' ɪꜱᴛ ᴀᴋᴛᴜᴇʟʟ ɴɪᴄʜᴛ ᴘʟᴀᴛᴢɪᴇʀᴛ.</red>"
+
+  reset-success: "%prefix%<green>ᴅᴇʀ ᴢᴇɪᴛʀᴀᴜᴍ '%period%' ᴡᴜʀᴅᴇ ꜰüʀ ᴀʟʟᴇ ʟᴇᴀᴅᴇʀʙᴏᴀʀᴅꜱ ᴍᴀɴᴜᴇʟʟ ᴢᴜʀüᴄᴋɢᴇꜱᴇᴛᴢᴛ.</green>"
+  reset-invalid-period: "%prefix%<red>ɢüʟᴛɪɢᴇ ᴢᴇɪᴛʀäᴜᴍᴇ ᴢᴜᴍ ᴍᴀɴᴜᴇʟʟᴇɴ ʀᴇꜱᴇᴛ: ᴡᴇᴇᴋ, ᴍᴏɴᴛʜ.</red>"
+
+  money-unavailable-console: "[ʟᴇᴀᴅᴇʀʙᴏᴀʀᴅ] ᴋᴇɪɴ ᴠᴀᴜʟᴛ ʙᴢᴡ. ᴋᴇɪɴᴇ ᴋᴏᴍᴘᴀᴛɪʙʟᴇ ᴇᴄᴏɴᴏᴍʏ ɢᴇꜰᴜɴᴅᴇɴ - ᴅᴀꜱ ᴍᴏɴᴇʏ-ʟᴇᴀᴅᴇʀʙᴏᴀʀᴅ ᴡɪʀᴅ ᴅᴇᴀᴋᴛɪᴠɪᴇʀᴛ. ᴅɪᴇ ʀᴇꜱᴛʟɪᴄʜᴇɴ ᴍᴏᴅᴜʟᴇ ʟᴀᴜꜰᴇɴ ɴᴏʀᴍᴀʟ ᴡᴇɪᴛᴇʀ."

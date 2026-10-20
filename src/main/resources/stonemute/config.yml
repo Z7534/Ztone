@@ -1,0 +1,17 @@
+settings:
+  # Wie oft (in Sekunden) der Mute-Status aller Online-Spieler gegen LiteBans geprueft wird.
+  # Sorgt dafuer, dass Mutes von anderen Servern im Netzwerk und ablaufende Mutes erkannt werden.
+  refresh-interval-seconds: 10
+
+  # true  = Mutes aus allen LiteBans-Server-Scopes zaehlen (empfohlen fuer netzwerkweiten Mute)
+  # false = nur globale Mutes bzw. der Standard-Scope dieses Servers
+  check-all-server-scopes: true
+
+  # Permission, die den Voicechat-Mute umgeht
+  bypass-permission: "stonemute.bypass"
+
+messages:
+  # MiniMessage-Format
+  muted-actionbar: "<red>ᴅᴜ ʙɪꜱᴛ ɢᴇᴍᴜᴛᴇᴛ ᴜɴᴅ ᴋᴀɴɴꜱᴛ ɪᴍ ᴠᴏɪᴄᴇᴄʜᴀᴛ ɴɪᴄʜᴛ ꜱᴘʀᴇᴄʜᴇɴ."
+  # Mindestabstand zwischen zwei Hinweisen an denselben Spieler
+  notify-cooldown-seconds: 5

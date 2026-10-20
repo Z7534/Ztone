@@ -1,0 +1,121 @@
+# ========================================
+# CLANSYSTEM - LEVEL-KONFIGURATION
+# ========================================
+# Jedes Level hat:
+# - points-required: Punkte, die für dieses Level benötigt werden
+# - rewards: Werte/Freischaltungen, die ab diesem Level gelten
+#
+# WICHTIG ZU LEVEL 1:
+# Level 1 ist der Startzustand jedes neuen Clans (0 Punkte nötig, hat also
+# KEIN eigenes "base-values"-Konstrukt mehr davor). Die Werte unter den
+# "rewards" von Level 1 sind deshalb keine Boni, sondern direkt die
+# Grundausstattung eines frisch gegründeten Clans.
+#
+# Ab Level 2 aufwärts sind max-members, max-warps und chest-rows ADDITIV -
+# sie werden zum bisherigen Gesamtwert hinzugerechnet!
+# Beispiel: Level 1 hat max-members: 15 (Grundwert), Level 2 gibt +5 dazu,
+# macht in Summe 20 Mitglieder ab Level 2.
+#
+# ICONS: "icon" (unter rewards) legt fest, welches Clan-Icon ab diesem
+# Level zusätzlich im Icon-Picker (Clan-Einstellungen) auswählbar wird.
+# Muss ein gültiger Minecraft-Material-Name sein
+# (https://hub.spigotmc.org/javadocs/spigot/org/bukkit/Material.html).
+# Lässt man "icon" bei einem Level einfach weg, gibt es dort keine neue
+# Icon-Freischaltung. So lässt sich frei einstellen, wie viele/welche Icons
+# es gibt und ab welchem Level sie freigeschaltet werden.
+#
+# FARBEN: "colors" ist eine Liste von Farbcodes, die ab diesem Level
+# zusätzlich in der Clan-Farbauswahl (und als Start-/Endfarbe für den
+# Farbverlauf) auswählbar werden. Gültige Codes sind die 15 in
+# ColorUtils.NAMED_COLORS hinterlegten Codes: &0 &1 &2 &3 &4 &5 &6 &7 &8 &9
+# &a &b &c &e &f (also alle "normalen" Minecraft-Farbcodes ohne &d).
+# Jede Farbe sollte genau EINMAL über alle Level verteilt vorkommen.
+#
+# GRADIENT / DURCHGESTRICHEN / GLOW: Die drei Schalter
+# "gradient-unlocked", "strikethrough-unlocked" und "glow-unlocked"
+# schalten die jeweilige Funktion einmalig ab genau dem Level frei, bei
+# dem der entsprechende Schalter auf "true" steht:
+# - gradient-unlocked: Farbverlauf (zwei-farbiger Verlauf) für Clan-Name/-Suffix
+# - strikethrough-unlocked: Durchgestrichene Formatierung für Clan-Name/-Suffix
+# - glow-unlocked: Glow-Effekt (Mitglieder leuchten für das eigene Team durch Wände)
+# Ist keiner dieser Schalter irgendwo gesetzt, gilt die jeweilige Funktion
+# als von Anfang an freigeschaltet.
+
+# Level-Definitionen
+levels:
+  1:
+    points-required: 0
+    rewards:
+      max-members: 15      # Grundwert: 15 Mitglieder
+      max-warps: 3          # Grundwert: 3 Warps
+      chest-rows: 3          # Grundwert: 3 Reihen
+      icon: COAL_BLOCK
+      colors: ["&f", "&5", "&7", "&9", "&a"]   # White, Dark Purple, Gray, Blue, Green
+
+  2:
+    points-required: 200
+    rewards:
+      max-members: 5      # +5 (jetzt 20)
+      max-warps: 2          # +2 (jetzt 5)
+      chest-rows: 1          # +1 (jetzt 4 Reihen)
+      icon: COPPER_BLOCK
+      colors: ["&b", "&e"]   # Aqua, Yellow
+      gradient-unlocked: true
+
+  3:
+    points-required: 1200
+    rewards:
+      max-members: 5      # +5 (jetzt 25)
+      max-warps: 2          # +2 (jetzt 7)
+      chest-rows: 1          # +1 (jetzt 5 Reihen)
+      icon: IRON_BLOCK
+      colors: ["&1", "&3"]   # Dark Blue, Dark Aqua
+      glow-unlocked: true
+
+  4:
+    points-required: 2000
+    rewards:
+      max-members: 5      # +5 (jetzt 30)
+      max-warps: 1          # +1 (jetzt 8)
+      chest-rows: 1          # +1 (jetzt 6 Reihen, damit ist das Maximum erreicht)
+      icon: GOLD_BLOCK
+      colors: ["&0", "&8"]   # Black, Dark Gray
+      strikethrough-unlocked: true
+
+  5:
+    points-required: 3000
+    rewards:
+      max-members: 5      # +5 (jetzt 35)
+      max-warps: 1          # +1 (jetzt 9)
+      icon: EMERALD_BLOCK
+      colors: ["&c", "&4"]   # Red, Dark Red
+
+  6:
+    points-required: 4000
+    rewards:
+      max-members: 10     # +10 (jetzt 45)
+      max-warps: 2          # +2 (jetzt 11)
+      icon: AMETHYST_BLOCK
+      colors: ["&2"]         # Dark Green
+
+  7:
+    points-required: 5200
+    rewards:
+      max-members: 10     # +10 (jetzt 55)
+      max-warps: 2          # +2 (jetzt 13)
+      icon: DIAMOND_BLOCK
+      colors: ["&6"]         # Gold
+
+  8:
+    points-required: 6800
+    rewards:
+      max-members: 10     # +10 (jetzt 65)
+      max-warps: 2          # +2 (jetzt 15)
+      icon: NETHERITE_BLOCK
+
+  9:
+    points-required: 7800
+    rewards:
+      max-members: 35     # +10 (jetzt 100)
+      max-warps: 2          # +2 (jetzt 17)
+      icon: TOTEM_OF_UNDYING

@@ -1,0 +1,109 @@
+# ==============================================================================
+#                        ZTONE - GLOBALE KONFIGURATION
+# ==============================================================================
+# In dieser Datei werden grundlegende Einstellungen für das gesamte Plugin
+# verwaltet sowie die einzelnen Unterplugins / Module aktiviert oder deaktiviert.
+#
+# Wenn ein Modul hier deaktiviert wird (false), werden alle zugehörigen
+# Listener und Timer gestoppt und dessen Befehle werden Spielern im Chat
+# gar nicht mehr als Vorschlag (Tab-Completion) angezeigt.
+#
+# Die detaillierten Konfigurationen der einzelnen Unterplugins befinden sich in:
+#  - Clansystem:  plugins/Ztone/clansystem/ (config.yml, messages.yml, level.yml)
+#  - PvPManager:  plugins/Ztone/pvpmanager/ (config.yml, plugin-hooks.yml, locale/)
+#  - Claims:      plugins/Ztone/claims/ (config.yml, messages.yml)
+#  - StoneAttack: plugins/Ztone/stoneattack/ (config.yml, messages.yml)
+#  - Stonelog:    plugins/Ztone/stonelog/ (config.yml)
+#  - Stonemute:   plugins/Ztone/stonemute/ (config.yml)
+#  - MapControl:  plugins/Ztone/mapcontrol/ (config.yml)
+#  - StoneVoice:  plugins/Ztone/stonevoice/
+#  - PlayRewards: plugins/Ztone/playrewards/ (config.yml, rewards/)
+#  - Deathchest:  plugins/Ztone/deathchest/ (config.yml)
+# ==============================================================================
+
+# ==============================================================================
+#                            MODULE / UNTERPLUGINS
+# ==============================================================================
+# Schalte hier die einzelnen Module nach Bedarf ein (true) oder aus (false).
+#
+# WICHTIG: Ist ein Modul auf 'false', werden seine Commands im Chat für Spieler
+# komplett ausgeblendet und tauchen nicht mehr in Tab-Vorschlägen auf!
+#
+# Hinweis zur Clankasse: Die Clankasse/Bank ist direkt fest in das 'clansystem'
+# integriert und wird zusammen mit dem Clansystem aktiviert (sofern Vault vorhanden ist).
+modules:
+  # Clansystem: Clans, Ränge, Allianzen, Clankriege, Level & Clankasse/Bank
+  # Befehle: /clan, /clanadmin
+  # Detaillierte Config: plugins/Ztone/clansystem/
+  clansystem: true
+
+  # PvPManager: Combat-Tagging, Anti-Combatlog, PvP-Toggle, Respawn-Schutz, Belohnungen
+  # Befehle: /pvp, /togglepvp, /pvptag, /combattag, /soup, etc.
+  # Detaillierte Config: plugins/Ztone/pvpmanager/
+  pvpmanager: true
+
+  # Claims: Land beanspruchen, Schutzrechte, Chunk-Verwaltung, Claim-Menüs
+  # Befehle: /claim, /staffclaim
+  # Detaillierte Config: plugins/Ztone/claims/
+  claims: true
+
+  # StoneAttack: Event-Leaderboards, Playerlimit, Performance/TPS-Überwachung
+  # Befehle: /stoneattack, /playerlimit, /performance, /tps, /leaderboard
+  # Detaillierte Config: plugins/Ztone/stoneattack/
+  stoneattack: true
+
+  # Stonelog: Discord-Webhook-Logging für Serverchat, Befehle, Spielertode, Joins/Quits
+  # Befehle: /stonelog
+  # Detaillierte Config: plugins/Ztone/stonelog/
+  stonelog: true
+
+  # Stonemute: Überträgt LiteBans Mutes automatisch auf SimpleVoiceChat
+  # Benötigt: SimpleVoiceChat & LiteBans
+  # Detaillierte Config: plugins/Ztone/stonemute/
+  stonemute: true
+
+  # MapControl: Erzwingt Serverregeln für Minimaps & WorldMaps (JourneyMap, VoxelMap, Xaero)
+  # Befehle: /mapcontrol
+  # Detaillierte Config: plugins/Ztone/mapcontrol/
+  mapcontrol: true
+
+  # StoneVoice: Voice Chat Admin Join & Channel Management
+  # Befehle: /adminjoinvoice
+  # Benötigt: SimpleVoiceChat
+  stonevoice: true
+
+  # PlayRewards: Tägliche Belohnungen, Spielzeit-Tracking, Login-Streaks, Belohnungs-GUIs
+  # Befehle: /playrewards, /pr, /playreward
+  # Detaillierte Config: plugins/Ztone/playrewards/
+  playrewards: true
+
+  # Deathchest: Todesdoppelkisten bei Spielertod, Anti-Griefing, Hologramm-Timer, Killer-Lock
+  # Detaillierte Config: plugins/Ztone/deathchest/
+  deathchest: true
+
+
+# ==============================================================================
+#                      DATENBANK-KONFIGURATION
+# ==============================================================================
+# Wie vorher werden standardmäßig die einzelnen Datenbankdateien der Module
+# verwendet (clans.db, claims.db, data/leaderboard.db).
+# Bestehende Datenbanken aus den alten Plugin-Ordnern (plugins/Clansystem/,
+# plugins/Claims/, plugins/Stoneattack/) werden vollautomatisch erkannt und übernommen!
+database:
+  # Speicher-Typ: "sqlite" (lokale .db-Dateien wie vorher) oder "mariadb" / "mysql" (externer Server)
+  type: "sqlite"
+
+  # Clan-Datenbank (wie vorher: clans.db mit clan_ Prefix)
+  file: "clans.db"
+  table-prefix: "clan_"
+
+  # Zugangsdaten für externen MariaDB / MySQL Server
+  mariadb:
+    host: "localhost"
+    port: 3306
+    database: "ztone"
+    username: "root"
+    password: ""
+    use-ssl: false
+    # Maximale Anzahl gleichzeitiger Datenbankverbindungen im Pool
+    pool-size: 10

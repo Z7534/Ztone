@@ -1,0 +1,365 @@
+# =====================================================================
+#  Stoneattack - Konfiguration
+#  Alle drei Module koennen unabhaengig voneinander an-/abgeschaltet
+#  werden. Nach Aenderungen reicht /stoneattack reload (kein Neustart
+#  noetig).
+# =====================================================================
+
+module:
+  # Modul 1: Dynamisches Spielerlimit
+  playerlimit: true
+  # Modul 2: TPS/MSPT-Ueberwachung
+  performance: false
+  # Modul 3: Leaderboard-Hologramme
+  leaderboard: true
+
+# =====================================================================
+#  MODUL 1: DYNAMISCHES SPIELERLIMIT
+# =====================================================================
+playerlimit:
+  # Das aktuelle Spielerlimit. -1 = deaktiviert (unbegrenzt).
+  # Dieser Wert wird von /playerlimit set <zahl> und /playerlimit off
+  # AUTOMATISCH hier eingetragen - das zuletzt gesetzte Limit ist also
+  # immer der Standard und bleibt nach jedem Neustart erhalten.
+  # Manuell aendern + /stoneattack reload funktioniert ebenfalls.
+  default-limit: -1
+
+  # Soll die im Serverlisten-Ping (Multiplayer-Liste) angezeigte
+  # Maximalzahl an Spielern das aktuell gesetzte Limit widerspiegeln?
+  ping-shows-limit: true
+
+  # Reihenfolge der gekickten Spieler beim Verkleinern des Limits:
+  # Es werden immer die Spieler mit der HOECHSTEN Position (also die
+  # zuletzt gejointen) zuerst gekickt. Bypass-Spieler werden dabei nie
+  # gekickt und zaehlen nicht als kickbare Position.
+  # (Die Texte dazu stehen in der messages.yml)
+
+  # Permission, deren Inhaber ueber gekickte Spieler zusaetzlich per
+  # Chat informiert werden (leer lassen = deaktiviert).
+  staff-notify-permission: "playerlimit.staff"
+
+  # Zusaetzliches, rein informatives Logging der Join-Reihenfolge in
+  # eine Logdatei unter plugins/Stoneattack/logs/. Es wird taeglich
+  # eine neue Datei angelegt (z. B. playerlimit-2026-06-16.log).
+  join-order-logging:
+    enabled: true
+
+  # Placeholder fuer PlaceholderAPI (Modul 1)
+  placeholder:
+    # %stoneattack_playerlimit_max% -> aktuelles Limit (oder Vanilla-Wert, wenn deaktiviert)
+    # %stoneattack_playerlimit_current% -> aktuelle Spielerzahl (inkl. Bypass-Spieler)
+    # %stoneattack_playerlimit_free% -> freie Plaetze
+    enabled: true
+
+# =====================================================================
+#  MODUL 2: TPS- / MSPT-UEBERWACHUNG
+# =====================================================================
+performance:
+  # Intervall der Pruefung in Sekunden
+  check-interval-seconds: 30
+
+  # Schwellenwerte: Warnung wird ausgeloest, wenn TPS darunter bzw.
+  # MSPT darueber liegt.
+  tps-threshold: 18.0
+  mspt-threshold: 45.0
+
+  # "AND" = beide Werte muessen schlecht sein, "OR" = einer reicht
+  threshold-mode: "OR"
+
+  # Erholungs-Schwellenwerte (Hysterese), damit die Entwarnung nicht
+  # bei jedem kleinen Ausschlag flackert. Muessen besser sein als die
+  # obigen Schwellenwerte.
+  recovery-tps-threshold: 19.0
+  recovery-mspt-threshold: 40.0
+
+  # Cooldown in Sekunden: so lange erscheint keine erneute Warnung,
+  # nachdem einmal gewarnt wurde.
+  warning-cooldown-seconds: 300
+
+  # Titel/Subtitel-Warnung (Texte selbst stehen in der messages.yml,
+  # hier nur das "Wie": Timings/Sound/Actionbar an-aus)
+  warning:
+    fade-in-ticks: 10
+    stay-ticks: 60
+    fade-out-ticks: 10
+    actionbar-enabled: false
+    sound-enabled: false
+    sound: "block.note_block.pling"
+    sound-volume: 1.0
+    sound-pitch: 0.7
+
+  # Nachricht bei Entwarnung (einmalig, nur wenn vorher gewarnt wurde)
+  recovery:
+    enabled: true
+
+  # Warnung zusaetzlich in die Konsole schreiben
+  log-to-console: true
+
+  # Farbschema fuer den /performance-Command (gut/mittel/schlecht)
+  command:
+    good-color: "<green>"
+    warn-color: "<yellow>"
+    bad-color: "<red>"
+
+# =====================================================================
+#  MODUL 3: LEADERBOARD-HOLOGRAMME
+# =====================================================================
+leaderboard:
+  # Welche der vier Leaderboards sind ueberhaupt aktiv?
+  types:
+    playtime: true
+    kills: true
+    deaths: true
+    # Wird automatisch deaktiviert (mit Konsolen-Meldung), wenn kein
+    # Vault bzw. keine Economy vorhanden ist.
+    money: true
+
+  # EIGENE WERTQUELLE per PlaceholderAPI-Platzhalter (optional)
+  # Hast du z. B. ein eigenes Playtime-Plugin (ohne AFK-Zeit o. ae.)? Dann trag
+  # hier einfach dessen Platzhalter ein, z. B.  placeholder: "%meinplaytime_seconds%"
+  # Leer lassen ("") = normale Quelle (Vanilla-Statistik bzw. Vault bei money).
+  #  - Der Platzhalter MUSS eine ZAHL liefern (nur so laesst sich ranken).
+  #  - Jede Formatierung im Ergebnis (Farbcodes, &a, §a, Hex, <tags>) wird
+  #    automatisch entfernt; Einheiten wie "h" werden ignoriert.
+  #  - Angezeigt wird der Wert danach wie immer ueber leaderboard.format.* und
+  #    wandert durch die Small-Caps-Umwandlung (leaderboard.small-caps).
+  #  - Der Platzhalter wird pro Spieler aufgeloest (auch offline). Teste ihn mit
+  #    /papi parse <spieler> <platzhalter>. Muss PlaceholderAPI installiert sein.
+  #  - NACH DEM WECHSEL der Quelle am besten /leaderboard reset week und
+  #    /leaderboard reset month ausfuehren, sonst passen die Wochen-/Monats-
+  #    Basiswerte nicht mehr zur neuen Quelle.
+  value-placeholders:
+    playtime:
+      placeholder: "%lushrewards_global_playtime%"
+      # Einheit des Platzhalter-Werts: ticks | seconds | minutes | hours
+      unit: "minutes"
+    kills:
+      placeholder: ""
+    deaths:
+      placeholder: ""
+    money:
+      placeholder: ""
+
+  # VOLLSTAENDIGER Durchlauf: Intervall in Sekunden, in dem ALLE je
+  # bekannten Spieler (auch offline) asynchron neu eingelesen werden.
+  # Das ist der teure Scan - ruhig gross lassen.
+  cache-refresh-interval-seconds: 60
+
+  # LIVE-Aktualisierung: Intervall in Sekunden, in dem nur die ONLINE-
+  # Spieler neu abgefragt und direkt in die Rangliste einsortiert werden.
+  # Dadurch laufen Spielzeit/Kills/Tode/Geld praktisch in Echtzeit ueber
+  # das Board, ohne den grossen Scan zu belasten. 0 ist nicht erlaubt,
+  # Minimum ist 1 Sekunde.
+  live-refresh-interval-seconds: 3
+
+  # Einige Spieler haben u. U. keine lesbare Statistikdatei (siehe
+  # Code-Kommentar in VanillaStatisticsProvider) -> Fallback direkt
+  # aus world/stats/<uuid>.json
+  statistics-fallback-to-json: true
+
+  # Zeitzone fuer die automatischen Zeitraum-Resets (Week: Montag
+  # 00:00, Month: 1. des Monats 00:00). DST wird durch ZoneId
+  # automatisch korrekt beruecksichtigt.
+  reset-timezone: "Europe/Berlin"
+
+  # Wie viele Eintraege maximal geblaettert werden koennen (z. B.
+  # Platz 1-50)
+  max-rank: 50
+
+  # Standardhoehe eines neu platzierten Boards in GANZEN Bloecken.
+  # Pro Leaderboard aenderbar mit:  /leaderboard height <leaderboard> <bloecke>
+  # Mehr Hoehe = NUR mehr Spielerzeilen; Schrift, Buttons und Raender
+  # bleiben exakt gleich gross.
+  # Das Board steht mit seiner Unterkante auf der unteren Kante des Blocks,
+  # den du beim Platzieren angeschaut hast, und waechst nach OBEN. Dadurch
+  # sitzt es bei jeder Hoehe buendig im Blockraster.
+  # Zwischenwerte werden auf ganze Bloecke gerundet.
+  default-height-blocks: 3
+
+  # Seitenanzeige zwischen den Pfeilen anzeigen ("Seite 1/10")
+  show-page-indicator: true
+  page-indicator-format: "<gray>ꜱᴇɪᴛᴇ %page%/%max_page%</gray>"
+
+  # Formatierung der Werte
+  format:
+    # z.B. "128h 42m"
+    playtime-format: "%hours%ʜ %minutes%ᴍ"
+    kills-suffix: " ᴋɪʟʟꜱ"
+    deaths-suffix: " ᴛᴏᴅᴇ"
+    # Nur relevant, falls Vault/Economy#format() nicht verfuegbar ist.
+    money-fallback-format: "#,##0.00 $"
+
+  # Text/Aussehen der Titelzeile je Leaderboard (Platzhalter: %period%)
+  titles:
+    playtime: "<gradient:#55C4FF:#1E90FF><b>ꜱᴘɪᴇʟᴢᴇɪᴛ</b></gradient>  <gray>[%period%]</gray>"
+    kills: "<gradient:#FF6B6B:#C41E3A><b>ᴋɪʟʟꜱ</b></gradient>  <gray>[%period%]</gray>"
+    deaths: "<gradient:#8A8A8A:#3A3A3A><b>ᴛᴏᴅᴇ</b></gradient>  <gray>[%period%]</gray>"
+    money: "<gradient:#FFD700:#B8860B><b>ᴋᴏɴᴛᴏꜱᴛᴀɴᴅ</b></gradient>  <gray>[%period%]</gray>"
+
+  period-names:
+    global: "ɢʟᴏʙᴀʟ"
+    month: "ᴍᴏɴᴀᴛ"
+    week: "ᴡᴏᴄʜᴇ"
+
+  # Sound-Einstellungen der Buttons/Pfeile
+  buttons:
+    click-sound: "ui.button.click"
+    click-sound-volume: 0.6
+    click-sound-pitch: 1.2
+
+  # Darstellung der Eintragszeilen
+  entries:
+    line-format: "%rank_prefix% <white>%player%</white>  <gray>»</gray>  <yellow>%value%</yellow>"
+    # Platz 1-3 bekommen einen schlichten farbigen Kreis (Gold/Silber/Bronze).
+    top-rank-prefix:
+      "1": "<gold>●</gold>"
+      "2": "<gray>●</gray>"
+      "3": "<color:#CD7F32>●</color>"
+    default-rank-prefix: "<dark_gray>#%rank%</dark_gray>"
+    empty-slot-text: "<dark_gray>---</dark_gray>"
+
+  # Zeile des betrachtenden Spielers selbst (immer sichtbar)
+  self-line:
+    format: "<aqua>ᴅᴜ</aqua>  <gray>#%rank%</gray>  <gray>»</gray>  <yellow>%value%</yellow>"
+    fallback-text: "<gray>ᴅᴜ – ɴᴏᴄʜ ᴋᴇɪɴᴇ ᴅᴀᴛᴇɴ</gray>"
+
+  # Platzieren: /leaderboard place <leaderboard> haengt das Board an die Blockwand,
+  # auf die du schaust (maximal so viele Bloecke entfernt)
+  placement:
+    max-distance: 8.0
+
+  # Small Caps ("ꜱᴍᴀʟʟ ᴄᴀᴘꜱ") fuer ALLE Texte der Leaderboards. Nutzt normale
+  # Unicode-Zeichen - kein Resourcepack noetig.
+  small-caps:
+    enabled: true
+    # true  = auch Grossbuchstaben werden zu Small Caps (einheitlicher Look)
+    # false = Grossbuchstaben bleiben gross (z. B. "Sᴛᴇᴠᴇ")
+    convert-uppercase: true
+
+  # Das Board ist immer 3 Bloecke breit; die Hoehe kommt pro Leaderboard
+  # aus /leaderboard height. Hier nur Textgroessen und Feinjustierung.
+  layout:
+    # Groesse der Text-Zeilen in der Spielerliste (kleiner = passen laengere
+    # Namen UND es passen mehr Zeilen in dieselbe Hoehe)
+    text-scale: 0.85
+    # Groesse der Beschriftung in den 3 Modus-Buttons
+    button-text-scale: 0.62
+    # Groesse der Seitenanzeige ("Seite 1/10") und der beiden Pfeile
+    pager-text-scale: 0.62
+    arrow-text-scale: 0.80
+    # Obergrenze fuer die Zeilen pro Seite, egal wie hoch das Board ist
+    max-entries-per-page: 50
+    # Zeilenabstand EINER Textzeile bei Skalierung 1, in Bloecken. Eine Zeile
+    # belegt in der Textbox 10 Pixel, ein Pixel ist 1/40 Block -> 0.25.
+    # Finger weg, solange die Zeilen sauber in ihren Feldern sitzen: ist der
+    # Wert zu klein, wandert jede weitere Zeile ein Stueck nach oben, und der
+    # erste Platz landet irgendwann im Titel.
+    line-height: 0.25
+    # FEINJUSTIERUNG der senkrechten Textausrichtung: Hoehe der Textmitte
+    # ueber dem Ankerpunkt eines Text-Displays (in Bloecken, bei Skalierung 1).
+    #   0.125  = geometrische Mitte der Textbox
+    #   0.1375 = optische Mitte fuer Grossbuchstaben/Small Caps (Standard)
+    # Sitzen Trennlinien und Buttons bei dir minimal zu hoch/tief zum Text,
+    # ist das die Stellschraube (in 0.0125er-Schritten = 1/2 Pixel).
+    text-center-offset: 0.1375
+
+  # Farben (Hex). Alles wird aus abgerundeten Flaechen zusammengesetzt.
+  style:
+    # Durchsichtigkeit ALLER Hintergrundflaechen (Panel, Rahmen, Trennlinien,
+    # Buttons, Seitenanzeige): 0.0 = voll deckend, 1.0 = unsichtbar.
+    # 0.3 = 30 % durchsichtig / 70 % deckend.
+    # Der Text selbst bleibt immer voll sichtbar.
+    transparency: 0.3
+
+    panel-color: "#12151B"
+    panel-border-color: "#2F3644"
+    separator-color: "#2F3644"
+    button-color: "#252B36"
+    # Markierung des gerade aktiven Modus (Global / Monat / Woche)
+    button-active-color: "#2E8B57"
+    page-pill-color: "#1C2029"
+
+    # Hover: Rahmen + leichte Fuellung auf dem Button, auf den der Spieler gerade schaut.
+    # Bewusst deckender als der Hintergrund, damit er sich abhebt.
+    hover-color: "#9BD1FF"
+    hover-transparency: 0.15
+    hover-thickness: 0.022
+    # Leichte Fuellung des gehoverten Buttons (0.0 = voll deckend, 1.0 = unsichtbar).
+    hover-fill-color: "#9BD1FF"
+    hover-fill-transparency: 0.80
+    # Icons in den Buttons. Wird eines als Kaestchen dargestellt: einfach
+    # durch ein anderes Zeichen ersetzen.
+    # Schlanke, gleichmaessige Symbole. Alternativen zum Ausprobieren:
+    #   Pfeile:  ❮ ❯  |  ‹ ›  |  ◀ ▶  |  ◄ ►  |  « »
+    #   Global:  ✪ ★ ✸ ◈ ∞
+    #   Monat:   ☾ ☽ ◑ ❍
+    #   Woche:   ✦ ✧ ☀ ✹
+    icons:
+      arrow-left: "❮"
+      arrow-right: "❯"
+      global: "✪"
+      month: "☾"
+      week: "✦"
+
+  # Hover-Effekt auf den Buttons und Pfeilen. Minecraft kennt kein Hover-Event
+  # fuer Entities - das Plugin rechnet den Blickstrahl selbst gegen die
+  # Board-Flaeche (jeden Tick, das kostet praktisch nichts).
+  hover:
+    enabled: true
+    # Bis zu welcher Entfernung (in Bloecken) ein Button hervorgehoben wird
+    max-distance: 6.0
+
+    # Die Animation. Bewegung und Groesse berechnet der Client selbst (fluessig, unabhaengig
+    # von der Server-TPS); Ein-/Ausblenden laeuft in Einzelschritten pro Tick.
+    # Alle Zeiten in Ticks (20 Ticks = 1 Sekunde).
+    animation:
+      # Einblenden/Ausblenden (Dauer)
+      fade-ticks: 4
+      # Beim Einblenden "poppt" der Cursor von dieser Groesse (1.0 = normal) auf 100 %
+      pop-scale: 0.90
+      pop-ticks: 3
+      # Wandert der Blick zwischen den 3 Modus-Buttons, gleitet der Cursor in dieser Zeit hinueber
+      glide-ticks: 4
+      # So lange bleibt der Cursor stehen, wenn der Blick kurz neben einen Button rutscht
+      # (verhindert Flackern in der Luecke zwischen zwei Buttons)
+      leave-grace-ticks: 2
+      # Beim Ausblenden schrumpft der Cursor leicht auf diese Groesse
+      leave-scale: 0.94
+
+      # Beschriftung des gehoverten Buttons: Groessenfaktor (1.0 = keine Vergroesserung)
+      label-lift: 1.12
+      label-ticks: 3
+      # Die beiden Pfeile rutschen dabei so viele Bloecke nach aussen (0 = aus)
+      label-nudge: 0.03
+
+      # Klick-Effekt: Cursor + Text druecken sich auf press-scale ein und federn
+      # ueber overshoot-scale zurueck auf 1.0 (1.0 = kein Effekt)
+      press-scale: 0.90
+      overshoot-scale: 1.05
+
+      # Heller Streifen, der beim Ansehen einmal ueber den Button wischt
+      shine-enabled: true
+      shine-ticks: 8
+      shine-color: "#FFFFFF"
+      shine-transparency: 0.45
+
+      # Leises Tick-Geraeusch beim Wechsel auf einen (neuen) Button
+      sound-enabled: true
+      sound: "block.note_block.hat"
+      sound-volume: 0.10
+      sound-pitch: 2.0
+
+  # Aussehen/Verhalten der Hologramm-Entities
+  render:
+    view-distance-blocks: 32
+    # Wie oft der Render-Task laeuft. Der Text wird nur dann wirklich neu
+    # gebaut, wenn sich Datenstand, Seite oder Zeitraum geaendert haben -
+    # ein kleiner Wert kostet also kaum etwas und laesst das Board schneller
+    # auf neue Werte und Klicks reagieren.
+    update-interval-ticks: 10
+    text-shadow: true
+    # Volle Helligkeit, damit das Board auch in dunklen Ecken lesbar ist
+    fullbright: true
+
+  # Sound bei jedem Klick (Buttons/Pfeile)
+  click-sound-enabled: true

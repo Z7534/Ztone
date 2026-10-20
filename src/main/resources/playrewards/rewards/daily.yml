@@ -1,0 +1,414 @@
+# ==============================================================================
+# PlayReward - Tägliche Belohnungen (Daily Rewards)
+# Reset: Jeden Tag automatisch um 00:00 Uhr (Europe/Berlin)
+# Schlangenlinien-Weg (19 Slots pro Seite):
+# Start oben links -> ganz runter -> 2 nach rechts -> ganz hoch -> 2 nach rechts -> ganz runter -> 2 nach rechts -> ganz hoch!
+# Automatische Paginierung auf Seite 2 ab 20 Belohnungen!
+# Icons: Basic-Kopf (Holztruhe), Besonderer Kopf (Goldener Stern), Epischer Kopf (Krone)
+# Bereits eingelöste Belohnungen erhalten automatisch den grünen Haken-Kopf!
+# ==============================================================================
+
+title: "<gradient:#FFAA00:#FF5500><bold>Tägliche Belohnungen</bold></gradient>"
+frame_glass: "ORANGE_STAINED_GLASS_PANE"
+
+rewards:
+  tier_1:
+    slot: -1
+    required_playtime_minutes: 0
+    name: "<gold><bold>Tages-Startbelohnung</bold></gold>"
+    material: "PLAYER_HEAD"
+    custom_head_texture: "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNTcyNmQ5ZDA2MzJlNDBiZGE1YmNmNjU4MzliYTJjYzk4YTg3YmQ2MTljNTNhZGYwMDMxMGQ2ZmM3MWYwNDJiNSJ9fX0="
+    lore_preview:
+      - "<green>Direkt nach dem Login verfügbar!"
+      - ""
+      - "<yellow>Belohnungen:</yellow>"
+      - " <gold>+ 500 Münzen"
+      - " <aqua>+ cooked_beef 16"
+    commands:
+      - "eco give %player% 500"
+      - "give %player% cooked_beef 16"
+
+  tier_2:
+    slot: -1
+    required_playtime_minutes: 10
+    name: "<gold><bold>10 Minuten: Erster Schritt</bold></gold>"
+    material: "PLAYER_HEAD"
+    custom_head_texture: "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNTcyNmQ5ZDA2MzJlNDBiZGE1YmNmNjU4MzliYTJjYzk4YTg3YmQ2MTljNTNhZGYwMDMxMGQ2ZmM3MWYwNDJiNSJ9fX0="
+    lore_preview:
+      - "<gray>10 Minuten aktive Spielzeit heute."
+      - ""
+      - "<yellow>Belohnungen:</yellow>"
+      - " <gold>+ 750 Münzen"
+      - " <aqua>+ bread 8"
+    commands:
+      - "eco give %player% 750"
+      - "give %player% bread 8"
+
+  tier_3:
+    slot: -1
+    required_playtime_minutes: 20
+    name: "<gold><bold>20 Minuten: Fleißiger Arbeiter</bold></gold>"
+    material: "PLAYER_HEAD"
+    custom_head_texture: "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNTcyNmQ5ZDA2MzJlNDBiZGE1YmNmNjU4MzliYTJjYzk4YTg3YmQ2MTljNTNhZGYwMDMxMGQ2ZmM3MWYwNDJiNSJ9fX0="
+    lore_preview:
+      - "<gray>20 Minuten aktiv dabei."
+      - ""
+      - "<yellow>Belohnungen:</yellow>"
+      - " <gold>+ 1.000 Münzen"
+      - " <aqua>+ torch 16"
+    commands:
+      - "eco give %player% 1000"
+      - "give %player% torch 16"
+
+  tier_4:
+    slot: -1
+    required_playtime_minutes: 30
+    name: "<gold><bold>30 Minuten: Snack-Pause</bold></gold>"
+    material: "PLAYER_HEAD"
+    custom_head_texture: "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNTcyNmQ5ZDA2MzJlNDBiZGE1YmNmNjU4MzliYTJjYzk4YTg3YmQ2MTljNTNhZGYwMDMxMGQ2ZmM3MWYwNDJiNSJ9fX0="
+    lore_preview:
+      - "<gray>Eine halbe Stunde Spielzeit."
+      - ""
+      - "<yellow>Belohnungen:</yellow>"
+      - " <gold>+ 1.250 Münzen"
+      - " <aqua>+ cookie 8"
+    commands:
+      - "eco give %player% 1250"
+      - "give %player% cookie 8"
+
+  tier_5:
+    slot: -1
+    required_playtime_minutes: 45
+    name: "<gold><bold>45 Minuten: Ausdauer</bold></gold>"
+    material: "PLAYER_HEAD"
+    custom_head_texture: "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNTcyNmQ5ZDA2MzJlNDBiZGE1YmNmNjU4MzliYTJjYzk4YTg3YmQ2MTljNTNhZGYwMDMxMGQ2ZmM3MWYwNDJiNSJ9fX0="
+    lore_preview:
+      - "<gray>Dreiviertelstunde erreicht."
+      - ""
+      - "<yellow>Belohnungen:</yellow>"
+      - " <gold>+ 1.500 Münzen"
+      - " <aqua>+ iron_ingot 4"
+    commands:
+      - "eco give %player% 1500"
+      - "give %player% iron_ingot 4"
+
+  tier_6:
+    slot: -1
+    required_playtime_minutes: 60
+    name: "<gold><bold>1 Stunde: Meilenstein</bold></gold>"
+    material: "PLAYER_HEAD"
+    custom_head_texture: "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvZjk3ZTJjOGI4Mjc2Mjc2ZTM4ZGVjYTg4NTA4NzJkNTllY2M5YzFmMzhmMmFkY2U0MDg1OGVkYjllNjM0ZDdiYSJ9fX0="
+    lore_preview:
+      - "<yellow>★ 1 Stunde Spielzeit-Meilenstein!"
+      - ""
+      - "<yellow>Belohnungen:</yellow>"
+      - " <gold>+ 2.500 Münzen"
+      - " <aqua>+ iron_ingot 8"
+    commands:
+      - "eco give %player% 2500"
+      - "give %player% iron_ingot 8"
+
+  tier_7:
+    slot: -1
+    required_playtime_minutes: 75
+    name: "<gold><bold>75 Minuten: Dranbleiben</bold></gold>"
+    material: "PLAYER_HEAD"
+    custom_head_texture: "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNTcyNmQ5ZDA2MzJlNDBiZGE1YmNmNjU4MzliYTJjYzk4YTg3YmQ2MTljNTNhZGYwMDMxMGQ2ZmM3MWYwNDJiNSJ9fX0="
+    lore_preview:
+      - "<gray>75 Minuten treue Aktivität."
+      - ""
+      - "<yellow>Belohnungen:</yellow>"
+      - " <gold>+ 3.000 Münzen"
+      - " <aqua>+ gold_ingot 4"
+    commands:
+      - "eco give %player% 3000"
+      - "give %player% gold_ingot 4"
+
+  tier_8:
+    slot: -1
+    required_playtime_minutes: 90
+    name: "<gold><bold>90 Minuten: Anderthalb Stunden</bold></gold>"
+    material: "PLAYER_HEAD"
+    custom_head_texture: "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNTcyNmQ5ZDA2MzJlNDBiZGE1YmNmNjU4MzliYTJjYzk4YTg3YmQ2MTljNTNhZGYwMDMxMGQ2ZmM3MWYwNDJiNSJ9fX0="
+    lore_preview:
+      - "<gray>Anderthalb Stunden geschafft."
+      - ""
+      - "<yellow>Belohnungen:</yellow>"
+      - " <gold>+ 3.500 Münzen"
+      - " <aqua>+ gold_ingot 6"
+    commands:
+      - "eco give %player% 3500"
+      - "give %player% gold_ingot 6"
+
+  tier_9:
+    slot: -1
+    required_playtime_minutes: 105
+    name: "<gold><bold>105 Minuten: Vorbereitung</bold></gold>"
+    material: "PLAYER_HEAD"
+    custom_head_texture: "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNTcyNmQ5ZDA2MzJlNDBiZGE1YmNmNjU4MzliYTJjYzk4YTg3YmQ2MTljNTNhZGYwMDMxMGQ2ZmM3MWYwNDJiNSJ9fX0="
+    lore_preview:
+      - "<gray>Fast 2 Stunden am Stück."
+      - ""
+      - "<yellow>Belohnungen:</yellow>"
+      - " <gold>+ 4.000 Münzen"
+      - " <aqua>+ experience_bottle 5"
+    commands:
+      - "eco give %player% 4000"
+      - "give %player% experience_bottle 5"
+
+  tier_10:
+    slot: -1
+    required_playtime_minutes: 120
+    name: "<gold><bold>2 Stunden: Silber-Aktivität</bold></gold>"
+    material: "PLAYER_HEAD"
+    custom_head_texture: "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvZjk3ZTJjOGI4Mjc2Mjc2ZTM4ZGVjYTg4NTA4NzJkNTllY2M5YzFmMzhmMmFkY2U0MDg1OGVkYjllNjM0ZDdiYSJ9fX0="
+    lore_preview:
+      - "<yellow>★ 2 Stunden Spielzeit-Meilenstein!"
+      - ""
+      - "<yellow>Belohnungen:</yellow>"
+      - " <gold>+ 5.500 Münzen"
+      - " <aqua>+ diamond 1"
+    commands:
+      - "eco give %player% 5500"
+      - "give %player% diamond 1"
+
+  tier_11:
+    slot: -1
+    required_playtime_minutes: 140
+    name: "<gold><bold>140 Minuten: Forscher</bold></gold>"
+    material: "PLAYER_HEAD"
+    custom_head_texture: "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNTcyNmQ5ZDA2MzJlNDBiZGE1YmNmNjU4MzliYTJjYzk4YTg3YmQ2MTljNTNhZGYwMDMxMGQ2ZmM3MWYwNDJiNSJ9fX0="
+    lore_preview:
+      - "<gray>Über zwei Stunden Erkundung."
+      - ""
+      - "<yellow>Belohnungen:</yellow>"
+      - " <gold>+ 6.000 Münzen"
+      - " <aqua>+ diamond 2"
+    commands:
+      - "eco give %player% 6000"
+      - "give %player% diamond 2"
+
+  tier_12:
+    slot: -1
+    required_playtime_minutes: 160
+    name: "<gold><bold>160 Minuten: Marathonläufer</bold></gold>"
+    material: "PLAYER_HEAD"
+    custom_head_texture: "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNTcyNmQ5ZDA2MzJlNDBiZGE1YmNmNjU4MzliYTJjYzk4YTg3YmQ2MTljNTNhZGYwMDMxMGQ2ZmM3MWYwNDJiNSJ9fX0="
+    lore_preview:
+      - "<gray>Stetige Aktivität zahlt sich aus."
+      - ""
+      - "<yellow>Belohnungen:</yellow>"
+      - " <gold>+ 6.500 Münzen"
+      - " <aqua>+ diamond 2"
+    commands:
+      - "eco give %player% 6500"
+      - "give %player% diamond 2"
+
+  tier_13:
+    slot: -1
+    required_playtime_minutes: 180
+    name: "<gold><bold>3 Stunden: Gold-Aktivität</bold></gold>"
+    material: "PLAYER_HEAD"
+    custom_head_texture: "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvZjk3ZTJjOGI4Mjc2Mjc2ZTM4ZGVjYTg4NTA4NzJkNTllY2M5YzFmMzhmMmFkY2U0MDg1OGVkYjllNjM0ZDdiYSJ9fX0="
+    lore_preview:
+      - "<yellow>★ 3 Stunden Spielzeit-Meilenstein!"
+      - ""
+      - "<yellow>Belohnungen:</yellow>"
+      - " <gold>+ 8.000 Münzen"
+      - " <aqua>+ diamond 3"
+    commands:
+      - "eco give %player% 8000"
+      - "give %player% diamond 3"
+
+  tier_14:
+    slot: -1
+    required_playtime_minutes: 210
+    name: "<gold><bold>210 Minuten: Veteran</bold></gold>"
+    material: "PLAYER_HEAD"
+    custom_head_texture: "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNTcyNmQ5ZDA2MzJlNDBiZGE1YmNmNjU4MzliYTJjYzk4YTg3YmQ2MTljNTNhZGYwMDMxMGQ2ZmM3MWYwNDJiNSJ9fX0="
+    lore_preview:
+      - "<gray>Dreieinhalb Stunden pure Spielzeit."
+      - ""
+      - "<yellow>Belohnungen:</yellow>"
+      - " <gold>+ 9.000 Münzen"
+      - " <aqua>+ emerald 8"
+    commands:
+      - "eco give %player% 9000"
+      - "give %player% emerald 8"
+
+  tier_15:
+    slot: -1
+    required_playtime_minutes: 240
+    name: "<gold><bold>4 Stunden: Diamant-Stufe</bold></gold>"
+    material: "PLAYER_HEAD"
+    custom_head_texture: "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvZjk3ZTJjOGI4Mjc2Mjc2ZTM4ZGVjYTg4NTA4NzJkNTllY2M5YzFmMzhmMmFkY2U0MDg1OGVkYjllNjM0ZDdiYSJ9fX0="
+    lore_preview:
+      - "<yellow>★ 4 Stunden Spielzeit-Meilenstein!"
+      - ""
+      - "<yellow>Belohnungen:</yellow>"
+      - " <gold>+ 11.000 Münzen"
+      - " <aqua>+ emerald_block 1"
+    commands:
+      - "eco give %player% 11000"
+      - "give %player% emerald_block 1"
+
+  tier_16:
+    slot: -1
+    required_playtime_minutes: 270
+    name: "<gold><bold>270 Minuten: Unermüdlich</bold></gold>"
+    material: "PLAYER_HEAD"
+    custom_head_texture: "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNTcyNmQ5ZDA2MzJlNDBiZGE1YmNmNjU4MzliYTJjYzk4YTg3YmQ2MTljNTNhZGYwMDMxMGQ2ZmM3MWYwNDJiNSJ9fX0="
+    lore_preview:
+      - "<gray>Viereinhalb Stunden Ausdauer."
+      - ""
+      - "<yellow>Belohnungen:</yellow>"
+      - " <gold>+ 12.000 Münzen"
+      - " <aqua>+ emerald_block 2"
+    commands:
+      - "eco give %player% 12000"
+      - "give %player% emerald_block 2"
+
+  tier_17:
+    slot: -1
+    required_playtime_minutes: 300
+    name: "<gold><bold>5 Stunden: Elite-Ausdauer</bold></gold>"
+    material: "PLAYER_HEAD"
+    custom_head_texture: "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvZjk3ZTJjOGI4Mjc2Mjc2ZTM4ZGVjYTg4NTA4NzJkNTllY2M5YzFmMzhmMmFkY2U0MDg1OGVkYjllNjM0ZDdiYSJ9fX0="
+    lore_preview:
+      - "<yellow>★ 5 Stunden Spielzeit-Meilenstein!"
+      - ""
+      - "<yellow>Belohnungen:</yellow>"
+      - " <gold>+ 15.000 Münzen"
+      - " <aqua>+ netherite_scrap 1"
+    commands:
+      - "eco give %player% 15000"
+      - "give %player% netherite_scrap 1"
+
+  tier_18:
+    slot: -1
+    required_playtime_minutes: 330
+    name: "<gold><bold>330 Minuten: Titan-Status</bold></gold>"
+    material: "PLAYER_HEAD"
+    custom_head_texture: "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNTcyNmQ5ZDA2MzJlNDBiZGE1YmNmNjU4MzliYTJjYzk4YTg3YmQ2MTljNTNhZGYwMDMxMGQ2ZmM3MWYwNDJiNSJ9fX0="
+    lore_preview:
+      - "<gray>Fünfeinhalb Stunden echte Hingabe."
+      - ""
+      - "<yellow>Belohnungen:</yellow>"
+      - " <gold>+ 16.000 Münzen"
+      - " <aqua>+ netherite_scrap 1"
+    commands:
+      - "eco give %player% 16000"
+      - "give %player% netherite_scrap 1"
+
+  tier_19:
+    slot: -1
+    required_playtime_minutes: 360
+    name: "<gold><bold>6 Stunden: Großmeister</bold></gold>"
+    material: "PLAYER_HEAD"
+    custom_head_texture: "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvZjk3ZTJjOGI4Mjc2Mjc2ZTM4ZGVjYTg4NTA4NzJkNTllY2M5YzFmMzhmMmFkY2U0MDg1OGVkYjllNjM0ZDdiYSJ9fX0="
+    lore_preview:
+      - "<yellow>★ Letzte Stufe auf Seite 1!"
+      - ""
+      - "<yellow>Belohnungen:</yellow>"
+      - " <gold>+ 20.000 Münzen"
+      - " <aqua>+ netherite_scrap 2"
+    commands:
+      - "eco give %player% 20000"
+      - "give %player% netherite_scrap 2"
+
+  tier_20:
+    slot: -1
+    required_playtime_minutes: 400
+    name: "<gold><bold>400 Minuten: Legendär</bold></gold>"
+    material: "PLAYER_HEAD"
+    custom_head_texture: "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNTcyNmQ5ZDA2MzJlNDBiZGE1YmNmNjU4MzliYTJjYzk4YTg3YmQ2MTljNTNhZGYwMDMxMGQ2ZmM3MWYwNDJiNSJ9fX0="
+    lore_preview:
+      - "<gray>Erste Belohnung auf Seite 2!"
+      - ""
+      - "<yellow>Belohnungen:</yellow>"
+      - " <gold>+ 25.000 Münzen"
+      - " <aqua>+ diamond_block 1"
+    commands:
+      - "eco give %player% 25000"
+      - "give %player% diamond_block 1"
+
+  tier_21:
+    slot: -1
+    required_playtime_minutes: 440
+    name: "<gold><bold>440 Minuten: Ewige Treue</bold></gold>"
+    material: "PLAYER_HEAD"
+    custom_head_texture: "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNTcyNmQ5ZDA2MzJlNDBiZGE1YmNmNjU4MzliYTJjYzk4YTg3YmQ2MTljNTNhZGYwMDMxMGQ2ZmM3MWYwNDJiNSJ9fX0="
+    lore_preview:
+      - "<gray>Über 7 Stunden heute aktiv."
+      - ""
+      - "<yellow>Belohnungen:</yellow>"
+      - " <gold>+ 30.000 Münzen"
+      - " <aqua>+ diamond_block 2"
+    commands:
+      - "eco give %player% 30000"
+      - "give %player% diamond_block 2"
+
+  tier_22:
+    slot: -1
+    required_playtime_minutes: 480
+    name: "<gold><bold>8 Stunden: Epischer Champion</bold></gold>"
+    material: "PLAYER_HEAD"
+    custom_head_texture: "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvZjk3ZTJjOGI4Mjc2Mjc2ZTM4ZGVjYTg4NTA4NzJkNTllY2M5YzFmMzhmMmFkY2U0MDg1OGVkYjllNjM0ZDdiYSJ9fX0="
+    lore_preview:
+      - "<yellow>★ 8 Stunden Ausnahmeleistung!"
+      - ""
+      - "<yellow>Belohnungen:</yellow>"
+      - " <gold>+ 40.000 Münzen"
+      - " <aqua>+ netherite_ingot 1"
+    commands:
+      - "eco give %player% 40000"
+      - "give %player% netherite_ingot 1"
+
+  tier_23:
+    slot: -1
+    required_playtime_minutes: 520
+    name: "<gold><bold>520 Minuten: Halbgott</bold></gold>"
+    material: "PLAYER_HEAD"
+    custom_head_texture: "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNTcyNmQ5ZDA2MzJlNDBiZGE1YmNmNjU4MzliYTJjYzk4YTg3YmQ2MTljNTNhZGYwMDMxMGQ2ZmM3MWYwNDJiNSJ9fX0="
+    lore_preview:
+      - "<gray>Fast 9 Stunden online."
+      - ""
+      - "<yellow>Belohnungen:</yellow>"
+      - " <gold>+ 50.000 Münzen"
+      - " <aqua>+ netherite_ingot 1"
+    commands:
+      - "eco give %player% 50000"
+      - "give %player% netherite_ingot 1"
+
+  tier_24:
+    slot: -1
+    required_playtime_minutes: 560
+    name: "<gold><bold>560 Minuten: Unbesiegbar</bold></gold>"
+    material: "PLAYER_HEAD"
+    custom_head_texture: "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvZjk3ZTJjOGI4Mjc2Mjc2ZTM4ZGVjYTg4NTA4NzJkNTllY2M5YzFmMzhmMmFkY2U0MDg1OGVkYjllNjM0ZDdiYSJ9fX0="
+    lore_preview:
+      - "<yellow>★ Vorletzte Stufe zum Thron!"
+      - ""
+      - "<yellow>Belohnungen:</yellow>"
+      - " <gold>+ 60.000 Münzen"
+      - " <aqua>+ netherite_ingot 2"
+    commands:
+      - "eco give %player% 60000"
+      - "give %player% netherite_ingot 2"
+
+  tier_25:
+    slot: -1
+    required_playtime_minutes: 600
+    name: "<gold><bold>10 Stunden: Krone des Tages</bold></gold>"
+    material: "PLAYER_HEAD"
+    custom_head_texture: "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvYjI2ZTM4ZDhjMWRhOGQ0NTFkNzE5NGYzYTdmYWQ5MGExNDFkZmU2MTY1YjY2NjdmN2E4Y2JhMDkxOTEzOSJ9fX0="
+    lore_preview:
+      - "<gold>♛ Absolute Krönung des Tages (10h)!"
+      - ""
+      - "<yellow>Belohnungen:</yellow>"
+      - " <gold>+ 100.000 Münzen"
+      - " <aqua>+ netherite_block 1"
+    commands:
+      - "eco give %player% 100000"
+      - "give %player% netherite_block 1"
+

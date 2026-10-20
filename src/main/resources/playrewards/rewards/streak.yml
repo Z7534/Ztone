@@ -1,0 +1,390 @@
+# ==============================================================================
+# PlayReward - Tägliche Login-Streak Belohnungen
+# Streak-Reset: Wenn ein Tag ohne Login vergeht (sofern kein Streak-Saver greift).
+# Wöchentlicher Saver-Reset: Montags um 00:00 Uhr (Europe/Berlin).
+# Schlangenlinien-Weg (19 Slots pro Seite):
+# Start oben links -> ganz runter -> 2 nach rechts -> ganz hoch -> 2 nach rechts -> ganz runter -> 2 nach rechts -> ganz hoch!
+# Automatische Paginierung auf Seite 2 ab 20 Belohnungen!
+# Icons: Basic-Kopf (Holztruhe), Besonderer Kopf (Goldener Stern), Epischer Kopf (Krone)
+# Bereits eingelöste Belohnungen erhalten automatisch den grünen Haken-Kopf!
+# ==============================================================================
+
+title: "<gradient:#55FF55:#00AA00><bold>Tägliche Streak</bold></gradient>"
+frame_glass: "LIME_STAINED_GLASS_PANE"
+
+streaks:
+  1:
+    slot: -1
+    name: "<green><bold>Tag 1: Der Start</bold></green>"
+    material: "PLAYER_HEAD"
+    custom_head_texture: "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNTcyNmQ5ZDA2MzJlNDBiZGE1YmNmNjU4MzliYTJjYzk4YTg3YmQ2MTljNTNhZGYwMDMxMGQ2ZmM3MWYwNDJiNSJ9fX0="
+    lore_preview:
+      - "<gray>Deine Reise beginnt heute!"
+      - ""
+      - "<yellow>Belohnungen:</yellow>"
+      - " <gold>+ 250 Münzen"
+      - " <aqua>+ bread 10"
+    commands:
+      - "eco give %player% 250"
+      - "give %player% bread 10"
+
+  2:
+    slot: -1
+    name: "<green><bold>Tag 2: Dranbleiben</bold></green>"
+    material: "PLAYER_HEAD"
+    custom_head_texture: "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNTcyNmQ5ZDA2MzJlNDBiZGE1YmNmNjU4MzliYTJjYzk4YTg3YmQ2MTljNTNhZGYwMDMxMGQ2ZmM3MWYwNDJiNSJ9fX0="
+    lore_preview:
+      - "<gray>2 Tage in Folge online!"
+      - ""
+      - "<yellow>Belohnungen:</yellow>"
+      - " <gold>+ 500 Münzen"
+      - " <aqua>+ torch 16"
+    commands:
+      - "eco give %player% 500"
+      - "give %player% torch 16"
+
+  3:
+    slot: -1
+    name: "<green><bold>Tag 3: Regelmäßigkeit</bold></green>"
+    material: "PLAYER_HEAD"
+    custom_head_texture: "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNTcyNmQ5ZDA2MzJlNDBiZGE1YmNmNjU4MzliYTJjYzk4YTg3YmQ2MTljNTNhZGYwMDMxMGQ2ZmM3MWYwNDJiNSJ9fX0="
+    lore_preview:
+      - "<gray>Drei Tage hintereinander aktiv!"
+      - ""
+      - "<yellow>Belohnungen:</yellow>"
+      - " <gold>+ 1.000 Münzen"
+      - " <aqua>+ iron_ingot 4"
+    commands:
+      - "eco give %player% 1000"
+      - "give %player% iron_ingot 4"
+
+  4:
+    slot: -1
+    name: "<green><bold>Tag 4: Willensstärke</bold></green>"
+    material: "PLAYER_HEAD"
+    custom_head_texture: "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNTcyNmQ5ZDA2MzJlNDBiZGE1YmNmNjU4MzliYTJjYzk4YTg3YmQ2MTljNTNhZGYwMDMxMGQ2ZmM3MWYwNDJiNSJ9fX0="
+    lore_preview:
+      - "<gray>Vier Tage treu dabei!"
+      - ""
+      - "<yellow>Belohnungen:</yellow>"
+      - " <gold>+ 1.500 Münzen"
+      - " <aqua>+ cooked_porkchop 8"
+    commands:
+      - "eco give %player% 1500"
+      - "give %player% cooked_porkchop 8"
+
+  5:
+    slot: -1
+    name: "<green><bold>Tag 5: Gewohnheit</bold></green>"
+    material: "PLAYER_HEAD"
+    custom_head_texture: "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNTcyNmQ5ZDA2MzJlNDBiZGE1YmNmNjU4MzliYTJjYzk4YTg3YmQ2MTljNTNhZGYwMDMxMGQ2ZmM3MWYwNDJiNSJ9fX0="
+    lore_preview:
+      - "<gray>Die Streak wird zur festen Routine."
+      - ""
+      - "<yellow>Belohnungen:</yellow>"
+      - " <gold>+ 2.000 Münzen"
+      - " <aqua>+ experience_bottle 5"
+    commands:
+      - "eco give %player% 2000"
+      - "give %player% experience_bottle 5"
+
+  6:
+    slot: -1
+    name: "<green><bold>Tag 6: Vorfreude</bold></green>"
+    material: "PLAYER_HEAD"
+    custom_head_texture: "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNTcyNmQ5ZDA2MzJlNDBiZGE1YmNmNjU4MzliYTJjYzk4YTg3YmQ2MTljNTNhZGYwMDMxMGQ2ZmM3MWYwNDJiNSJ9fX0="
+    lore_preview:
+      - "<gray>Morgen wartet der Wochen-Meilenstein!"
+      - ""
+      - "<yellow>Belohnungen:</yellow>"
+      - " <gold>+ 3.000 Münzen"
+      - " <aqua>+ gold_ingot 8"
+    commands:
+      - "eco give %player% 3000"
+      - "give %player% gold_ingot 8"
+
+  7:
+    slot: -1
+    name: "<green><bold>Tag 7: 1 Woche Meilenstein</bold></green>"
+    material: "PLAYER_HEAD"
+    custom_head_texture: "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvZjk3ZTJjOGI4Mjc2Mjc2ZTM4ZGVjYTg4NTA4NzJkNTllY2M5YzFmMzhmMmFkY2U0MDg1OGVkYjllNjM0ZDdiYSJ9fX0="
+    lore_preview:
+      - "<yellow>★ Eine ganze Woche voller Hingabe!"
+      - ""
+      - "<yellow>Belohnungen:</yellow>"
+      - " <gold>+ 5.000 Münzen"
+      - " <aqua>+ diamond_block 1"
+    commands:
+      - "eco give %player% 5000"
+      - "give %player% diamond_block 1"
+
+  8:
+    slot: -1
+    name: "<green><bold>Tag 8: Neuer Schwung</bold></green>"
+    material: "PLAYER_HEAD"
+    custom_head_texture: "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNTcyNmQ5ZDA2MzJlNDBiZGE1YmNmNjU4MzliYTJjYzk4YTg3YmQ2MTljNTNhZGYwMDMxMGQ2ZmM3MWYwNDJiNSJ9fX0="
+    lore_preview:
+      - "<gray>Auf in die zweite Woche!"
+      - ""
+      - "<yellow>Belohnungen:</yellow>"
+      - " <gold>+ 5.500 Münzen"
+      - " <aqua>+ iron_ingot 16"
+    commands:
+      - "eco give %player% 5500"
+      - "give %player% iron_ingot 16"
+
+  9:
+    slot: -1
+    name: "<green><bold>Tag 9: Standhaft</bold></green>"
+    material: "PLAYER_HEAD"
+    custom_head_texture: "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNTcyNmQ5ZDA2MzJlNDBiZGE1YmNmNjU4MzliYTJjYzk4YTg3YmQ2MTljNTNhZGYwMDMxMGQ2ZmM3MWYwNDJiNSJ9fX0="
+    lore_preview:
+      - "<gray>Neun Tage kontinuierliche Präsenz."
+      - ""
+      - "<yellow>Belohnungen:</yellow>"
+      - " <gold>+ 6.000 Münzen"
+      - " <aqua>+ experience_bottle 15"
+    commands:
+      - "eco give %player% 6000"
+      - "give %player% experience_bottle 15"
+
+  10:
+    slot: -1
+    name: "<green><bold>Tag 10: Zweistellig!</bold></green>"
+    material: "PLAYER_HEAD"
+    custom_head_texture: "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvZjk3ZTJjOGI4Mjc2Mjc2ZTM4ZGVjYTg4NTA4NzJkNTllY2M5YzFmMzhmMmFkY2U0MDg1OGVkYjllNjM0ZDdiYSJ9fX0="
+    lore_preview:
+      - "<yellow>★ 10 Tage Serie erreicht!"
+      - ""
+      - "<yellow>Belohnungen:</yellow>"
+      - " <gold>+ 7.500 Münzen"
+      - " <aqua>+ diamond 2"
+    commands:
+      - "eco give %player% 7500"
+      - "give %player% diamond 2"
+
+  11:
+    slot: -1
+    name: "<green><bold>Tag 11: Treuer Begleiter</bold></green>"
+    material: "PLAYER_HEAD"
+    custom_head_texture: "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNTcyNmQ5ZDA2MzJlNDBiZGE1YmNmNjU4MzliYTJjYzk4YTg3YmQ2MTljNTNhZGYwMDMxMGQ2ZmM3MWYwNDJiNSJ9fX0="
+    lore_preview:
+      - "<gray>Elf Tage echte Vereinstreue."
+      - ""
+      - "<yellow>Belohnungen:</yellow>"
+      - " <gold>+ 8.500 Münzen"
+      - " <aqua>+ gold_ingot 12"
+    commands:
+      - "eco give %player% 8500"
+      - "give %player% gold_ingot 12"
+
+  12:
+    slot: -1
+    name: "<green><bold>Tag 12: Eingespielt</bold></green>"
+    material: "PLAYER_HEAD"
+    custom_head_texture: "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNTcyNmQ5ZDA2MzJlNDBiZGE1YmNmNjU4MzliYTJjYzk4YTg3YmQ2MTljNTNhZGYwMDMxMGQ2ZmM3MWYwNDJiNSJ9fX0="
+    lore_preview:
+      - "<gray>Zwölf Tage ohne Unterbrechung!"
+      - ""
+      - "<yellow>Belohnungen:</yellow>"
+      - " <gold>+ 10.000 Münzen"
+      - " <aqua>+ diamond 4"
+    commands:
+      - "eco give %player% 10000"
+      - "give %player% diamond 4"
+
+  13:
+    slot: -1
+    name: "<green><bold>Tag 13: Fast zwei Wochen</bold></green>"
+    material: "PLAYER_HEAD"
+    custom_head_texture: "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNTcyNmQ5ZDA2MzJlNDBiZGE1YmNmNjU4MzliYTJjYzk4YTg3YmQ2MTljNTNhZGYwMDMxMGQ2ZmM3MWYwNDJiNSJ9fX0="
+    lore_preview:
+      - "<gray>Noch ein Tag bis zum Meilenstein!"
+      - ""
+      - "<yellow>Belohnungen:</yellow>"
+      - " <gold>+ 12.000 Münzen"
+      - " <aqua>+ experience_bottle 20"
+    commands:
+      - "eco give %player% 12000"
+      - "give %player% experience_bottle 20"
+
+  14:
+    slot: -1
+    name: "<green><bold>Tag 14: Zwei Wochen Treue</bold></green>"
+    material: "PLAYER_HEAD"
+    custom_head_texture: "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvZjk3ZTJjOGI4Mjc2Mjc2ZTM4ZGVjYTg4NTA4NzJkNTllY2M5YzFmMzhmMmFkY2U0MDg1OGVkYjllNjM0ZDdiYSJ9fX0="
+    lore_preview:
+      - "<yellow>★ Zwei Wochen ununterbrochen online!"
+      - ""
+      - "<yellow>Belohnungen:</yellow>"
+      - " <gold>+ 15.000 Münzen"
+      - " <aqua>+ emerald_block 4"
+    commands:
+      - "eco give %player% 15000"
+      - "give %player% emerald_block 4"
+
+  15:
+    slot: -1
+    name: "<green><bold>Tag 15: Halbmonats-Held</bold></green>"
+    material: "PLAYER_HEAD"
+    custom_head_texture: "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNTcyNmQ5ZDA2MzJlNDBiZGE1YmNmNjU4MzliYTJjYzk4YTg3YmQ2MTljNTNhZGYwMDMxMGQ2ZmM3MWYwNDJiNSJ9fX0="
+    lore_preview:
+      - "<gray>Über die Halbzeit des Monats hinaus!"
+      - ""
+      - "<yellow>Belohnungen:</yellow>"
+      - " <gold>+ 17.500 Münzen"
+      - " <aqua>+ diamond_pickaxe 1"
+    commands:
+      - "eco give %player% 17500"
+      - "give %player% diamond_pickaxe 1"
+
+  16:
+    slot: -1
+    name: "<green><bold>Tag 16: Elite-Serie</bold></green>"
+    material: "PLAYER_HEAD"
+    custom_head_texture: "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNTcyNmQ5ZDA2MzJlNDBiZGE1YmNmNjU4MzliYTJjYzk4YTg3YmQ2MTljNTNhZGYwMDMxMGQ2ZmM3MWYwNDJiNSJ9fX0="
+    lore_preview:
+      - "<gray>Sechzehn Tage stark am Ball!"
+      - ""
+      - "<yellow>Belohnungen:</yellow>"
+      - " <gold>+ 20.000 Münzen"
+      - " <aqua>+ diamond_block 2"
+    commands:
+      - "eco give %player% 20000"
+      - "give %player% diamond_block 2"
+
+  17:
+    slot: -1
+    name: "<green><bold>Tag 17: Unerreicht</bold></green>"
+    material: "PLAYER_HEAD"
+    custom_head_texture: "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNTcyNmQ5ZDA2MzJlNDBiZGE1YmNmNjU4MzliYTJjYzk4YTg3YmQ2MTljNTNhZGYwMDMxMGQ2ZmM3MWYwNDJiNSJ9fX0="
+    lore_preview:
+      - "<gray>Siebzehn Tage treue Gefolgschaft."
+      - ""
+      - "<yellow>Belohnungen:</yellow>"
+      - " <gold>+ 22.500 Münzen"
+      - " <aqua>+ netherite_scrap 1"
+    commands:
+      - "eco give %player% 22500"
+      - "give %player% netherite_scrap 1"
+
+  18:
+    slot: -1
+    name: "<green><bold>Tag 18: Standhaftigkeit</bold></green>"
+    material: "PLAYER_HEAD"
+    custom_head_texture: "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNTcyNmQ5ZDA2MzJlNDBiZGE1YmNmNjU4MzliYTJjYzk4YTg3YmQ2MTljNTNhZGYwMDMxMGQ2ZmM3MWYwNDJiNSJ9fX0="
+    lore_preview:
+      - "<gray>Achtzehn Tage Kontinuität."
+      - ""
+      - "<yellow>Belohnungen:</yellow>"
+      - " <gold>+ 25.000 Münzen"
+      - " <aqua>+ netherite_scrap 1"
+    commands:
+      - "eco give %player% 25000"
+      - "give %player% netherite_scrap 1"
+
+  19:
+    slot: -1
+    name: "<green><bold>Tag 19: Vorabend</bold></green>"
+    material: "PLAYER_HEAD"
+    custom_head_texture: "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvZjk3ZTJjOGI4Mjc2Mjc2ZTM4ZGVjYTg4NTA4NzJkNTllY2M5YzFmMzhmMmFkY2U0MDg1OGVkYjllNjM0ZDdiYSJ9fX0="
+    lore_preview:
+      - "<yellow>★ Letzte Stufe auf Seite 1!"
+      - ""
+      - "<yellow>Belohnungen:</yellow>"
+      - " <gold>+ 27.500 Münzen"
+      - " <aqua>+ diamond_block 3"
+    commands:
+      - "eco give %player% 27500"
+      - "give %player% diamond_block 3"
+
+  20:
+    slot: -1
+    name: "<green><bold>Tag 20: Zwanzig Tage Treue</bold></green>"
+    material: "PLAYER_HEAD"
+    custom_head_texture: "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvZjk3ZTJjOGI4Mjc2Mjc2ZTM4ZGVjYTg4NTA4NzJkNTllY2M5YzFmMzhmMmFkY2U0MDg1OGVkYjllNjM0ZDdiYSJ9fX0="
+    lore_preview:
+      - "<yellow>★ 20 Tage in Folge aktiv. Wahre Ausdauer!"
+      - ""
+      - "<yellow>Belohnungen:</yellow>"
+      - " <gold>+ 30.000 Münzen"
+      - " <aqua>+ netherite_scrap 2"
+    commands:
+      - "eco give %player% 30000"
+      - "give %player% netherite_scrap 2"
+
+  21:
+    slot: -1
+    name: "<green><bold>Tag 21: Drei Wochen Meister</bold></green>"
+    material: "PLAYER_HEAD"
+    custom_head_texture: "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNTcyNmQ5ZDA2MzJlNDBiZGE1YmNmNjU4MzliYTJjYzk4YTg3YmQ2MTljNTNhZGYwMDMxMGQ2ZmM3MWYwNDJiNSJ9fX0="
+    lore_preview:
+      - "<gray>Drei komplette Wochen geschafft!"
+      - ""
+      - "<yellow>Belohnungen:</yellow>"
+      - " <gold>+ 35.000 Münzen"
+      - " <aqua>+ netherite_scrap 2"
+    commands:
+      - "eco give %player% 35000"
+      - "give %player% netherite_scrap 2"
+
+  22:
+    slot: -1
+    name: "<green><bold>Tag 22: Fels in der Brandung</bold></green>"
+    material: "PLAYER_HEAD"
+    custom_head_texture: "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNTcyNmQ5ZDA2MzJlNDBiZGE1YmNmNjU4MzliYTJjYzk4YTg3YmQ2MTljNTNhZGYwMDMxMGQ2ZmM3MWYwNDJiNSJ9fX0="
+    lore_preview:
+      - "<gray>Zweiundzwanzig Tage online."
+      - ""
+      - "<yellow>Belohnungen:</yellow>"
+      - " <gold>+ 40.000 Münzen"
+      - " <aqua>+ emerald_block 8"
+    commands:
+      - "eco give %player% 40000"
+      - "give %player% emerald_block 8"
+
+  23:
+    slot: -1
+    name: "<green><bold>Tag 23: Eisener Wille</bold></green>"
+    material: "PLAYER_HEAD"
+    custom_head_texture: "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNTcyNmQ5ZDA2MzJlNDBiZGE1YmNmNjU4MzliYTJjYzk4YTg3YmQ2MTljNTNhZGYwMDMxMGQ2ZmM3MWYwNDJiNSJ9fX0="
+    lore_preview:
+      - "<gray>Dreiundzwanzig Tage Disziplin."
+      - ""
+      - "<yellow>Belohnungen:</yellow>"
+      - " <gold>+ 45.000 Münzen"
+      - " <aqua>+ netherite_ingot 1"
+    commands:
+      - "eco give %player% 45000"
+      - "give %player% netherite_ingot 1"
+
+  24:
+    slot: -1
+    name: "<green><bold>Tag 24: Auf der Zielgeraden</bold></green>"
+    material: "PLAYER_HEAD"
+    custom_head_texture: "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvZjk3ZTJjOGI4Mjc2Mjc2ZTM4ZGVjYTg4NTA4NzJkNTllY2M5YzFmMzhmMmFkY2U0MDg1OGVkYjllNjM0ZDdiYSJ9fX0="
+    lore_preview:
+      - "<yellow>★ Fast der ganze Monat!"
+      - ""
+      - "<yellow>Belohnungen:</yellow>"
+      - " <gold>+ 50.000 Münzen"
+      - " <aqua>+ netherite_ingot 1"
+    commands:
+      - "eco give %player% 50000"
+      - "give %player% netherite_ingot 1"
+
+  25:
+    slot: -1
+    name: "<green><bold>Tag 25: Silber-Jubiläum</bold></green>"
+    material: "PLAYER_HEAD"
+    custom_head_texture: "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvYjI2ZTM4ZDhjMWRhOGQ0NTFkNzE5NGYzYTdmYWQ5MGExNDFkZmU2MTY1YjY2NjdmN2E4Y2JhMDkxOTEzOSJ9fX0="
+    lore_preview:
+      - "<gold>♛ Ein Vierteljahrhundert an Tagen (25 Tage)!"
+      - ""
+      - "<yellow>Belohnungen:</yellow>"
+      - " <gold>+ 75.000 Münzen"
+      - " <aqua>+ netherite_block 1"
+    commands:
+      - "eco give %player% 75000"
+      - "give %player% netherite_block 1"
+

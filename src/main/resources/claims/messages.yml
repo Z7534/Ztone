@@ -1,0 +1,100 @@
+# =========================================================
+#  Claims - Nachrichten
+# =========================================================
+#
+# Unterstützt normales MiniMessage: <green>, <bold>, <#RRGGBB>, usw.
+# https://docs.advntr.dev/minimessage/format.html
+#
+# Zusätzlich gibt es ein eigenes Kurzformat für Farbverläufe (Gradients)
+# zwischen zwei Farben:
+#
+#   <#FARBE1>Text</#FARBE2>
+#
+# Beispiel: <#FF0000>Text</#0000FF>  -> Verlauf von Rot nach Blau
+#
+# Werden vorne und hinten die gleiche Hex-Farbe angegeben, z.B.
+# <#FF0000>Text</#FF0000>, ist es einfach eine normale, einfarbige Hex-Farbe.
+# =========================================================
+
+prefix: "<#7FFFEA><bold>ꜱᴛᴏɴᴇ-ᴄʟᴀɪᴍꜱ</#3EDDDC> &r&7>> &r "
+no-permission: "<red>ᴅᴀᴢᴜ ʜᴀꜱᴛ ᴅᴜ ᴋᴇɪɴᴇ ʙᴇʀᴇᴄʜᴛɪɢᴜɴɢ."
+player-only: "<red>ᴅɪᴇꜱᴇʀ ʙᴇꜰᴇʜʟ ᴋᴀɴɴ ɴᴜʀ ᴠᴏɴ ꜱᴘɪᴇʟᴇʀɴ ᴀᴜꜱɢᴇꜰüʜʀᴛ ᴡᴇʀᴅᴇɴ."
+claim-mode-started: "<green>ᴄʟᴀɪᴍ-ᴍᴏᴅᴜꜱ ɢᴇꜱᴛᴀʀᴛᴇᴛ. ʀᴇᴄʜᴛꜱ- ᴏᴅᴇʀ ʟɪɴᴋꜱᴋʟɪᴄᴋ ᴀᴜꜰ ᴇɪɴᴇɴ ʙʟᴏᴄᴋ, ᴜᴍ ᴄʜᴜɴᴋꜱ ᴢᴜ ᴍᴀʀᴋɪᴇʀᴇɴ. ɢɪʙ ᴇʀɴᴇᴜᴛ /ᴄʟᴀɪᴍ ᴇɪɴ, ᴜᴍ ᴢᴜ ʙᴇꜱᴛäᴛɪɢᴇɴ."
+claim-mode-not-active: "<red>ᴅᴜ ʙɪꜱᴛ ɴɪᴄʜᴛ ɪᴍ ᴄʟᴀɪᴍ-ᴍᴏᴅᴜꜱ."
+claim-marked: "<yellow>ᴄʜᴜɴᴋ ᴢᴜᴍ ᴄʟᴀɪᴍᴇɴ ᴠᴏʀɢᴇᴍᴇʀᴋᴛ."
+unclaim-marked: "<yellow>ᴄʜᴜɴᴋ ᴢᴜʀ ꜰʀᴇɪɢᴀʙᴇ ᴠᴏʀɢᴇᴍᴇʀᴋᴛ."
+selection-removed: "<gray>ᴍᴀʀᴋɪᴇʀᴜɴɢ ᴇɴᴛꜰᴇʀɴᴛ."
+cannot-select-foreign: "<red>ᴅɪᴇꜱᴇʀ ᴄʜᴜɴᴋ ɢᴇʜöʀᴛ ʙᴇʀᴇɪᴛꜱ ᴇɪɴᴇᴍ ᴀɴᴅᴇʀᴇɴ ꜱᴘɪᴇʟᴇʀ."
+not-enough-slots: "<red>ᴅᴜ ʜᴀꜱᴛ ɴɪᴄʜᴛ ɢᴇɴᴜɢ ꜰʀᴇɪᴇ ᴄʟᴀɪᴍ-ꜱʟᴏᴛꜱ ({belegt}/{max})."
+spawn-protected: "<red>ɪɴ ᴅᴇʀ ɴäʜᴇ ᴅᴇꜱ ꜱᴘᴀᴡɴꜱ ᴋᴀɴɴ ɴɪᴄʜᴛ ɢᴇᴄʟᴀɪᴍᴛ ᴡᴇʀᴅᴇɴ."
+end-protected: "<red>ɪɴ ᴅɪᴇꜱᴇᴍ ʙᴇʀᴇɪᴄʜ ᴅᴇꜱ ᴇɴᴅꜱ ᴋᴀɴɴ ɴɪᴄʜᴛ ɢᴇᴄʟᴀɪᴍᴛ ᴡᴇʀᴅᴇɴ."
+dimension-disabled: "<red>ɪɴ ᴅɪᴇꜱᴇʀ ᴅɪᴍᴇɴꜱɪᴏɴ ᴋᴀɴɴ ɴɪᴄʜᴛ ɢᴇᴄʟᴀɪᴍᴛ ᴡᴇʀᴅᴇɴ."
+claims-saved: "<#55FF55>{anzahl} ᴄʜᴜɴᴋ(ꜱ) ᴇʀꜰᴏʟɢʀᴇɪᴄʜ üʙᴇʀɴᴏᴍᴍᴇɴ.</#00AA00>"
+claims-cancelled: "<gray>ᴠᴏʀɢᴀɴɢ ᴀʙɢᴇʙʀᴏᴄʜᴇɴ, ᴋᴇɪɴᴇ äɴᴅᴇʀᴜɴɢᴇɴ ɢᴇꜱᴘᴇɪᴄʜᴇʀᴛ."
+claim-cancelled-damage: "<red>ᴅᴜ ʜᴀꜱᴛ ꜱᴄʜᴀᴅᴇɴ ɢᴇɴᴏᴍᴍᴇɴ - ᴅᴇʀ ᴄʟᴀɪᴍ-ᴠᴏʀɢᴀɴɢ ᴡᴜʀᴅᴇ ᴀʙɢᴇʙʀᴏᴄʜᴇɴ."
+claim-deleted: "<green>ᴄʟᴀɪᴍ ᴡᴜʀᴅᴇ ɢᴇʟöꜱᴄʜᴛ ᴜɴᴅ ꜰʀᴇɪɢᴇɢᴇʙᴇɴ."
+claim-renamed: "<green>ᴄʟᴀɪᴍ ᴡᴜʀᴅᴇ ᴜᴍʙᴇɴᴀɴɴᴛ ᴢᴜ {name}."
+rename-prompt: "<yellow>ʙɪᴛᴛᴇ ɢɪʙ ᴅᴇɴ ɴᴇᴜᴇɴ ɴᴀᴍᴇɴ ꜰüʀ ᴅᴇɴ ᴄʟᴀɪᴍ ɪɴ ᴅᴇɴ ᴄʜᴀᴛ ᴇɪɴ. ᴅᴜ ʜᴀꜱᴛ {sekunden} ꜱᴇᴋᴜɴᴅᴇɴ ᴢᴇɪᴛ. ᴍɪᴛ 'ᴀʙʙʀᴇᴄʜᴇɴ' ʙʀɪᴄʜꜱᴛ ᴅᴜ ᴀʙ."
+rename-timeout: "<red>ᴢᴇɪᴛ ᴀʙɢᴇʟᴀᴜꜰᴇɴ, ᴜᴍʙᴇɴᴇɴɴᴜɴɢ ᴀʙɢᴇʙʀᴏᴄʜᴇɴ."
+rename-too-short: "<red>ᴅᴇʀ ɴᴀᴍᴇ ɪꜱᴛ ᴢᴜ ᴋᴜʀᴢ (ᴍɪɴᴅᴇꜱᴛᴇɴꜱ {min} ᴢᴇɪᴄʜᴇɴ)."
+rename-too-long: "<red>ᴅᴇʀ ɴᴀᴍᴇ ɪꜱᴛ ᴢᴜ ʟᴀɴɢ (ᴍᴀxɪᴍᴀʟ {max} ᴢᴇɪᴄʜᴇɴ)."
+rename-forbidden-chars: "<red>ᴅᴇʀ ɴᴀᴍᴇ ᴇɴᴛʜäʟᴛ ᴠᴇʀʙᴏᴛᴇɴᴇ ᴢᴇɪᴄʜᴇɴ."
+search-prompt: "<yellow>ʙɪᴛᴛᴇ ɢɪʙ ᴅᴇɴ ꜱᴘɪᴇʟᴇʀɴᴀᴍᴇɴ ɪɴ ᴅᴇɴ ᴄʜᴀᴛ ᴇɪɴ. ᴅᴜ ʜᴀꜱᴛ {sekunden} ꜱᴇᴋᴜɴᴅᴇɴ ᴢᴇɪᴛ. ᴍɪᴛ 'ᴀʙʙʀᴇᴄʜᴇɴ' ʙʀɪᴄʜꜱᴛ ᴅᴜ ᴀʙ."
+search-timeout: "<red>ᴢᴇɪᴛ ᴀʙɢᴇʟᴀᴜꜰᴇɴ, ꜱᴜᴄʜᴇ ᴀʙɢᴇʙʀᴏᴄʜᴇɴ."
+search-not-found: "<red>ᴇꜱ ᴡᴜʀᴅᴇ ɴᴏᴄʜ ɴɪᴇ ᴇɪɴ ꜱᴘɪᴇʟᴇʀ ᴍɪᴛ ᴅɪᴇꜱᴇᴍ ɴᴀᴍᴇɴ ɢᴇꜱᴇʜᴇɴ."
+player-trusted: "<green>{spieler} ᴡᴜʀᴅᴇ ᴛʀᴜꜱᴛ ᴀᴜꜰ ᴅɪᴇꜱᴇᴍ ᴄʟᴀɪᴍ ɢᴇɢᴇʙᴇɴ."
+player-untrusted: "<gray>{spieler} ᴡᴜʀᴅᴇ ᴅᴇʀ ᴛʀᴜꜱᴛ ᴇɴᴛᴢᴏɢᴇɴ."
+player-banned: "<red>{spieler} ᴡᴜʀᴅᴇ ᴠᴏɴ ᴅɪᴇꜱᴇᴍ ᴄʟᴀɪᴍ ɢᴇʙᴀɴɴᴛ."
+player-unbanned: "<green>{spieler} ᴡᴜʀᴅᴇ ᴇɴᴛʙᴀɴɴᴛ."
+banned-teleported: "<red>ᴅᴜ ᴡᴜʀᴅᴇꜱᴛ ᴠᴏɴ ᴅɪᴇꜱᴇᴍ ᴄʟᴀɪᴍ ɢᴇʙᴀɴɴᴛ ᴜɴᴅ ᴡᴜʀᴅᴇꜱᴛ ʜɪɴᴀᴜꜱᴛᴇʟᴇᴘᴏʀᴛɪᴇʀᴛ."
+banned-bypass-notice: "<red>{spieler} ʜᴀᴛ ᴠᴇʀꜱᴜᴄʜᴛ, ᴅɪᴄʜ ᴠᴏɴ ᴇɪɴᴇᴍ ᴄʟᴀɪᴍ ᴢᴜ ʙᴀɴɴᴇɴ. ᴅᴀ ᴅᴜ ᴅᴇɴ ʙʏᴘᴀꜱꜱ ʜᴀꜱᴛ, ᴡɪʀꜱᴛ ᴅᴜ ɴɪᴄʜᴛ ɢᴇʙᴀɴɴᴛ."
+settings.explosions.title: "ᴇxᴘʟᴏꜱɪᴏɴᴇɴ"
+settings.explosions.enabled: "ᴀᴋᴛɪᴠɪᴇʀᴛ"
+settings.explosions.disabled: "ᴅᴇᴀᴋᴛɪᴠɪᴇʀᴛ"
+entry-own-claim: "<#E91E63>ꜱᴡᴇᴇᴛ ʜᴏᴍᴇ <3</#FCE4EC>"
+entry-wilderness: "<#5FBE68>ᴜɴʙᴇʀüʜʀᴛᴇ ɴᴀᴛᴜʀ</#CBEBCF>"
+entry-foreign-claim: "ᴄʟᴀɪᴍ ᴠᴏɴ &1{besitzer}"
+no-claims-selected: "<yellow>ᴅᴜ ʜᴀꜱᴛ ᴋᴇɪɴᴇ ᴄʟᴀɪᴍꜱ ᴀᴜꜱɢᴇᴡäʜʟᴛ"
+
+# ---------------------------------------------------------
+# PlaceholderAPI / TAB: %claims_claim%
+# Zeigt "Nicht geclaimed" an, wenn der Spieler in keinem Claim steht,
+# sonst den Namen des Besitzers des Claims, in dem er gerade steht.
+# ---------------------------------------------------------
+placeholder-not-claimed: "&b/"
+cannot-enter-banned: "<red>ᴅᴜ ᴡᴜʀᴅᴇꜱᴛ ᴀᴜꜰ ᴅɪᴇꜱᴇᴍ ᴄʟᴀɪᴍ ɢᴇʙᴀɴɴᴛ. ᴅᴜ ᴋᴀɴɴꜱᴛ ᴇꜱ ɴɪᴄʜᴛ ʙᴇᴛʀᴇᴛᴇɴ!"
+action-denied-vehicle: "<red>ᴅᴜ ᴡᴜʀᴅᴇꜱᴛ ᴀᴜꜰ ᴅɪᴇꜱᴇᴍ ᴄʟᴀɪᴍ ɢᴇʙᴀɴɴᴛ. ᴅᴜ ᴋᴀɴɴꜱᴛ ᴇꜱ ɴɪᴄʜᴛ ᴅᴜʀᴄʜ ꜰᴀʜʀᴢᴇᴜɢᴇ ʙᴇᴛʀᴇᴛᴇɴ!"
+claim-slot-awarded: "ᴅᴜ ʜᴀꜱᴛ ₁ ᴄʟᴀɪᴍꜱ ᴇʀʜᴀʟᴛᴇɴ!"
+action-denied: "<red>ᴅᴜ ʜᴀꜱᴛ ᴋᴇɪɴᴇ ʙᴇʀᴇᴄʜᴛɪɢᴜɴɢ!"
+
+# ---------------------------------------------------------
+# /claim pay <spieler> <anzahl>
+# ---------------------------------------------------------
+pay-usage: "<red>ᴠᴇʀᴡᴇɴᴅᴜɴɢ: /ᴄʟᴀɪᴍ ᴘᴀʏ [ꜱᴘɪᴇʟᴇʀ] [ᴀɴᴢᴀʜʟ]"
+pay-invalid-amount: "<red>ᴜɴɢüʟᴛɪɢᴇ ᴀɴᴢᴀʜʟ. ɢɪʙ ᴇɪɴᴇ ɢᴀɴᴢᴇ ᴢᴀʜʟ ɢʀöꜱꜱᴇʀ ᴀʟꜱ ₀ ᴀɴ."
+pay-amount-too-large: "<red>ᴅᴜ ᴋᴀɴɴꜱᴛ ᴍᴀxɪᴍᴀʟ {max} ᴄʟᴀɪᴍꜱ ᴀᴜꜰ ᴇɪɴᴍᴀʟ ᴘᴀʏᴇɴ."
+pay-self: "<red>ᴅᴜ ᴋᴀɴɴꜱᴛ ᴅɪʀ ɴɪᴄʜᴛ ꜱᴇʟʙꜱᴛ ᴄʟᴀɪᴍꜱ ᴘᴀʏᴇɴ."
+pay-target-not-found: "<red>ᴇꜱ ᴡᴜʀᴅᴇ ɴᴏᴄʜ ɴɪᴇ ᴇɪɴ ꜱᴘɪᴇʟᴇʀ ɴᴀᴍᴇɴꜱ {spieler} ɢᴇꜱᴇʜᴇɴ."
+pay-not-enough-free: "<red>ᴅᴜ ʜᴀꜱᴛ ɴɪᴄʜᴛ ɢᴇɴᴜɢ ꜰʀᴇɪᴇ ᴄʟᴀɪᴍ-ꜱʟᴏᴛꜱ (ꜰʀᴇɪ: {frei}, ʙᴇɴöᴛɪɢᴛ: {anzahl})."
+pay-not-enough-own: "<red>ᴅᴜ ʙᴇꜱɪᴛᴢᴛ ɴɪᴄʜᴛ ɢᴇɴᴜɢ ᴇɪɢᴇɴᴇ, ᴇʀꜱᴘɪᴇʟᴛᴇ/ᴇʀʜᴀʟᴛᴇɴᴇ ᴄʟᴀɪᴍꜱ ᴢᴜᴍ ᴠᴇʀꜱᴄʜᴇɴᴋᴇɴ (ᴠᴇʀꜰüɢʙᴀʀ: {verfuegbar}, ʙᴇɴöᴛɪɢᴛ: {anzahl}). ᴄʟᴀɪᴍꜱ ᴀᴜꜱ ᴅᴇɪɴᴇɴ ʙᴇʀᴇᴄʜᴛɪɢᴜɴɢᴇɴ ᴋᴀɴɴꜱᴛ ᴅᴜ ɴɪᴄʜᴛ ᴀʙɢᴇʙᴇɴ."
+pay-confirm-prompt: "<yellow>ᴅᴜ ʙɪꜱᴛ ᴅᴀʙᴇɪ, <white>{anzahl}</white> ᴄʟᴀɪᴍ(ꜱ) ᴀɴ <white>{spieler}</white> ᴢᴜ ᴘᴀʏᴇɴ. ꜰüʜʀᴇ ᴅᴇɴ ʙᴇꜰᴇʜʟ ɪɴɴᴇʀʜᴀʟʙ ᴠᴏɴ {sekunden} ꜱᴇᴋᴜɴᴅᴇɴ ᴇʀɴᴇᴜᴛ ᴀᴜꜱ, ᴜᴍ ᴢᴜ ʙᴇꜱᴛäᴛɪɢᴇɴ."
+pay-success-sender: "<#55FF55>ᴅᴜ ʜᴀꜱᴛ {anzahl} ᴄʟᴀɪᴍ(ꜱ) ᴀɴ {spieler} ɢᴇᴢᴀʜʟᴛ.</#00AA00> <gray>(ᴅᴜ ʜᴀꜱᴛ ᴊᴇᴛᴢᴛ {neu} ʙᴏɴᴜꜱ-ᴄʟᴀɪᴍ-ꜱʟᴏᴛ(ꜱ).)"
+pay-success-receiver: "<#55FF55>{spieler} ʜᴀᴛ ᴅɪʀ {anzahl} ᴄʟᴀɪᴍ(ꜱ) ɢᴇᴢᴀʜʟᴛ!</#00AA00> <gray>(ᴅᴜ ʜᴀꜱᴛ ᴊᴇᴛᴢᴛ {neu} ʙᴏɴᴜꜱ-ᴄʟᴀɪᴍ-ꜱʟᴏᴛ(ꜱ).)"
+
+# ---------------------------------------------------------
+# Claim übertragen (GUI: Claim-Einstellungen -> Übertragen)
+# ---------------------------------------------------------
+transfer-claim-gone: "<red>ᴅɪᴇꜱᴇʀ ᴄʟᴀɪᴍ ᴇxɪꜱᴛɪᴇʀᴛ ɴɪᴄʜᴛ ᴍᴇʜʀ."
+transfer-self: "<red>ᴅᴜ ᴋᴀɴɴꜱᴛ ᴇɪɴᴇɴ ᴄʟᴀɪᴍ ɴɪᴄʜᴛ ᴀɴ ᴅɪᴄʜ ꜱᴇʟʙꜱᴛ üʙᴇʀᴛʀᴀɢᴇɴ."
+transfer-target-offline: "<red>{spieler} ɪꜱᴛ ɴɪᴄʜᴛ ᴍᴇʜʀ ᴏɴʟɪɴᴇ. ᴅɪᴇ üʙᴇʀᴛʀᴀɢᴜɴɢ ᴡᴜʀᴅᴇ ᴀʙɢᴇʙʀᴏᴄʜᴇɴ."
+transfer-not-enough-space: "<red>{spieler} ʜᴀᴛ ɴɪᴄʜᴛ ɢᴇɴᴜɢ ꜰʀᴇɪᴇ ᴄʟᴀɪᴍ-ꜱʟᴏᴛꜱ ꜰüʀ ᴅɪᴇꜱᴇɴ ᴄʟᴀɪᴍ (ꜰʀᴇɪ: {frei}, ʙᴇɴöᴛɪɢᴛ: {benoetigt})."
+transfer-success-sender: "<#55FF55>ᴅᴜ ʜᴀꜱᴛ ᴅᴇɴ ᴄʟᴀɪᴍ {claim} ᴀɴ {spieler} üʙᴇʀᴛʀᴀɢᴇɴ.</#00AA00>"
+transfer-success-receiver: "<#55FF55>ᴅᴜ ʜᴀꜱᴛ ᴅᴇɴ ᴄʟᴀɪᴍ {claim} ᴠᴏɴ {spieler} ᴇʀʜᴀʟᴛᴇɴ!</#00AA00>"
+
+# ---------------------------------------------------------
+# /staffclaim bypass (Berechtigung: claims.admin.bypass)
+# ---------------------------------------------------------
+bypass-enabled: "<green>ᴄʟᴀɪᴍ-ʙʏᴘᴀꜱꜱ ᴀᴋᴛɪᴠɪᴇʀᴛ. ᴅᴜ ᴋᴀɴɴꜱᴛ ᴊᴇᴛᴢᴛ ꜱᴄʜᴜᴛᴢ-, ᴛʀᴜꜱᴛ- ᴜɴᴅ ʙᴀɴɴ-ʀᴇɢᴇʟɴ ᴜᴍɢᴇʜᴇɴ. ᴇʀ ᴡɪʀᴅ ʙᴇɪᴍ ᴠᴇʀʟᴀꜱꜱᴇɴ ᴅᴇꜱ ꜱᴇʀᴠᴇʀꜱ ᴀᴜᴛᴏᴍᴀᴛɪꜱᴄʜ ᴢᴜʀüᴄᴋɢᴇꜱᴇᴛᴢᴛ. ᴍɪᴛ /ꜱᴛᴀꜰꜰᴄʟᴀɪᴍ ʙʏᴘᴀꜱꜱ ꜱᴄʜᴀʟᴛᴇꜱᴛ ᴅᴜ ɪʜɴ ᴡɪᴇᴅᴇʀ ᴀᴜꜱ."
+bypass-disabled: "<red>ᴄʟᴀɪᴍ-ʙʏᴘᴀꜱꜱ ᴅᴇᴀᴋᴛɪᴠɪᴇʀᴛ."
+bypass-usage: "<red>ᴠᴇʀᴡᴇɴᴅᴜɴɢ: /ꜱᴛᴀꜰꜰᴄʟᴀɪᴍ ʙʏᴘᴀꜱꜱ [ᴏɴ|ᴏꜰꜰ]"
+cannot-ban-owner: "<red>ᴅᴇʀ ʙᴇꜱɪᴛᴢᴇʀ ᴇɪɴᴇꜱ ᴄʟᴀɪᴍꜱ ᴋᴀɴɴ ɴɪᴄʜᴛ ɢᴇʙᴀɴɴᴛ ᴡᴇʀᴅᴇɴ."

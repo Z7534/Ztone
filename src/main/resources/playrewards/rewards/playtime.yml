@@ -1,0 +1,696 @@
+# ==============================================================================
+# PlayReward - Spielzeit-Belohnungen (Playtime Rewards)
+# Schlangenlinien-Weg (19 Slots pro Seite):
+# Start oben links -> ganz runter -> 2 nach rechts -> ganz hoch -> 2 nach rechts -> ganz runter -> 2 nach rechts -> ganz hoch!
+# Automatische Paginierung auf Seite 2 ab 20 Belohnungen!
+# Icons: Basic-Kopf (Holztruhe), Besonderer Kopf (Goldener Stern), Epischer Kopf (Krone)
+# Bereits eingelöste Belohnungen erhalten automatisch den grünen Haken-Kopf!
+# ==============================================================================
+
+title: "<gradient:#33AAFF:#0055FF><bold>Spielzeit-Belohnungen</bold></gradient>"
+frame_glass: "LIGHT_BLUE_STAINED_GLASS_PANE"
+
+rewards:
+  tier_1:
+    required_playtime_hours: 0.5
+    name: "<aqua><bold>30 Minuten: Willkommen</bold></aqua>"
+    material: "PLAYER_HEAD"
+    custom_head_texture: "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNTcyNmQ5ZDA2MzJlNDBiZGE1YmNmNjU4MzliYTJjYzk4YTg3YmQ2MTljNTNhZGYwMDMxMGQ2ZmM3MWYwNDJiNSJ9fX0="
+    lore_preview:
+      - "<gray>Deine allererste halbe Stunde auf dem Server!"
+      - ""
+      - "<yellow>Belohnungen:</yellow>"
+      - " <gold>+ 1.000 Steine"
+      - " <aqua>+ 8x Exp Bottle"
+      - " &7+ Du erhältst einen Bonus Claim"
+    commands:
+      - "eco give %player% 1000"
+      - "give %player% experience_bottle 8"
+      - "staffclaim addclaims %player% 1"
+
+  tier_2:
+    required_playtime_hours: 1
+    name: "<aqua><bold>1. Spielstunde: Erkunder</bold></aqua>"
+    material: "PLAYER_HEAD"
+    custom_head_texture: "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNTcyNmQ5ZDA2MzJlNDBiZGE1YmNmNjU4MzliYTJjYzk4YTg3YmQ2MTljNTNhZGYwMDMxMGQ2ZmM3MWYwNDJiNSJ9fX0="
+    lore_preview:
+      - "<gray>Eine Stunde aktiv erkundet."
+      - ""
+      - "<yellow>Belohnungen:</yellow>"
+      - " <gold>+ 2.000 Steine"
+      - " <aqua>+ 2x Golden Apple"
+    commands:
+      - "eco give %player% 2000"
+      - "give %player% golden_apple 2"
+
+  tier_3:
+    required_playtime_hours: 3
+    name: "<aqua><bold>3. Spielstunden: Einsteiger</bold></aqua>"
+    material: "PLAYER_HEAD"
+    custom_head_texture: "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNTcyNmQ5ZDA2MzJlNDBiZGE1YmNmNjU4MzliYTJjYzk4YTg3YmQ2MTljNTNhZGYwMDMxMGQ2ZmM3MWYwNDJiNSJ9fX0="
+    lore_preview:
+      - "<gray>Drei Stunden Fleiß und Aufbau."
+      - ""
+      - "<yellow>Belohnungen:</yellow>"
+      - " <gold>+ 3.500 Steine"
+      - " <aqua>+ 4x Slime Ball"
+      - " &7+ Du erhältst einen Bonus Claim"
+    commands:
+      - "staffclaim addclaims %player% 1"
+      - "eco give %player% 3500"
+      - "give %player% slime_ball 4"
+
+  tier_4:
+    required_playtime_hours: 6
+    name: "<aqua><bold>6. Spielstunden: Abenteurer</bold></aqua>"
+    material: "PLAYER_HEAD"
+    custom_head_texture: "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNTcyNmQ5ZDA2MzJlNDBiZGE1YmNmNjU4MzliYTJjYzk4YTg3YmQ2MTljNTNhZGYwMDMxMGQ2ZmM3MWYwNDJiNSJ9fX0="
+    lore_preview:
+      - "<gray>Sechs Stunden pure Entdeckungslust."
+      - ""
+      - "<yellow>Belohnungen:</yellow>"
+      - " <gold>+ 5.000 Steine"
+      - " <aqua>+ 6x Diamond"
+    commands:
+      - "eco give %player% 5000"
+      - "give %player% diamond 6"
+
+  tier_5:
+    required_playtime_hours: 10
+    name: "<aqua><bold>10. Spielstunden: Pionier</bold></aqua>"
+    material: "PLAYER_HEAD"
+    custom_head_texture: "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvZjk3ZTJjOGI4Mjc2Mjc2ZTM4ZGVjYTg4NTA4NzJkNTllY2M5YzFmMzhmMmFkY2U0MDg1OGVkYjllNjM0ZDdiYSJ9fX0="
+    lore_preview:
+      - "<yellow>★ Zehn Stunden auf dem Server!"
+      - ""
+      - "<yellow>Belohnungen:</yellow>"
+      - " <gold>+ 7.500 Steine"
+      - " <aqua>+ 4x Golden Apple"
+      - " <aqua>+ 1x Ghast Tear"
+    commands:
+      - "eco give %player% 7500"
+      - "give %player% golden_apple 4"
+      - "give %player% ghast_tear 1"
+
+  tier_6:
+    required_playtime_hours: 15
+    name: "<aqua><bold>15. Spielstunden: Baumeister</bold></aqua>"
+    material: "PLAYER_HEAD"
+    custom_head_texture: "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNTcyNmQ5ZDA2MzJlNDBiZGE1YmNmNjU4MzliYTJjYzk4YTg3YmQ2MTljNTNhZGYwMDMxMGQ2ZmM3MWYwNDJiNSJ9fX0="
+    lore_preview:
+      - "<gray>Fünfzehn Stunden unermüdliches Schaffen."
+      - ""
+      - "<yellow>Belohnungen:</yellow>"
+      - " <gold>+ 10.000 Steine"
+      - " <aqua>+ 16x Wind Charge"
+      - " &7+ Du erhältst 2 Bonus Claims"
+    commands:
+      - "eco give %player% 10000"
+      - "give %player% wind_charge 16"
+      - "staffclaim addclaims %player% 2"
+
+  tier_7:
+    required_playtime_hours: 20
+    name: "<aqua><bold>20. Spielstunden: Sesshaft</bold></aqua>"
+    material: "PLAYER_HEAD"
+    custom_head_texture: "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNTcyNmQ5ZDA2MzJlNDBiZGE1YmNmNjU4MzliYTJjYzk4YTg3YmQ2MTljNTNhZGYwMDMxMGQ2ZmM3MWYwNDJiNSJ9fX0="
+    lore_preview:
+      - "<gray>Zwanzig Stunden treuer Einsatz."
+      - ""
+      - "<yellow>Belohnungen:</yellow>"
+      - " <gold>+ 12.500 Steine"
+      - " <aqua>+ 16x Diamond"
+    commands:
+      - "eco give %player% 12500"
+      - "give %player% diamond 16"
+
+  tier_8:
+    required_playtime_hours: 25
+    name: "<aqua><bold>25. Spielstunden: Geselle</bold></aqua>"
+    material: "PLAYER_HEAD"
+    custom_head_texture: "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvZjk3ZTJjOGI4Mjc2Mjc2ZTM4ZGVjYTg4NTA4NzJkNTllY2M5YzFmMzhmMmFkY2U0MDg1OGVkYjllNjM0ZDdiYSJ9fX0="
+    lore_preview:
+      - "<yellow>★ Ein Vierteljahrhundert an Stunden!"
+      - ""
+      - "<yellow>Belohnungen:</yellow>"
+      - " <gold>+ 15.000 Steine"
+      - " <aqua>+ 1x Totem of Undying"
+      - " &7+ Du erhältst 2 Bonus Claims"
+    commands:
+      - "eco give %player% 15000"
+      - "give %player% totem_of_undying 1"
+      - "staffclaim addclaims %player% 2"
+
+  tier_9:
+    required_playtime_hours: 30
+    name: "<aqua><bold>30. Spielstunden: Entdecker</bold></aqua>"
+    material: "PLAYER_HEAD"
+    custom_head_texture: "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNTcyNmQ5ZDA2MzJlNDBiZGE1YmNmNjU4MzliYTJjYzk4YTg3YmQ2MTljNTNhZGYwMDMxMGQ2ZmM3MWYwNDJiNSJ9fX0="
+    lore_preview:
+      - "<gray>Dreißig Stunden auf Entdeckungsreise."
+      - ""
+      - "<yellow>Belohnungen:</yellow>"
+      - " <gold>+ 17.500 Steine"
+      - " <aqua>+ 8x Golden Apple"
+      - " <aqua>+ 1x Heart of the Sea"
+    commands:
+      - "eco give %player% 17500"
+      - "give %player% golden_apple 8"
+      - "give %player% heart_of_the_sea 1"
+
+  tier_10:
+    required_playtime_hours: 40
+    name: "<aqua><bold>40. Spielstunden: Beschützer</bold></aqua>"
+    material: "PLAYER_HEAD"
+    custom_head_texture: "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNTcyNmQ5ZDA2MzJlNDBiZGE1YmNmNjU4MzliYTJjYzk4YTg3YmQ2MTljNTNhZGYwMDMxMGQ2ZmM3MWYwNDJiNSJ9fX0="
+    lore_preview:
+      - "<gray>Vierzig Stunden Server-Treue!"
+      - ""
+      - "<yellow>Belohnungen:</yellow>"
+      - " <gold>+ 20.000 Steine"
+      - " <aqua>+ 32x Diamond"
+      - " <aqua>+ 1x Trident"
+      - " <aqua>+ 3Stunden 3% Skill Boost: Beweglichkeit"
+    commands:
+      - "eco give %player% 20000"
+      - "give %player% diamond 32"
+      - "give %player% trident 1"
+      - "lp user %player% permission settemp auraskills.multiplier.agility.3 true 3h"
+
+  tier_11:
+    required_playtime_hours: 50
+    name: "<aqua><bold>50. Spielstunden: Bürger</bold></aqua>"
+    material: "PLAYER_HEAD"
+    custom_head_texture: "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvZjk3ZTJjOGI4Mjc2Mjc2ZTM4ZGVjYTg4NTA4NzJkNTllY2M5YzFmMzhmMmFkY2U0MDg1OGVkYjllNjM0ZDdiYSJ9fX0="
+    lore_preview:
+      - "<yellow>★ 50 Stunden Hingabe auf dem Server!"
+      - ""
+      - "<yellow>Belohnungen:</yellow>"
+      - " <gold>+ 25.000 Steine"
+      - " <green>+ Befehl: /feed"
+      - " <light_purple>+ 1x Enchanted Golden Apple"
+      - " <aqua>+ 8x Crying Obsidian"
+      - " &7+ Du erhältst 3 Bonus Claims"
+    commands:
+      - "lp user %player% permission set essentials.feed"
+      - "eco give %player% 25000"
+      - "give %player% enchanted_golden_apple 1"
+      - "give %player% crying_obsidian 8"
+      - "staffclaim addclaims %player% 3"
+
+  tier_12:
+    required_playtime_hours: 60
+    name: "<aqua><bold>60. Spielstunden: Schatzkammer</bold></aqua>"
+    material: "PLAYER_HEAD"
+    custom_head_texture: "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNTcyNmQ5ZDA2MzJlNDBiZGE1YmNmNjU4MzliYTJjYzk4YTg3YmQ2MTljNTNhZGYwMDMxMGQ2ZmM3MWYwNDJiNSJ9fX0="
+    lore_preview:
+      - "<gray>Sechzig Stunden! Deine Truhen quellen über."
+      - ""
+      - "<yellow>Belohnungen:</yellow>"
+      - " <gold>+ 25.000 Steine"
+      - " <aqua>+ 12x Golden Apple"
+      - " <aqua>+ 3x Ancient Debris"
+    commands:
+      - "eco give %player% 25000"
+      - "give %player% golden_apple 12"
+      - "give %player% diamond_spear 1"
+
+  tier_13:
+    required_playtime_hours: 70
+    name: "<aqua><bold>70. Spielstunden: Meisterbauer</bold></aqua>"
+    material: "PLAYER_HEAD"
+    custom_head_texture: "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNTcyNmQ5ZDA2MzJlNDBiZGE1YmNmNjU4MzliYTJjYzk4YTg3YmQ2MTljNTNhZGYwMDMxMGQ2ZmM3MWYwNDJiNSJ9fX0="
+    lore_preview:
+      - "<gray>Siebzig Stunden Bauen und Farmen."
+      - ""
+      - "<yellow>Belohnungen:</yellow>"
+      - " <gold>+ 30.000 Steine"
+      - " <aqua>+ 48x Diamond"
+    commands:
+      - "eco give %player% 30000"
+      - "give %player% diamond 48"
+
+  tier_14:
+    required_playtime_hours: 75
+    name: "<aqua><bold>75. Spielstunden: Handwerker</bold></aqua>"
+    material: "PLAYER_HEAD"
+    custom_head_texture: "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvZjk3ZTJjOGI4Mjc2Mjc2ZTM4ZGVjYTg4NTA4NzJkNTllY2M5YzFmMzhmMmFkY2U0MDg1OGVkYjllNjM0ZDdiYSJ9fX0="
+    lore_preview:
+      - "<yellow>★ Drei Viertel des Weges zu 100 Stunden!"
+      - ""
+      - "<yellow>Belohnungen:</yellow>"
+      - " <gold>+ 30.000 Steine"
+      - " <aqua>+ 2x Totem of Undying"
+      - " &7+ Du erhältst 3 Bonus Claims"
+    commands:
+      - "eco give %player% 30000"
+      - "give %player% totem_of_undying 2"
+      - "staffclaim addclaims %player% 3"
+
+  tier_15:
+    required_playtime_hours: 80
+    name: "<aqua><bold>80. Spielstunden: Gelehrter</bold></aqua>"
+    material: "PLAYER_HEAD"
+    custom_head_texture: "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNTcyNmQ5ZDA2MzJlNDBiZGE1YmNmNjU4MzliYTJjYzk4YTg3YmQ2MTljNTNhZGYwMDMxMGQ2ZmM3MWYwNDJiNSJ9fX0="
+    lore_preview:
+      - "<gray>Achtzig Stunden Server-Erfahrung."
+      - ""
+      - "<yellow>Belohnungen:</yellow>"
+      - " <gold>+ 35.000 Steine"
+      - " <aqua>+ 6x Ancient Debris"
+      - " &7+ Du erhältst 3 Bonus Claims"
+      - " <aqua>+ 3 Stunden, 3% Skill Boost: Kampf"
+    commands:
+      - "staffclaim addclaims %player% 3"
+      - "eco give %player% 35000"
+      - "give %player% ancient_debris 5"
+      - "lp user %player% permission settemp auraskills.multiplier.fighting.3 true 3h"
+
+  tier_16:
+    required_playtime_hours: 85
+    name: "<aqua><bold>85. Spielstunden: Schafzüchter</bold></aqua>"
+    material: "PLAYER_HEAD"
+    custom_head_texture: "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNTcyNmQ5ZDA2MzJlNDBiZGE1YmNmNjU4MzliYTJjYzk4YTg3YmQ2MTljNTNhZGYwMDMxMGQ2ZmM3MWYwNDJiNSJ9fX0="
+    lore_preview:
+      - "<gray>Fünfundachtzig Stunden fleißige Tierzucht."
+      - ""
+      - "<yellow>Belohnungen:</yellow>"
+      - " <gold>+ 35.000 Steine"
+      - " <aqua>+ 1x Schaf Spawner"
+    commands:
+      - "eco give %player% 35000"
+      - "smartspawner give vanilla_spawner %player% sheep"
+
+  tier_17:
+    required_playtime_hours: 90
+    name: "<aqua><bold>90. Spielstunden: Titan</bold></aqua>"
+    material: "PLAYER_HEAD"
+    custom_head_texture: "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNTcyNmQ5ZDA2MzJlNDBiZGE1YmNmNjU4MzliYTJjYzk4YTg3YmQ2MTljNTNhZGYwMDMxMGQ2ZmM3MWYwNDJiNSJ9fX0="
+    lore_preview:
+      - "<gray>Neunzig Stunden! Die Endstufe von Seite 1 naht."
+      - ""
+      - "<yellow>Belohnungen:</yellow>"
+      - " <gold>+ 40.000 Steine"
+      - " <aqua>+ 64x Diamond"
+      - " <aqua>+ 2x Netherite Ingot"
+    commands:
+      - "eco give %player% 40000"
+      - "give %player% diamond 64"
+      - "give %player% netherite_ingot 2"
+
+  tier_18:
+    required_playtime_hours: 95
+    name: "<aqua><bold>95. Spielstunden: Vorbote</bold></aqua>"
+    material: "PLAYER_HEAD"
+    custom_head_texture: "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvZjk3ZTJjOGI4Mjc2Mjc2ZTM4ZGVjYTg4NTA4NzJkNTllY2M5YzFmMzhmMmFkY2U0MDg1OGVkYjllNjM0ZDdiYSJ9fX0="
+    lore_preview:
+      - "<yellow>★ Nur noch fünf Stunden bis zum ersten Rang!"
+      - ""
+      - "<yellow>Belohnungen:</yellow>"
+      - " <gold>+ 40.000 Steine"
+      - " <aqua>+ 1x Silence Armor Trim"
+      - " <aqua>+ 4x Ancient Debris"
+    commands:
+      - "eco give %player% 40000"
+      - "give %player% silence_armor_trim_smithing_template"
+      - "give %player% ancient_debris 4"
+
+  tier_19:
+    required_playtime_hours: 100
+    name: "<aqua><bold>100. Spielstunden: Twinkle</bold></aqua>"
+    material: "PLAYER_HEAD"
+    custom_head_texture: "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvZjk3ZTJjOGI4Mjc2Mjc2ZTM4ZGVjYTg4NTA4NzJkNTllY2M5YzFmMzhmMmFkY2U0MDg1OGVkYjllNjM0ZDdiYSJ9fX0="
+    lore_preview:
+      - "<yellow>★ 100 Stunden Meilenstein - Neuer Rang!"
+      - "<yellow>★ Letzte Stufe auf Seite 1!"
+      - ""
+      - "<yellow>Belohnungen:</yellow>"
+      - " <gold>+ 50.000 Steine"
+      - " <green>+ Rang: Twinkle"
+      - " <aqua>+ 1x Hühner Spawner"
+      - " <light_purple>+ 1x Enchanted Golden Apple"
+      - " &7+ Du erhältst 5 Bonus Claims"
+      - " <aqua>+ 2 Stunden 2% Skill Boost: Alle Skills"
+    commands:
+      - "eco give %player% 50000"
+      - "lp user %player% parent add twinkle"
+      - "smartspawner give vanilla_spawner %player% chicken"
+      - "give %player% enchanted_golden_apple 1"
+      - "staffclaim addclaims %player% 5"
+      - "lp user %player% permission settemp auraskills.multiplier.2 true 1h"
+
+  tier_20:
+    required_playtime_hours: 120
+    name: "<aqua><bold>120. Spielstunden: Pionier der Tiefe</bold></aqua>"
+    material: "PLAYER_HEAD"
+    custom_head_texture: "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNTcyNmQ5ZDA2MzJlNDBiZGE1YmNmNjU4MzliYTJjYzk4YTg3YmQ2MTljNTNhZGYwMDMxMGQ2ZmM3MWYwNDJiNSJ9fX0="
+    lore_preview:
+      - "<gray>Erste Belohnung auf Seite 2!"
+      - ""
+      - "<yellow>Belohnungen:</yellow>"
+      - " <gold>+ 55.000 Steine"
+      - " <aqua>+ 16x Golden Apple"
+      - " <aqua>+ 2x Netherite Ingot"
+    commands:
+      - "eco give %player% 55000"
+      - "give %player% golden_apple 16"
+      - "give %player% netherite_ingot 2"
+
+  tier_21:
+    required_playtime_hours: 140
+    name: "<aqua><bold>140. Spielstunden: Schatzmeister</bold></aqua>"
+    material: "PLAYER_HEAD"
+    custom_head_texture: "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNTcyNmQ5ZDA2MzJlNDBiZGE1YmNmNjU4MzliYTJjYzk4YTg3YmQ2MTljNTNhZGYwMDMxMGQ2ZmM3MWYwNDJiNSJ9fX0="
+    lore_preview:
+      - "<gray>Einhundertvierzig Stunden unbändige Treue."
+      - ""
+      - "<yellow>Belohnungen:</yellow>"
+      - " <gold>+ 60.000 Steine"
+      - " <aqua>+ 12x Diamond Block"
+      - " &7+ Du erhältst 3 Bonus Claims"
+    commands:
+      - "eco give %player% 60000"
+      - "give %player% diamond_block 12"
+      - "staffclaim addclaims %player% 3"
+
+  tier_22:
+    required_playtime_hours: 160
+    name: "<aqua><bold>160. Spielstunden: Viehzüchter</bold></aqua>"
+    material: "PLAYER_HEAD"
+    custom_head_texture: "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNTcyNmQ5ZDA2MzJlNDBiZGE1YmNmNjU4MzliYTJjYzk4YTg3YmQ2MTljNTNhZGYwMDMxMGQ2ZmM3MWYwNDJiNSJ9fX0="
+    lore_preview:
+      - "<gray>Einhundertsechzig Stunden Farm-Erfahrung."
+      - ""
+      - "<yellow>Belohnungen:</yellow>"
+      - " <gold>+ 65.000 Steine"
+      - " <aqua>+ 1x Schwein Spawner"
+      - " <aqua>+ 2x Totem of Undying"
+      - " &3 2 Stunden 5% Skill Boost: Enchanting"
+    commands:
+      - "eco give %player% 65000"
+      - "smartspawner give vanilla_spawner %player% pig"
+      - "give %player% totem_of_undying 2"
+      - "lp user %player% permission settemp auraskills.multiplier.Enchanting.5 true 2h"
+
+  tier_23:
+    required_playtime_hours: 180
+    name: "<aqua><bold>180. Spielstunden: Unsterblich</bold></aqua>"
+    material: "PLAYER_HEAD"
+    custom_head_texture: "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvZjk3ZTJjOGI4Mjc2Mjc2ZTM4ZGVjYTg4NTA4NzJkNTllY2M5YzFmMzhmMmFkY2U0MDg1OGVkYjllNjM0ZDdiYSJ9fX0="
+    lore_preview:
+      - "<yellow>★ 180 Stunden Hingabe und Meisterschaft!"
+      - ""
+      - "<yellow>Belohnungen:</yellow>"
+      - " <gold>+ 70.000 Steine"
+      - " <light_purple>+ 1x Enchanted Golden Apple"
+      - " <green>+ Befehl: /suicide"
+      - " &7+ Du erhältst 4 Bonus Claims"
+    commands:
+      - "lp user %player% permission set essentials.suicide true"
+      - "eco give %player% 70000"
+      - "give %player% enchanted_golden_apple 1"
+      - "staffclaim addclaims %player% 4"
+
+  tier_24:
+    required_playtime_hours: 200
+    name: "<aqua><bold>200. Spielstunden: Asteroid</bold></aqua>"
+    material: "PLAYER_HEAD"
+    custom_head_texture: "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvYjI2ZTM4ZDhjMWRhOGQ0NTFkNzE5NGYzYTdmYWQ5MGExNDFkZmU2MTY1YjY2NjdmN2E4Y2JhMDkxOTEzOSJ9fX0="
+    lore_preview:
+      - "<gold>♛ 200 Stunden Meilenstein - Neuer Rang!"
+      - ""
+      - "<yellow>Belohnungen:</yellow>"
+      - " <gold>+ 85.000 Steine"
+      - " <green>+ Rang: Asteroid"
+      - " <aqua>+ 1x Kuh Spawner"
+      - " <aqua>+ 2x Totem of Undying"
+      - " &7+ Du erhältst 5 Bonus Claims"
+      - " <aqua>+ 2 Stunden 3% Skill Boost: Alle Skills"
+    commands:
+      - "eco give %player% 85000"
+      - "lp user %player% parent add asteorid"
+      - "smartspawner give vanilla_spawner %player% cow"
+      - "give %player% totem_of_undying 2"
+      - "staffclaim addclaims %player% 5"
+      - "lp user %player% permission settemp auraskills.multiplier.3 true 2h"
+
+  tier_25:
+    required_playtime_hours: 220
+    name: "<aqua><bold>220. Spielstunden: Weltenwanderer</bold></aqua>"
+    material: "PLAYER_HEAD"
+    custom_head_texture: "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNTcyNmQ5ZDA2MzJlNDBiZGE1YmNmNjU4MzliYTJjYzk4YTg3YmQ2MTljNTNhZGYwMDMxMGQ2ZmM3MWYwNDJiNSJ9fX0="
+    lore_preview:
+      - "<gray>Zweihundertzwanzig Stunden auf Reisen."
+      - ""
+      - "<yellow>Belohnungen:</yellow>"
+      - " <gold>+ 95.000 Steine"
+      - " <aqua>+ 24x Golden Apple"
+      - " <aqua>+ 6x Ancient Debris"
+    commands:
+      - "eco give %player% 95000"
+      - "give %player% golden_apple 24"
+      - "give %player% ancient_debris 6"
+
+  tier_26:
+    required_playtime_hours: 240
+    name: "<aqua><bold>240. Spielstunden: Diamantenfürst</bold></aqua>"
+    material: "PLAYER_HEAD"
+    custom_head_texture: "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNTcyNmQ5ZDA2MzJlNDBiZGE1YmNmNjU4MzliYTJjYzk4YTg3YmQ2MTljNTNhZGYwMDMxMGQ2ZmM3MWYwNDJiNSJ9fX0="
+    lore_preview:
+      - "<gray>Zweihundertvierzig Stunden Reichtum."
+      - ""
+      - "<yellow>Belohnungen:</yellow>"
+      - " <gold>+ 105.000 Steine"
+      - " <aqua>+ 20x Diamond Block"
+      - " &7+ Du erhältst 4 Bonus Claims"
+    commands:
+      - "eco give %player% 105000"
+      - "give %player% diamond_block 20"
+      - "staffclaim addclaims %player% 4"
+
+  tier_27:
+    required_playtime_hours: 260
+    name: "<aqua><bold>260. Spielstunden: Grabwächter</bold></aqua>"
+    material: "PLAYER_HEAD"
+    custom_head_texture: "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvZjk3ZTJjOGI4Mjc2Mjc2ZTM4ZGVjYTg4NTA4NzJkNTllY2M5YzFmMzhmMmFkY2U0MDg1OGVkYjllNjM0ZDdiYSJ9fX0="
+    lore_preview:
+      - "<yellow>★ Zweihundertsechzig Stunden Treue!"
+      - ""
+      - "<yellow>Belohnungen:</yellow>"
+      - " <gold>+ 115.000 Steine"
+      - " <aqua>+ 1x Zombie Spawner"
+      - " <light_purple>+ 2x Enchanted Golden Apple"
+    commands:
+      - "eco give %player% 115000"
+      - "smartspawner give vanilla_spawner %player% zombie"
+      - "give %player% enchanted_golden_apple 2"
+
+  tier_28:
+    required_playtime_hours: 280
+    name: "<aqua><bold>280. Spielstunden: Netherit-Schmied</bold></aqua>"
+    material: "PLAYER_HEAD"
+    custom_head_texture: "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNTcyNmQ5ZDA2MzJlNDBiZGE1YmNmNjU4MzliYTJjYzk4YTg3YmQ2MTljNTNhZGYwMDMxMGQ2ZmM3MWYwNDJiNSJ9fX0="
+    lore_preview:
+      - "<gray>Zweihundertachtzig Stunden Schmiedekunst."
+      - ""
+      - "<yellow>Belohnungen:</yellow>"
+      - " <gold>+ 125.000 Steine"
+      - " <aqua>+ 3x Totem of Undying"
+      - " <aqua>+ 3x Netherite Ingot"
+      - " &7+ Du erhältst 5 Bonus Claims"
+    commands:
+      - "eco give %player% 125000"
+      - "give %player% totem_of_undying 3"
+      - "give %player% netherite_ingot 3"
+      - "staffclaim addclaims %player% 5"
+
+  tier_29:
+    required_playtime_hours: 300
+    name: "<aqua><bold>300. Spielstunden: Meteor</bold></aqua>"
+    material: "PLAYER_HEAD"
+    custom_head_texture: "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvYjI2ZTM4ZDhjMWRhOGQ0NTFkNzE5NGYzYTdmYWQ5MGExNDFkZmU2MTY1YjY2NjdmN2E4Y2JhMDkxOTEzOSJ9fX0="
+    lore_preview:
+      - "<gold>♛ 300 Stunden Meilenstein - Neuer Rang!"
+      - ""
+      - "<yellow>Belohnungen:</yellow>"
+      - " <gold>+ 150.000 Steine"
+      - " <green>+ Rang: Meteor"
+      - " <aqua>+ 1x Skelett Spawner"
+      - " <light_purple>+ 2x Enchanted Golden Apple"
+      - " &7+ Du erhältst 6 Bonus Claims"
+    commands:
+      - "eco give %player% 150000"
+      - "lp user %player% parent add meteor"
+      - "smartspawner give vanilla_spawner %player% skeleton"
+      - "give %player% enchanted_golden_apple 2"
+      - "staffclaim addclaims %player% 6"
+
+  tier_30:
+    required_playtime_hours: 320
+    name: "<aqua><bold>320. Spielstunden: Goldrausch</bold></aqua>"
+    material: "PLAYER_HEAD"
+    custom_head_texture: "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNTcyNmQ5ZDA2MzJlNDBiZGE1YmNmNjU4MzliYTJjYzk4YTg3YmQ2MTljNTNhZGYwMDMxMGQ2ZmM3MWYwNDJiNSJ9fX0="
+    lore_preview:
+      - "<gray>Dreihundertzwanzig Stunden! Gold im Überfluss."
+      - ""
+      - "<yellow>Belohnungen:</yellow>"
+      - " <gold>+ 165.000 Steine"
+      - " <aqua>+ 32x Golden Apple"
+      - " <aqua>+ 1x Netherite Block"
+    commands:
+      - "eco give %player% 165000"
+      - "give %player% golden_apple 32"
+      - "give %player% netherite_block 1"
+
+  tier_31:
+    required_playtime_hours: 340
+    name: "<aqua><bold>340. Spielstunden: Juwelenkönig</bold></aqua>"
+    material: "PLAYER_HEAD"
+    custom_head_texture: "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNTcyNmQ5ZDA2MzJlNDBiZGE1YmNmNjU4MzliYTJjYzk4YTg3YmQ2MTljNTNhZGYwMDMxMGQ2ZmM3MWYwNDJiNSJ9fX0="
+    lore_preview:
+      - "<gray>Dreihundertvierzig Stunden monumentale Bauwerke."
+      - ""
+      - "<yellow>Belohnungen:</yellow>"
+      - " <gold>+ 180.000 Steine"
+      - " <aqua>+ 32x Diamond Block"
+      - " &7+ Du erhältst 5 Bonus Claims"
+    commands:
+      - "eco give %player% 180000"
+      - "give %player% diamond_block 32"
+      - "staffclaim addclaims %player% 5"
+
+  tier_32:
+    required_playtime_hours: 360
+    name: "<aqua><bold>360. Spielstunden: Schattenjäger</bold></aqua>"
+    material: "PLAYER_HEAD"
+    custom_head_texture: "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvZjk3ZTJjOGI4Mjc2Mjc2ZTM4ZGVjYTg4NTA4NzJkNTllY2M5YzFmMzhmMmFkY2U0MDg1OGVkYjllNjM0ZDdiYSJ9fX0="
+    lore_preview:
+      - "<yellow>★ Dreihundertsechzig Stunden unangefochten."
+      - ""
+      - "<yellow>Belohnungen:</yellow>"
+      - " <gold>+ 200.000 Steine"
+      - " <aqua>+ 1x Spinne Spawner"
+      - " <aqua>+ 3x Totem of Undying"
+    commands:
+      - "eco give %player% 200000"
+      - "smartspawner give vanilla_spawner %player% spider"
+      - "give %player% totem_of_undying 3"
+
+  tier_33:
+    required_playtime_hours: 380
+    name: "<aqua><bold>380. Spielstunden: Herr der Erze</bold></aqua>"
+    material: "PLAYER_HEAD"
+    custom_head_texture: "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvZjk3ZTJjOGI4Mjc2Mjc2ZTM4ZGVjYTg4NTA4NzJkNTllY2M5YzFmMzhmMmFkY2U0MDg1OGVkYjllNjM0ZDdiYSJ9fX0="
+    lore_preview:
+      - "<yellow>★ Nur noch zwanzig Stunden bis zum Pulsar-Rang!"
+      - ""
+      - "<yellow>Belohnungen:</yellow>"
+      - " <gold>+ 220.000 Steine"
+      - " <aqua>+ 1x Netherite Block"
+      - " <light_purple>+ 2x Enchanted Golden Apple"
+      - " &7+ Du erhältst 6 Bonus Claims"
+    commands:
+      - "eco give %player% 220000"
+      - "give %player% netherite_block 1"
+      - "give %player% enchanted_golden_apple 2"
+      - "staffclaim addclaims %player% 6"
+
+  tier_34:
+    required_playtime_hours: 400
+    name: "<aqua><bold>400. Spielstunden: Pulsar</bold></aqua>"
+    material: "PLAYER_HEAD"
+    custom_head_texture: "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvYjI2ZTM4ZDhjMWRhOGQ0NTFkNzE5NGYzYTdmYWQ5MGExNDFkZmU2MTY1YjY2NjdmN2E4Y2JhMDkxOTEzOSJ9fX0="
+    lore_preview:
+      - "<gold>♛ 400 Stunden Meilenstein - Höchster Rang!"
+      - ""
+      - "<yellow>Belohnungen:</yellow>"
+      - " <gold>+ 275.000 Steine"
+      - " <green>+ Rang: Pulsar"
+      - " <aqua>+ 1x Creeper Spawner"
+      - " <aqua>+ 1x Elytra"
+      - " <aqua>+ 4x Totem of Undying"
+      - " <light_purple>+ 3x Enchanted Golden Apple"
+      - " &7+ Du erhältst 8 Bonus Claims"
+    commands:
+      - "eco give %player% 275000"
+      - "lp user %player% parent add pulsar"
+      - "smartspawner give vanilla_spawner %player% creeper"
+      - "give %player% elytra 1"
+      - "give %player% totem_of_undying 4"
+      - "give %player% enchanted_golden_apple 3"
+      - "staffclaim addclaims %player% 8"
+
+  tier_35:
+    required_playtime_hours: 425
+    name: "<aqua><bold>425. Spielstunden: Kometenreiter</bold></aqua>"
+    material: "PLAYER_HEAD"
+    custom_head_texture: "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNTcyNmQ5ZDA2MzJlNDBiZGE1YmNmNjU4MzliYTJjYzk4YTg3YmQ2MTljNTNhZGYwMDMxMGQ2ZmM3MWYwNDJiNSJ9fX0="
+    lore_preview:
+      - "<gray>Vierhundertfünfundzwanzig Stunden Hingabe."
+      - ""
+      - "<yellow>Belohnungen:</yellow>"
+      - " <gold>+ 300.000 Steine"
+      - " <aqua>+ 48x Golden Apple"
+      - " <aqua>+ 4x Netherite Ingot"
+    commands:
+      - "eco give %player% 300000"
+      - "give %player% golden_apple 48"
+      - "give %player% netherite_ingot 4"
+
+  tier_36:
+    required_playtime_hours: 450
+    name: "<aqua><bold>450. Spielstunden: Diamantengigant</bold></aqua>"
+    material: "PLAYER_HEAD"
+    custom_head_texture: "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvZjk3ZTJjOGI4Mjc2Mjc2ZTM4ZGVjYTg4NTA4NzJkNTllY2M5YzFmMzhmMmFkY2U0MDg1OGVkYjllNjM0ZDdiYSJ9fX0="
+    lore_preview:
+      - "<yellow>★ 450 Stunden! Die 500-Stunden-Grenze ist in Sicht!"
+      - ""
+      - "<yellow>Belohnungen:</yellow>"
+      - " <gold>+ 350.000 Steine"
+      - " <aqua>+ 64x Diamond Block"
+      - " &7+ Du erhältst 8 Bonus Claims"
+    commands:
+      - "eco give %player% 350000"
+      - "give %player% diamond_block 64"
+      - "staffclaim addclaims %player% 8"
+
+  tier_37:
+    required_playtime_hours: 475
+    name: "<aqua><bold>475. Spielstunden: Wächter des Horizonts</bold></aqua>"
+    material: "PLAYER_HEAD"
+    custom_head_texture: "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvZjk3ZTJjOGI4Mjc2Mjc2ZTM4ZGVjYTg4NTA4NzJkNTllY2M5YzFmMzhmMmFkY2U0MDg1OGVkYjllNjM0ZDdiYSJ9fX0="
+    lore_preview:
+      - "<yellow>★ Vierhundertfünfundsiebzig Stunden! Nur noch 25h bis zur Vollendung!"
+      - ""
+      - "<yellow>Belohnungen:</yellow>"
+      - " <gold>+ 400.000 Steine"
+      - " <aqua>+ 1x Netherite Block"
+      - " <aqua>+ 4x Totem of Undying"
+    commands:
+      - "eco give %player% 400000"
+      - "give %player% netherite_block 1"
+      - "give %player% totem_of_undying 4"
+
+  tier_38:
+    required_playtime_hours: 500
+    name: "<gold><bold>500. Spielstunden: Legende der Ewigkeit</bold></gold>"
+    material: "PLAYER_HEAD"
+    custom_head_texture: "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvYjI2ZTM4ZDhjMWRhOGQ0NTFkNzE5NGYzYTdmYWQ5MGExNDFkZmU2MTY1YjY2NjdmN2E4Y2JhMDkxOTEzOSJ9fX0="
+    lore_preview:
+      - "<gold>♛ 500 Stunden! Der ultimative Server-Meilenstein!"
+      - "<yellow>★ Letzte Stufe auf Seite 2 & Maximales Playtime-Ziel!"
+      - ""
+      - "<yellow>Belohnungen:</yellow>"
+      - " <gold>+ 500.000 Steine"
+      - " <aqua>+ 1x Blaze Spawner"
+      - " <aqua>+ 2x Netherite Block"
+      - " <aqua>+ 5x Totem of Undying"
+      - " <light_purple>+ 5x Enchanted Golden Apple"
+      - " &7+ Du erhältst 12 Bonus Claims"
+    commands:
+      - "eco give %player% 500000"
+      - "smartspawner give vanilla_spawner %player% blaze"
+      - "give %player% netherite_block 2"
+      - "give %player% totem_of_undying 5"
+      - "give %player% enchanted_golden_apple 5"
+      - "staffclaim addclaims %player% 12"

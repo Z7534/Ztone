@@ -1,0 +1,75 @@
+# =========================================================
+#                     STONELOG CONFIG
+# =========================================================
+# Jede Kategorie kann entweder eine einzelne Webhook-URL ('url')
+# oder mehrere Webhook-URLs ('urls') besitzen.
+# "enabled: false" schaltet die jeweilige Kategorie komplett aus.
+#
+# Verfuegbare Platzhalter (je nach Kategorie):
+#   Allgemein:      {player} {uuid} {world} {position}
+#                   {world} liefert die Dimension: Overworld / Nether / End
+#   Commands:       {command}
+#   Chat:           {message}
+#   Deaths:         {deathmessage} {killer} {weapon}
+#
+# Farben sind passend formatiert, Feldnamen und Nachrichten sind anpassbar.
+# =========================================================
+
+webhooks:
+
+  # Ausgefuehrte Befehle
+  commands:
+    enabled: true
+    url: "https://discord.com/api/webhooks/1550772233587400714/1fE_OZ92y7UV_eYOCoIpi9Oc49UO9bd6SLTNTa2JBQD_ez0t9cgxQlZ4uwDMPDBaMIle"
+    # Optional mehrere Webhooks:
+    # urls:
+    #   - "https://discord.com/api/webhooks/..."
+    #   - "https://discord.com/api/webhooks/..."
+    messages:
+      author: "{player} hat einen Befehl ausgeführt"
+      description: "```{command}```"
+      footer: "{uuid}"
+
+  # Chat-Nachrichten
+  chat:
+    enabled: true
+    url: "https://discord.com/api/webhooks/1550809577807810630/ppRfO7a_PNABpJ2H_yxxwits3Yi4WsiBlaez6cmUFy_EbHg10QpMoNDFzUzsIMx45BQK"
+    # Optional mehrere Webhooks:
+    # urls:
+    #   - "https://discord.com/api/webhooks/..."
+    messages:
+      author: "{player} hat in den Chat geschrieben"
+      description: "```{message}```"
+      footer: "{uuid}"
+
+  # Todesfaelle: Der Webhook-Name enthaelt die Todesnachricht (z.B. Spieler wurde getoetet von...), darunter das Embed
+  deaths:
+    enabled: true
+    url: "https://discord.com/api/webhooks/1550772355872194610/C9XYeVu7kS11usDKLbfcCxpum7krwG13iB5ncC2q1c-qYe2Ijaurh3LK3V_Veg7GF4LY"
+    # Optional mehrere Webhooks:
+    # urls:
+    #   - "https://discord.com/api/webhooks/..."
+    messages:
+      field-killer: "Killer"
+      field-weapon: "Waffe"
+      field-world: "Welt"
+      field-position: "Position"
+      footer: "{uuid}"
+
+  # Join & Leave
+  join-leave:
+    enabled: true
+    url: "https://discord.com/api/webhooks/1550772396238053436/MB-Yjcb2TzGMtK2qF6HMUeAIhS92-X9OgGepSeDRAJTKgTsWYQKo1kPkvSH_8C3HQaes"
+    # Optional mehrere Webhooks:
+    # urls:
+    #   - "https://discord.com/api/webhooks/..."
+    messages:
+      author-join: "{player} ist den Server beigetreten"
+      author-leave: "{player} hat den Server verlassen"
+      field-world: "Welt"
+      field-position: "Position"
+      footer: "{uuid}"
+
+# Basis-URL fuer Spielerköpfe. {uuid} wird automatisch ersetzt.
+avatar:
+  base-url: "https://mc-heads.net/avatar/{uuid}/64"

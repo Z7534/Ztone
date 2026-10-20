@@ -1,0 +1,28 @@
+playtime:
+  world: world
+  x: 16
+  y: 204
+  z: -23
+  facing: SOUTH
+  height: 5.0
+kills:
+  world: world
+  x: 24
+  y: 203
+  z: -15
+  facing: WEST
+  height: 4.0
+deaths:
+  world: world
+  x: 24
+  y: 203
+  z: -11
+  facing: WEST
+  height: 4.0
+money:
+  world: world
+  x: 19
+  y: 203
+  z: -9
+  facing: NORTH
+  height: 3.0

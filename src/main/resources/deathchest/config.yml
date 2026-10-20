@@ -1,0 +1,34 @@
+# ==============================================================================
+#                      ZTONE - DEATHCHEST CONFIGURATION
+# ==============================================================================
+
+# Dauer in Sekunden, wie lange die Kiste nach einem PvP-Tod ausschliesslich fuer den Killer gesperrt ist.
+killer-lock-seconds: 30
+
+# Gesamtdauer in Sekunden bis zum automatischen Despawnen der Kiste (Standard: 300s = 5 Minuten).
+total-despawn-seconds: 300
+
+# Speichern aktiver Todesdoppelkisten gegen Datenverlust bei Server-Reloads und -Restarts.
+persistence: true
+
+# Einstellungen fuer das schwebende native Paper TextDisplay Hologramm
+hologram:
+  # Zeile 1: Kopfzeile mit Opfer-Name und edlem Farbverlauf
+  line-1: "<gradient:#FF0844:#FFB199><bold>☠ TODESBEUTE</bold></gradient> <dark_gray>•</dark_gray> <gradient:#FFAA00:#FFD700><bold>{victim}</bold></gradient> <gradient:#FF0844:#FFB199><bold>☠</bold></gradient>"
+
+  # Zeile 2: Gesperrt fuer Killer mit Status-Badge
+  line-2-locked: "<gradient:#FF416C:#FF4B2B><bold>🔒 GESPERRT</bold></gradient> <dark_gray>»</dark_gray> <yellow><bold>{killer}</bold></yellow> <dark_gray>(</dark_gray><gold><bold>{seconds}s</bold></gold><dark_gray>)</dark_gray>"
+
+  # Zeile 2: Freigegeben mit gruenem/cyan Status-Badge
+  line-2-unlocked: "<gradient:#00B4DB:#0083B0><bold>🔓 FREIGEGEBEN</bold></gradient> <dark_gray>»</dark_gray> <gradient:#56AB2F:#A8E063>Jeder darf plündern!</gradient>"
+
+  # Zeile 3: Verbleibende Despawn-Zeit mit Sanduhr-Icon
+  line-3: "<gold>⏳</gold> <gray>Despawn in</gray> <dark_gray>»</dark_gray> <gradient:#F7971E:#FFD200><bold>{minutes}m {seconds}s</bold></gradient>"
+
+# Nachrichten
+messages:
+  prefix: "<gradient:#FF5555:#FFAA00><bold>DEATHCHEST</bold></gradient> <dark_gray>»</dark_gray>"
+  locked-for-killer: "<prefix> <red>Diese Todeskiste ist noch für <yellow>{killer}</yellow> gesperrt! (<gold>{seconds}s</gold>)</red>"
+  take-only: "<prefix> <red>Du kannst keine Items in die Todeskiste hineinlegen!</red>"
+  chest-created: "<prefix> <gray>Deine Todeskiste wurde bei <yellow>{x}, {y}, {z}</yellow> gesichert.</gray>"
+  chest-despawned: "<prefix> <gray>Deine Todeskiste ist abgelaufen und verfallen.</gray>"

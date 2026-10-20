@@ -1,0 +1,21 @@
+# ========================================================
+#                  CLEARLAG CONFIGURATION
+# ========================================================
+
+# Zeitintervall in Sekunden zwischen den Löschvorgängen (600 Sekunden = 10 Minuten)
+interval-seconds: 600
+
+# Vorwarnzeiten in Sekunden
+warning-5m-seconds: 300
+warning-1m-seconds: 60
+
+# Mindestalter von Items in Ticks (20 Ticks = 1 Sekunde; 200 Ticks = 10 Sekunden)
+# Items, die jünger sind, werden NICHT gelöscht!
+min-item-age-ticks: 200
+
+# Nachrichten (unterstützt MiniMessage & Farbcodes)
+messages:
+  prefix: "<gradient:#00C9FF:#92FE9D><bold>ᴄʟᴇᴀʀʟᴀɢ</bold></gradient> <dark_gray>»</dark_gray>"
+  warning-5m: "<prefix> <gray>Alle auf dem Boden liegenden Items werden in <yellow><bold>5 Minuten</bold></yellow> gelöscht!</gray>"
+  warning-1m: "<prefix> <gray>Alle auf dem Boden liegenden Items werden in <yellow><bold>1 Minute</bold></yellow> gelöscht!</gray>"
+  cleared: "<prefix> <gray>Es wurden <gradient:#00C9FF:#92FE9D><bold>{count}</bold></gradient> auf dem Boden liegende Items entfernt!</gray>"

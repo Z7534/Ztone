@@ -1,0 +1,499 @@
+name: Ztone
+version: '1.0.2'
+main: de.Z7534.ztone.Ztone
+api-version: '26.2'
+authors: [Z7534]
+description: All-in-One Ztone System (Clansystem, Clankasse, PvPManager, Claims, StoneAttack, Stonelog, Stonemute, MapControl, StoneVoice, PlayRewards)
+softdepend: [Vault, PlaceholderAPI, LuckPerms, ProtocolLib, WorldGuard, GriefPrevention, Towny, Lands, Kingdoms, SimpleClans, HuskTowns, BountyHunters, NotBounties, CMI, Essentials, TAB, LibsDisguises, LiteBans, voicechat, floodgate, Plan, StoneSMPCore]
+
+commands:
+  ztone:
+    description: Hauptbefehl fuer das Ztone-Plugin
+    usage: /ztone <reload>
+    permission: ztone.admin
+  clan:
+    description: Hauptbefehl für das Clan-System
+    usage: /<command> [subcommand]
+  clanadmin:
+    description: Admin-Befehle für das Clan-System
+    usage: /<command> [subcommand]
+    permission: clansystem.admin
+  pvpmanager:
+    description: Zeigt die Haupt-Hilfeseite des Plugins
+    aliases: [pmr, pvpm, pm]
+  pvp:
+    description: Schaltet den eigenen PvP-Status ein/aus
+    aliases: [togglepvp, pvptoggle]
+  pvpoverride:
+    description: Erlaubt es, jeden überalle anzugreifen
+    aliases: [pvpo]
+  pvpinfo:
+    description: Zeigt ausführliche PvP-Informationen an
+  pvpstatus:
+    description: Zeigt den PvP-Status eines Spielers an
+  pvplist:
+    description: Listet den PvP-Status aller Spieler auf
+    aliases: [listpvp]
+  pvptag:
+    description: Zeigt die verbleibende Combat-Tag-Zeit an oder taggt einen Spieler
+    aliases: [combattag, tag]
+  untag:
+    description: Entfernt den Combat-Tag von einem oder allen Spielern
+  teleportoverride:
+    description: Setzt einen Teleport-Bypass-Flag für einen Spieler
+  testrace:
+    description: Debug-Command zum Testen von Race-Conditions
+  announce:
+    description: Sendet eine serverweite Broadcast-Nachricht
+  soup:
+    description: Füllt alle leeren Schüsseln im Inventar mit Suppe
+  pvpdimensiontoggle:
+    description: Schaltet das Standard-PvP für eine Dimension an/aus
+    usage: /pvpdimensiontoggle <dimension> <on|off> [--force]
+
+  # Claims Commands
+  claim:
+    description: Öffnet das Claim-Hauptmenü
+    usage: /claim [pay <spieler> <anzahl>]
+  staffclaim:
+    description: Admin-Befehle für das Claim-System
+    usage: /staffclaim <addclaims|removeclaims|info|tp|unclaim|unclaimhere|trust|ban|bypass|pvp|reload> ...
+  pvpclaimbypass:
+    description: Erlaubt oder verbietet PvP auf einem Claim für Admins
+    usage: /pvpclaimbypass [on|off|toggle|player|list]
+    aliases: [claimpvpbypass, pvpclaim]
+    permission: claims.admin.pvpbypass
+
+  # Stoneattack Commands
+  stoneattack:
+    description: Zentraler Command des Stoneattack-Plugins (Reload etc.)
+    usage: /stoneattack reload
+    permission: stoneattack.admin
+  playerlimit:
+    description: Verwaltet das dynamische Spielerlimit
+    usage: /playerlimit <set|get|off|list|reload>
+    aliases: [plimit]
+    permission: playerlimit.use
+  performance:
+    description: Zeigt TPS/MSPT/RAM/Chunk- und Entity-Informationen
+    usage: /performance
+    aliases: [tps]
+    permission: performance.use
+  leaderboard:
+    description: Verwaltet die Leaderboard-Hologramme
+    usage: /leaderboard <place|move|height|remove|removeplayer|addplayer|excluded|list|tp|reload|reset>
+    permission: leaderboard.admin
+
+  # Stonelog Commands
+  stonelog:
+    description: Stonelog Hauptbefehl
+    usage: /stonelog reload
+    permission: stonelog.admin
+
+  # MapControl Commands
+  mapcontrol:
+    description: MapControl Admin-Befehl
+    permission: mapcontrol.admin
+    usage: /mapcontrol <reload|info|send>
+
+  # StoneVoice Commands
+  adminjoinvoice:
+    description: Einer Voicechat-Gruppe als Admin ohne Passwort beitreten
+    permission: adminjoinvoice.use
+    usage: /adminjoinvoice <player|voicegroupname|leave> [muted] [hidden] [FullMuted]
+
+  # PlayRewards Commands
+  playrewards:
+    description: Öffnet das Playtime- und Belohnungsmenü
+    permission: playrewards.use
+    aliases: [pr, playreward]
+
+  # DeathChest Commands
+  deathchest:
+    description: Verwaltet die Todeskisten
+    usage: /deathchest <clear|reload>
+    permission: deathchest.admin
+
+  # ClearLag Commands
+  clearlag:
+    description: Entfernt herumliegende Items auf dem Boden
+    usage: /clearlag <clear|time|reload>
+    permission: clearlag.admin
+
+permissions:
+  # Clansystem Permissions
+  clansystem.use:
+    description: Grundzugriff auf alle /clan-Befehle
+    default: true
+  clansystem.create:
+    description: Erlaubt das Erstellen eines Clans
+    default: true
+  clansystem.join:
+    description: Erlaubt das Beitreten eines Clans
+    default: true
+  clansystem.leave:
+    description: Erlaubt das Verlassen eines Clans
+    default: true
+  clansystem.chat:
+    description: Erlaubt die Nutzung des Clan-Chats
+    default: true
+  clansystem.home:
+    description: Erlaubt die Nutzung von Clan-Homes
+    default: true
+  clansystem.warp:
+    description: Erlaubt die Nutzung von Clan-Warps
+    default: true
+  clansystem.chest:
+    description: Erlaubt den Zugriff auf die Clan-Truhe
+    default: true
+  clansystem.list:
+    description: Erlaubt das Anzeigen der Clan-Liste
+    default: true
+  clansystem.top:
+    description: Erlaubt das Anzeigen der Top 10 Clans nach Guthaben
+    default: true
+  clansystem.info:
+    description: Erlaubt das Anzeigen von Clan-Infos
+    default: true
+  clansystem.invite:
+    description: Erlaubt das Einladen von Spielern
+    default: true
+  clansystem.kick:
+    description: Erlaubt das Kicken von Spielern
+    default: true
+  clansystem.ally:
+    description: Erlaubt die Verwaltung von Allianzen
+    default: true
+  clansystem.war:
+    description: Erlaubt die Verwaltung von Kriegen
+    default: true
+  clansystem.settings:
+    description: Erlaubt die Verwaltung von Clan-Einstellungen
+    default: true
+  clansystem.rank:
+    description: Erlaubt die Verwaltung von Rängen
+    default: true
+  clansystem.bypass.cooldown:
+    description: Ignoriert alle Cooldowns
+    default: op
+  clansystem.bypass.warmup:
+    description: Ignoriert alle Warmups
+    default: op
+  clansystem.admin:
+    description: Voller Admin-Zugriff auf das Clan-System
+    default: op
+    children:
+      clansystem.admin.reload:
+        description: Erlaubt das Neuladen der Konfiguration
+        default: op
+      clansystem.admin.delete:
+        description: Erlaubt das Löschen von Clans
+        default: op
+      clansystem.admin.setlevel:
+        description: Erlaubt das Setzen von Clan-Leveln
+        default: op
+      clansystem.admin.setleader:
+        description: Erlaubt das Setzen von Clan-Leadern
+        default: op
+      clansystem.admin.chest:
+        description: Erlaubt den Zugriff auf fremde Clan-Truhen
+        default: op
+      clansystem.admin.addpoints:
+        description: Erlaubt das Hinzufügen von Clan-Punkten
+        default: op
+      clansystem.admin.settings:
+        description: Erlaubt das Öffnen des Clan-Settings-Menüs fremder Clans
+        default: op
+      clansystem.admin.bold:
+        description: Erlaubt das Umschalten der Fett-Formatierung eines Clan-Suffix
+        default: op
+      clansystem.admin.info:
+        description: Erlaubt das Anzeigen von Clan-Infos über /clanadmin info
+        default: op
+      clansystem.admin.list:
+        description: Erlaubt das Anzeigen der Clan-Liste über /clanadmin list
+        default: op
+      clansystem.admin.home:
+        description: Erlaubt das Teleportieren zum Home eines fremden Clans
+        default: op
+      clansystem.admin.warp:
+        description: Erlaubt das Teleportieren zu einem Warp eines fremden Clans
+        default: op
+      clansystem.admin.promote:
+        description: Erlaubt das Befördern von Spielern in ihrem Clan über /clanadmin promote
+        default: op
+      clansystem.admin.demote:
+        description: Erlaubt das Degradieren von Spielern in ihrem Clan über /clanadmin demote
+        default: op
+      clansystem.admin.bypass:
+        description: Umgeht alle Einschränkungen
+        default: op
+
+  # PvPManager Permissions
+  pvpmanager.*:
+    description: Zugriff auf alle PvPManager-Features
+    default: op
+    children:
+      pvpmanager.admin: true
+
+  pvpmanager.admin:
+    description: Zugriff auf alle Admin-Features und Commands
+    default: op
+    children:
+      pvpmanager.command.announce: true
+      pvpmanager.command.override: true
+      pvpmanager.command.pvp: true
+      pvpmanager.command.pvp.others: true
+      pvpmanager.command.pvpinfo: true
+      pvpmanager.command.pvpinfo.others: true
+      pvpmanager.command.pvplist: true
+      pvpmanager.command.pvplist.offline: true
+      pvpmanager.command.pvpstatus: true
+      pvpmanager.command.pvpstatus.others: true
+      pvpmanager.command.soup: true
+      pvpmanager.command.tag: true
+      pvpmanager.command.tag.others: true
+      pvpmanager.command.teleportoverride: true
+      pvpmanager.command.untag: true
+      pvpmanager.command.testrace: true
+      pvpmanager.command.pvpdimensiontoggle: true
+      pvpmanager.exempt.pvptogglecooldown: true
+      pvpmanager.bypass.lootprotection: true
+
+  pvpmanager.command.announce:
+    description: Zugriff auf /announce
+    default: op
+  pvpmanager.command.override:
+    description: Zugriff auf /pvpoverride
+    default: op
+  pvpmanager.command.override.others:
+    description: Erlaubt es, PvP-Override für andere Spieler zu aktivieren
+    default: op
+  pvpmanager.command.pvp:
+    description: Eigenen PvP-Status togglen
+    default: true
+  pvpmanager.command.pvp.others:
+    description: PvP-Status anderer Spieler togglen
+    default: op
+  pvpmanager.command.pvpinfo:
+    description: Eigene PvP-Info ansehen
+    default: true
+  pvpmanager.command.pvpinfo.others:
+    description: PvP-Info anderer Spieler ansehen
+    default: true
+  pvpmanager.command.pvplist:
+    description: Zugriff auf /pvplist
+    default: true
+  pvpmanager.command.pvplist.offline:
+    description: Offline-Spieler in /pvplist anzeigen
+    default: op
+  pvpmanager.command.pvpstatus:
+    description: Eigenen Status prüfen
+    default: true
+  pvpmanager.command.pvpstatus.others:
+    description: Status anderer prüfen
+    default: true
+  pvpmanager.command.tag:
+    description: Sich selbst taggen / eigene Tag-Zeit ansehen
+    default: op
+  pvpmanager.command.tag.others:
+    description: Andere Spieler taggen
+    default: op
+  pvpmanager.command.teleportoverride:
+    description: Zugriff auf /teleportoverride
+    default: op
+  pvpmanager.command.untag:
+    description: Zugriff auf /untag
+    default: op
+  pvpmanager.command.soup:
+    description: Zugriff auf /soup
+    default: op
+  pvpmanager.command.testrace:
+    description: Zugriff auf Debug-Command /testrace
+    default: op
+  pvpmanager.command.pvpdimensiontoggle:
+    description: Schaltet das Standard-PvP für eine Dimension ein/aus
+    default: op
+
+  pvpmanager.feature.recycling:
+    description: Zugriff auf das Item-Recycling-Feature
+    default: op
+
+  pvpmanager.bypass.lootprotection:
+    description: Erlaubt das Aufheben von geschütztem PvP-Loot anderer Spieler
+    default: op
+
+  pvpmanager.exempt:
+    description: Übergeordnete Gruppe, gibt alle Exempt-Rechte
+    default: op
+    children:
+      pvpmanager.exempt.blockcommands: true
+      pvpmanager.exempt.combatlog: true
+      pvpmanager.exempt.combattag: true
+      pvpmanager.exempt.disableactions: true
+      pvpmanager.exempt.killabuse: true
+      pvpmanager.exempt.respawnprotection: true
+      pvpmanager.exempt.pvptogglecooldown: true
+      pvpmanager.exempt.dimension: true
+  pvpmanager.exempt.blockcommands:
+    description: Darf Befehle nutzen, obwohl er im Kampf ist
+    default: op
+  pvpmanager.exempt.combatlog:
+    description: Ausnahme von Combat-Log-Bestrafungen
+    default: op
+  pvpmanager.exempt.combattag:
+    description: Kann generell nicht in den Kampf-Status getaggt werden
+    default: op
+  pvpmanager.exempt.disableactions:
+    description: Fliegen/Gamemode werden im Kampf nicht deaktiviert
+    default: op
+  pvpmanager.exempt.killabuse:
+    description: Wird nicht durch das Anti-Kill-Abuse-System bestraft
+    default: op
+  pvpmanager.exempt.respawnprotection:
+    description: Bekommt keinen Respawn-Schutz
+    default: op
+  pvpmanager.exempt.pvptogglecooldown:
+    description: Kein Cooldown beim PvP-Toggle-Command
+    default: op
+  pvpmanager.exempt.dimension:
+    description: Kann das PvP-Force in Dimensionen umgehen (um /pvp zu nutzen trotz Force)
+    default: op
+
+  # Claims Permissions
+  claims.use:
+    description: Erlaubt die Nutzung von /claim
+    default: true
+  claims.pay:
+    description: Erlaubt /claim pay <spieler> <anzahl>, um Claim-Slots an andere Spieler zu verschenken
+    default: true
+  claims.transfer:
+    description: Erlaubt das Übertragen eines eigenen Claims an einen anderen Spieler (im Claim-Menü)
+    default: true
+  claims.admin:
+    description: Alle Admin-Rechte für /staffclaim
+    default: op
+    children:
+      claims.admin.addclaims: true
+      claims.admin.info: true
+      claims.admin.removeclaims: true
+      claims.admin.teleport: true
+      claims.admin.unclaim: true
+      claims.admin.trust: true
+      claims.admin.ban: true
+      claims.admin.bypass: true
+      claims.admin.bypass.join: true
+      claims.admin.bypass.other: true
+      claims.admin.pvpbypass: true
+      claims.admin.reload: true
+  claims.admin.addclaims:
+    description: /staffclaim addclaims <spieler> <zahl>
+    default: op
+  claims.admin.info:
+    description: /staffclaim info <spieler>
+    default: op
+  claims.admin.removeclaims:
+    description: /staffclaim removeclaims <spieler> <zahl>
+    default: op
+  claims.admin.teleport:
+    description: /staffclaim tp <spieler> <claimnr>
+    default: op
+  claims.admin.unclaim:
+    description: /staffclaim unclaim / unclaimhere
+    default: op
+  claims.admin.trust:
+    description: /staffclaim trust <spieler> <claimnr> <add|remove|list>
+    default: op
+  claims.admin.ban:
+    description: /staffclaim ban <spieler> <claimnr> <add|remove|list>
+    default: op
+  claims.admin.bypass:
+    description: Erlaubt /staffclaim bypass. Schutz, Trust, Bans und Claim-Restriktionen umgehen
+    default: op
+  claims.admin.bypass.join:
+    description: Aktiviert /staffclaim bypass automatisch beim Betreten des Servers
+    default: op
+  claims.admin.bypass.other:
+    description: Erlaubt /staffclaim bypass <on|off> <spieler> f?r andere Spieler
+    default: op
+  claims.admin.pvpbypass:
+    description: Erlaubt /pvpclaimbypass (PvP auf Claims freigeben oder als Admin im Claim kämpfen)
+    default: op
+  claims.admin.reload:
+    description: /staffclaim reload (lädt config.yml und messages.yml neu)
+    default: op
+
+  # Stoneattack Permissions
+  stoneattack.admin:
+    description: Erlaubt das Neuladen aller Konfigurationen/Module
+    default: op
+  playerlimit.use:
+    description: Erlaubt die Nutzung des /playerlimit-Commands
+    default: op
+  playerlimit.bypass:
+    description: Spieler mit dieser Permission werden vom Spielerlimit nicht erfasst und nie gekickt
+    default: false
+  playerlimit.staff:
+    description: Spieler mit dieser Permission werden per Chat informiert, wenn wegen eines neuen Limits Spieler gekickt wurden
+    default: op
+  performance.use:
+    description: Erlaubt die Nutzung des /performance-Commands
+    default: op
+  performance.bypass:
+    description: Spieler mit dieser Permission erhalten keine Performance-Warnungen
+    default: false
+  performance.staff:
+    description: Spieler mit dieser Permission erhalten zusaetzlich eine detaillierte Chat-Nachricht bei Performance-Warnungen
+    default: op
+  leaderboard.admin:
+    description: Erlaubt die Verwaltung der Leaderboard-Hologramme
+    default: op
+
+  # Stonelog Permissions
+  stonelog.admin:
+    description: Zugriff auf Stonelog-Admin-Befehle
+    default: op
+
+  # Stonemute Permissions
+  stonemute.bypass:
+    description: Spieler kann trotz LiteBans-Mute im Voicechat sprechen
+    default: false
+
+  # MapControl Permissions
+  mapcontrol.admin:
+    description: Erlaubt die Nutzung von /mapcontrol-Befehlen
+    default: op
+  mapcontrol.bypass:
+    description: Umgeht alle Minimap-, Höhlen- und Radar-Einschränkungen
+    default: false
+
+  # StoneVoice Permissions
+  adminjoinvoice.use:
+    description: Erlaubt das Beitreten von Voicechat-Gruppen als Admin
+    default: op
+
+  # PlayRewards Permissions
+  playrewards.use:
+    description: Öffnet das Belohnungsmenü
+    default: true
+  playrewards.admin:
+    description: Erlaubt das Neuladen und Verwalten von Spielzeit und Streaks
+    default: op
+  playrewards.streak.saver:
+    description: Gewährt einen Streak-Schutzpunkt (Reset jeden Montag um 0:00 Uhr)
+    default: op
+
+  # DeathChest Permissions
+  deathchest.admin:
+    description: Erlaubt Zugriff auf alle /deathchest Admin-Befehle
+    default: op
+
+  # ClearLag Permissions
+  clearlag.admin:
+    description: Erlaubt Zugriff auf alle /clearlag Admin-Befehle
+    default: op
+
+  # Ztone Permissions
+  ztone.admin:
+    description: Erlaubt das Neuladen aller Ztone-Konfigurationen (/ztone reload)
+    default: op

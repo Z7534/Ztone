@@ -1,0 +1,212 @@
+package de.Z7534.ztone.claims.config;
+
+import org.bukkit.configuration.file.FileConfiguration;
+import org.bukkit.configuration.file.YamlConfiguration;
+import org.bukkit.plugin.java.JavaPlugin;
+
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
+
+public final class ConfigManager {
+
+    private final JavaPlugin plugin;
+    private FileConfiguration cfg;
+    private FileConfiguration messages;
+
+    public ConfigManager(JavaPlugin plugin) {
+        this.plugin = plugin;
+    }
+
+    public void load() {
+        File folder = new File(plugin.getDataFolder(), "claims");
+        if (!folder.exists()) folder.mkdirs();
+
+        File configFile = new File(folder, "config.yml");
+        if (!configFile.exists()) {
+            plugin.saveResource("claims/config.yml", false);
+        }
+        this.cfg = YamlConfiguration.loadConfiguration(configFile);
+        try (InputStream in = plugin.getResource("claims/config.yml")) {
+            if (in != null) {
+                cfg.setDefaults(YamlConfiguration.loadConfiguration(new InputStreamReader(in, StandardCharsets.UTF_8)));
+            }
+        } catch (IOException ignored) {}
+
+        File messagesFile = new File(folder, "messages.yml");
+        if (!messagesFile.exists()) {
+            plugin.saveResource("claims/messages.yml", false);
+        }
+        this.messages = YamlConfiguration.loadConfiguration(messagesFile);
+        try (InputStream in = plugin.getResource("claims/messages.yml")) {
+            if (in != null) {
+                messages.setDefaults(YamlConfiguration.loadConfiguration(new InputStreamReader(in, StandardCharsets.UTF_8)));
+            }
+        } catch (IOException ignored) {}
+    }
+
+    public void reload() {
+        load();
+    }
+
+    public String databaseFile() {
+        return cfg.getString("database.file", "claims.db");
+    }
+
+    public boolean spawnProtectionEnabled() {
+        return cfg.getBoolean("spawn-protection.enabled", true);
+    }
+
+    public String spawnWorld() {
+        return cfg.getString("spawn-protection.world", "world");
+    }
+
+    public double spawnX() {
+        return cfg.getDouble("spawn-protection.x", 0);
+    }
+
+    public double spawnY() {
+        return cfg.getDouble("spawn-protection.y", 64);
+    }
+
+    public double spawnZ() {
+        return cfg.getDouble("spawn-protection.z", 0);
+    }
+
+    public double spawnRadius() {
+        return cfg.getDouble("spawn-protection.radius", 100);
+    }
+
+    public boolean endProtectionEnabled() {
+        return cfg.getBoolean("end-protection.enabled", true);
+    }
+
+    public String endProtectionWorld() {
+        return cfg.getString("end-protection.world", "world_the_end");
+    }
+
+    public double endProtectionX() {
+        return cfg.getDouble("end-protection.x", 0.0);
+    }
+
+    public double endProtectionY() {
+        return cfg.getDouble("end-protection.y", 65.0);
+    }
+
+    public double endProtectionZ() {
+        return cfg.getDouble("end-protection.z", 0.0);
+    }
+
+    public double endProtectionRadius() {
+        return cfg.getDouble("end-protection.radius", 100.0);
+    }
+
+    public boolean dimensionEnabled(String world) {
+        return cfg.getBoolean("dimensions." + world, true);
+    }
+
+    public int afkTimeoutSeconds() {
+        return cfg.getInt("afk.timeout-seconds", 120);
+    }
+
+    public int awardIntervalMinutes() {
+        return Math.max(1, cfg.getInt("claims.award-interval-minutes", 120));
+    }
+
+    public int awardAmount() {
+        return Math.max(1, cfg.getInt("claims.award-amount", 1));
+    }
+
+    public int renameInputTimeSeconds() {
+        return cfg.getInt("rename.input-time-seconds", 30);
+    }
+
+    public int renameMinLength() {
+        return cfg.getInt("rename.min-length", 3);
+    }
+
+    public int renameMaxLength() {
+        return cfg.getInt("rename.max-length", 32);
+    }
+
+    public String renameForbiddenCharacters() {
+        return cfg.getString("rename.forbidden-characters", "");
+    }
+
+    public int searchInputTimeSeconds() {
+        return cfg.getInt("search.input-time-seconds", 30);
+    }
+
+    public int banSafeSpotRadius() {
+        return cfg.getInt("ban.safe-spot-search-radius", 50);
+    }
+
+    public int particleRenderRadiusChunks() {
+        return cfg.getInt("particles.render-radius-chunks", 4);
+    }
+
+    public int particleUpdateIntervalTicks() {
+        return Math.max(5, cfg.getInt("particles.update-interval-ticks", 8));
+    }
+
+    public int particlePointsPerChunkEdge() {
+        return cfg.getInt("particles.points-per-chunk-edge", 16);
+    }
+
+    public String ownClaimColor() {
+        return cfg.getString("particles.own-claim-color", "#00FF33");
+    }
+
+    public String trustedClaimColor() {
+        return cfg.getString("particles.trusted-claim-color", "#3399FF");
+    }
+
+    public String foreignClaimColor() {
+        return cfg.getString("particles.foreign-claim-color", "#FF3333");
+    }
+
+    public String itemModel(String key) {
+        return cfg.getString("item-models." + key, "");
+    }
+
+    public int explosionClaimBorderRadius() {
+        return Math.max(0, cfg.getInt("explosions.claim-border-radius", 5));
+    }
+
+    public FileConfiguration getConfig() {
+        return cfg;
+    }
+
+    public void saveConfig() {
+        plugin.saveConfig();
+    }
+
+    public String message(String key) {
+        // getString(key) ohne eigenen Default berücksichtigt die Fallback-Nachrichten (setDefaults).
+        String value = messages.getString(key);
+        if (value != null) {
+            return value;
+        }
+        if ("end-protected".equals(key)) {
+            return messages.getString("spawn-protected", "<red>ɪɴ ᴅɪᴇꜱᴇᴍ ʙᴇʀᴇɪᴄʜ ᴋᴀɴɴ ɴɪᴄʜᴛ ɢᴇᴄʟᴀɪᴍᴛ ᴡᴇʀᴅᴇɴ.");
+        }
+        return "<red>Fehlende Nachricht: " + key;
+    }
+
+    public String prefix() {
+        return messages.getString("prefix", "");
+    }
+    public boolean bypassIgnoresClaimLimit() {
+        return cfg.getBoolean("claims.bypass-ignores-limit", false);
+    }
+
+    public int payConfirmSeconds() {
+        return Math.max(1, cfg.getInt("pay.confirm-seconds", 15));
+    }
+
+    public int payMaxAmount() {
+        return Math.max(1, cfg.getInt("pay.max-amount", 1000));
+    }
+}

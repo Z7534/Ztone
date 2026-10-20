@@ -1,0 +1,71 @@
+# =================================================================== #
+#                       MapControl Configuration                      #
+#   Controls Xaero's Minimap/WorldMap, JourneyMap, and VoxelMap       #
+# =================================================================== #
+
+# General plugin settings
+general:
+  # Ticks to wait before sending restrictions after a player joins or changes worlds (20 ticks = 1 second)
+  send-delay-ticks: 15
+  # Permission node to bypass all map restrictions
+  bypass-permission: "mapcontrol.bypass"
+  # Enable debug log messages in the console
+  debug: false
+
+# Xaero's Minimap & World Map settings
+xaero:
+  # Enable server-side enforcement for Xaero's maps
+  enabled: true
+  # Disable Entity Radar (forces Fair-Play mode)
+  disable-radar: true
+  # Disable Cave Mode
+  disable-cave-mode: true
+  # Allow Cave Mode exclusively in Nether dimensions (even if Fair-Play is on)
+  allow-nether-cave-mode: false
+  # Completely disable the Minimap HUD (default: false -> Minimap stays enabled)
+  disable-minimap: false
+
+# JourneyMap settings (communicated via plugin messaging channel 'journeymap:perm')
+journeymap:
+  # Enable server-side enforcement for JourneyMap
+  enabled: true
+  # Allow surface mapping (default: true)
+  allow-surface-mapping: true
+  # Allow cave mapping (default: false -> Cave Mode OFF)
+  allow-cave-mapping: false
+  # Allow entity radar in general (default: false -> Radar OFF)
+  allow-radar: false
+  # Allow player radar
+  allow-player-radar: false
+  # Allow hostile mob radar
+  allow-mob-radar: false
+  # Allow animal/passive mob radar
+  allow-animal-radar: false
+  # Allow villager radar
+  allow-villager-radar: false
+  # Allow teleportation through JourneyMap waypoints
+  allow-teleport: false
+  # Allow displaying waypoints
+  show-waypoints: true
+  # Allow saving death points
+  allow-death-points: true
+
+# VoxelMap settings
+voxelmap:
+  # Enable server-side enforcement for VoxelMap
+  enabled: true
+  # Disable Entity Radar (mobs & players)
+  disable-radar: true
+  # Disable Cave Mode
+  disable-cave-mode: true
+
+# Per-World configuration overrides (optional)
+# You can override specific settings for individual worlds here.
+# Example:
+# worlds:
+#   world_nether:
+#     xaero:
+#       allow-nether-cave-mode: true
+#     journeymap:
+#       allow-cave-mapping: true
+worlds: {}

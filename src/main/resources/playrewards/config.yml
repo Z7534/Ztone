@@ -1,0 +1,75 @@
+# ==============================================================================
+# PlayReward - Hauptkonfiguration
+# Entwickelt für Paper 26.2 (Chaos Cubed)
+# Autor: Z7534
+# ==============================================================================
+
+# Präfix für alle Plugin-Nachrichten im Chat
+# Unterstützt Minecraft Color Codes (&a, &6, etc.) sowie MiniMessage (<gold>, <green>, etc.)
+prefix: "<gradient:#FFAA00:#FF5500><bold>ᴘʟᴀʏʀᴇᴡᴀʀᴅ</gradient><gray>>> <reset>"
+
+# Zeitzone für Resets (Daily: täglich 0:00 Uhr, Streak-Saver: montags 0:00 Uhr)
+timezone: "Europe/Berlin"
+
+# GUI-Einstellungen & Anti-Exploit Schutz
+gui:
+  # Click-Cooldown in Millisekunden (Anti-Spam / Anti-Dupe gegen schnelle Makros)
+  click_cooldown_ms: 500
+
+  # Wie soll verfahren werden, wenn das Inventar des Spielers voll ist?
+  # 'DROP' = Gegenstände sicher auf den Boden vor den Spieler werfen
+  # 'BLOCK' = Abholen blockieren mit Warnnachricht im Chat
+  full_inventory_handling: "BLOCK"
+
+  # Standard-Soundeffekte für GUIs
+  sounds:
+    claim_success:
+      sound: "UI_TOAST_CHALLENGE_COMPLETE"
+      volume: 1.0
+      pitch: 1.0
+    claim_locked:
+      sound: "ENTITY_VILLAGER_NO"
+      volume: 1.0
+      pitch: 0.8
+    page_switch:
+      sound: "ITEM_BOOK_PAGE_TURN"
+      volume: 1.0
+      pitch: 1.2
+    click:
+      sound: "UI_BUTTON_CLICK"
+      volume: 0.8
+      pitch: 1.0
+
+# Einstellungen für die Spielzeit-Erfassung
+playtime_tracking:
+  # Maximale Zeit in Sekunden ohne Spielerbewegung, bevor der Spieler als AFK gewertet wird (für lokalen Fallback)
+  afk_threshold_seconds: 300
+
+  # Asynchroner Cache-Aktualisierungsintervall in Ticks (20 Ticks = 1 Sekunde; 1200 Ticks = 60 Sekunden)
+  cache_update_interval_ticks: 1200
+
+  # Plan Plugin Integration (Plan Query API)
+  # Bei aktivierter Plan API wird die reine Netto-Aktivzeit (exklusive AFK) abgefragt.
+  plan:
+    enabled: true
+    # Timeout in Sekunden für asynchrone SQL-Abfragen an Plan
+    query_timeout_seconds: 5
+
+# Erinnerungen beim Betreten des Servers (Join Reminder)
+join_reminder:
+  enabled: true
+  # Verzögerung nach dem Server-Beitritt in Ticks (40 Ticks = 2 Sekunden)
+  delay_ticks: 40
+  # Benachrichtigungstyp: 'CHAT', 'ACTIONBAR' oder 'BOTH'
+  type: "ACTIONBAR"
+  # Nachrichtentexte
+  message_daily: "<gold>★ ᴅᴜ ʜᴀꜱᴛ ʜᴇᴜᴛᴇ ɴᴏᴄʜ ᴜɴʙᴇᴀɴꜱᴘʀᴜᴄʜᴛᴇ <yellow>ᴛᴀɢᴇꜱ-ʙᴇʟᴏʜɴᴜɴɢᴇɴ</yellow>! <gray>(/ᴘʟᴀʏʀᴇᴡᴀʀᴅꜱ)"
+  message_streak: "<green>🔥 ᴅᴇɪɴᴇ ᴛäɢʟɪᴄʜᴇ <yellow>ꜱᴛʀᴇᴀᴋ</yellow> ɪꜱᴛ ʙᴇʀᴇɪᴛ ᴢᴜᴍ ᴀʙʜᴏʟᴇɴ! <gray>(/ᴘʟᴀʏʀᴇᴡᴀʀᴅꜱ)"
+
+# Streak-Saver Konfiguration
+streak_saver:
+  # Berechtigung: playrewards.streak.saver
+  # Gewährt dem Spieler 1 Schutz-Punkt, falls er mal einen Tag nicht online war.
+  max_protection_points: 2
+  # Automatischer wöchentlicher Reset verbrauchter Schutzpunkte jeden Montag um 00:00 Uhr deutscher Zeit
+  weekly_reset_day: "MONDAY"
