@@ -269,7 +269,7 @@ leaderboard:
     # Buttons, Seitenanzeige): 0.0 = voll deckend, 1.0 = unsichtbar.
     # 0.3 = 30 % durchsichtig / 70 % deckend.
     # Der Text selbst bleibt immer voll sichtbar.
-    transparency: 0.3
+    transparency: 1.0
 
     panel-color: "#12151B"
     panel-border-color: "#2F3644"

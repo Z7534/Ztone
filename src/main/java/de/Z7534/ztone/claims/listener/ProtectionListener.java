@@ -60,12 +60,12 @@ public final class ProtectionListener implements Listener {
         if (bypass.isActive(player)) return true;
         Claim claim = claimManager.getClaimAt(loc);
         if (claim == null) {
-            if (permission == ClaimPermission.PVP) {
-                return false;
-            }
             return true;
         }
         if (claim.isBanned(player.getUniqueId())) return false;
+        if (permission == ClaimPermission.PVP) {
+            return pvpClaimBypass != null && pvpClaimBypass.isClaimBypassed(claim.id());
+        }
         return claim.hasPermission(player.getUniqueId(), permission);
     }
 
@@ -223,8 +223,7 @@ public final class ProtectionListener implements Listener {
             if (troddenType == Material.FARMLAND) {
                 Claim claim = claimManager.getClaimAt(trodden.getLocation());
                 if (claim != null && !bypass.isActive(player)
-                        && !claim.isOwner(player.getUniqueId())
-                        && !(claim.isTrusted(player.getUniqueId()) && !claim.isBanned(player.getUniqueId()))) {
+                        && !claim.isOwner(player.getUniqueId())) {
                     e.setCancelled(true);
                 }
                 return;
@@ -243,9 +242,10 @@ public final class ProtectionListener implements Listener {
                 Material held = e.getItem().getType();
                 String name = held.name();
 
-                // 1. Enderperlen & Wind Charges werfen/benutzen
-                if (held == Material.ENDER_PEARL || held == Material.WIND_CHARGE) {
-                    if (!allowed(player, player.getLocation(), ClaimPermission.ENTITY_INTERACT)) {
+                // 1. Enderperlen & Wind Charges werfen/benutzen: Mit Rechten (ENTITY_INTERACT oder BUILD) erlaubt!
+                if (held == Material.ENDER_PEARL || name.contains("WIND_CHARGE")) {
+                    if (!allowed(player, player.getLocation(), ClaimPermission.ENTITY_INTERACT)
+                            && !allowed(player, player.getLocation(), ClaimPermission.BUILD)) {
                         e.setCancelled(true);
                         deny(player);
                         return;
@@ -529,9 +529,10 @@ public final class ProtectionListener implements Listener {
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onProjectileLaunch(ProjectileLaunchEvent e) {
         if (e.getEntity().getShooter() instanceof Player player) {
-            // Enderperlen und Wind Charges duerfen auf fremden Claims ohne ENTITY_INTERACT nicht gestartet werden
+            // Enderperlen und Wind Charges duerfen auf fremden Claims ohne Rechte (ENTITY_INTERACT oder BUILD) nicht gestartet werden
             if (e.getEntity() instanceof EnderPearl || e.getEntity() instanceof AbstractWindCharge) {
-                if (!allowed(player, player.getLocation(), ClaimPermission.ENTITY_INTERACT)) {
+                if (!allowed(player, player.getLocation(), ClaimPermission.ENTITY_INTERACT)
+                        && !allowed(player, player.getLocation(), ClaimPermission.BUILD)) {
                     e.setCancelled(true);
                     deny(player);
                 }
@@ -548,7 +549,8 @@ public final class ProtectionListener implements Listener {
         // 1. Wind Charge Abwehr (Block oder Entity-Treffer)
         if (e.getEntity() instanceof AbstractWindCharge) {
             Location loc = hitEntity != null ? hitEntity.getLocation() : (hitBlock != null ? hitBlock.getLocation() : e.getEntity().getLocation());
-            if (shooter != null && !allowed(shooter, loc, ClaimPermission.ENTITY_INTERACT)) {
+            if (shooter != null && !allowed(shooter, loc, ClaimPermission.ENTITY_INTERACT)
+                    && !allowed(shooter, loc, ClaimPermission.BUILD)) {
                 e.setCancelled(true);
                 e.getEntity().remove();
                 deny(shooter);
@@ -559,7 +561,8 @@ public final class ProtectionListener implements Listener {
         // 2. Enderperlen-Trefferort pruefen
         if (e.getEntity() instanceof EnderPearl) {
             Location loc = hitEntity != null ? hitEntity.getLocation() : (hitBlock != null ? hitBlock.getLocation() : e.getEntity().getLocation());
-            if (shooter != null && !allowed(shooter, loc, ClaimPermission.ENTITY_INTERACT)) {
+            if (shooter != null && !allowed(shooter, loc, ClaimPermission.ENTITY_INTERACT)
+                    && !allowed(shooter, loc, ClaimPermission.BUILD)) {
                 e.setCancelled(true);
                 e.getEntity().remove();
                 deny(shooter);
@@ -629,10 +632,10 @@ public final class ProtectionListener implements Listener {
         Player player = e.getPlayer();
         PlayerTeleportEvent.TeleportCause cause = e.getCause();
 
-        // 1. Enderperlen-Teleportation: Sowohl Ziel als auch Start duerfen nicht auf fremden Claims ohne ENTITY_INTERACT liegen
+        // 1. Enderperlen-Teleportation: Sowohl Ziel als auch Start duerfen nicht auf fremden Claims ohne Rechte (ENTITY_INTERACT oder BUILD) liegen
         if (cause == PlayerTeleportEvent.TeleportCause.ENDER_PEARL) {
-            if (!allowed(player, e.getTo(), ClaimPermission.ENTITY_INTERACT)
-                    || !allowed(player, e.getFrom(), ClaimPermission.ENTITY_INTERACT)) {
+            if ((!allowed(player, e.getTo(), ClaimPermission.ENTITY_INTERACT) && !allowed(player, e.getTo(), ClaimPermission.BUILD))
+                    || (!allowed(player, e.getFrom(), ClaimPermission.ENTITY_INTERACT) && !allowed(player, e.getFrom(), ClaimPermission.BUILD))) {
                 e.setCancelled(true);
                 deny(player);
                 return;
@@ -643,7 +646,8 @@ public final class ProtectionListener implements Listener {
         String causeName = cause.name();
         if ("CHORUS_FRUIT".equals(causeName) || "CONSUMABLE_EFFECT".equals(causeName)) {
             Claim to = claimManager.getClaimAt(e.getTo());
-            if (to != null && (to.isBanned(player.getUniqueId()) || !allowed(player, e.getTo(), ClaimPermission.ENTITY_INTERACT))) {
+            if (to != null && (to.isBanned(player.getUniqueId())
+                    || (!allowed(player, e.getTo(), ClaimPermission.ENTITY_INTERACT) && !allowed(player, e.getTo(), ClaimPermission.BUILD)))) {
                 e.setCancelled(true);
                 deny(player);
             }
@@ -690,9 +694,17 @@ public final class ProtectionListener implements Listener {
 
         Player attacker = resolvePlayer(e.getDamager());
 
-        // Wind Charge Schaden / Knockback an geschuetzten Entities blockieren
+        // Wind Charge Schaden / Knockback
         if (e.getDamager() instanceof AbstractWindCharge) {
-            if (attacker != null && !allowed(attacker, e.getEntity().getLocation(), ClaimPermission.ENTITY_INTERACT)) {
+            // Wenn der Spieler sich selbst boostet (Wind Charge Jumping):
+            if (attacker != null && e.getEntity() instanceof Player victim && attacker.getUniqueId().equals(victim.getUniqueId())) {
+                if (allowed(attacker, victim.getLocation(), ClaimPermission.ENTITY_INTERACT)
+                        || allowed(attacker, victim.getLocation(), ClaimPermission.BUILD)) {
+                    return; // Wind Charge Jump mit Rechten im Claim voll erlaubt!
+                }
+            }
+            if (attacker != null && !allowed(attacker, e.getEntity().getLocation(), ClaimPermission.ENTITY_INTERACT)
+                    && !allowed(attacker, e.getEntity().getLocation(), ClaimPermission.BUILD)) {
                 e.setCancelled(true);
                 return;
             }
@@ -739,11 +751,15 @@ public final class ProtectionListener implements Listener {
 
         // 5. Schaden an Spielern (PvP)
         if (e.getEntity() instanceof Player victim) {
-            // PvP-Claim-Bypass pruefen (Admin-Befehl /pvpclaimbypass)
-            if (pvpClaimBypass.isClaimBypassed(victim.getLocation())
-                    || pvpClaimBypass.isClaimBypassed(attacker.getLocation())
-                    || pvpClaimBypass.isPlayerBypassed(attacker)
-                    || pvpClaimBypass.isPlayerBypassed(victim)) {
+            // Selbstschaden (Wind Charge Jump, Enderperle etc.) ist niemals PvP!
+            if (attacker.getUniqueId().equals(victim.getUniqueId())) {
+                return;
+            }
+
+            // PvP-Claim-Bypass pruefen (Admin-Befehl /claimspvpoverride bzw. /pvpclaimbypass)
+            if (pvpClaimBypass != null && (
+                    pvpClaimBypass.isPlayerBypassed(attacker)
+                    || pvpClaimBypass.isPlayerBypassed(victim))) {
                 return;
             }
 
@@ -764,20 +780,17 @@ public final class ProtectionListener implements Listener {
             Claim victimClaim = claimManager.getClaimAt(victim.getLocation());
             Claim attackerClaim = claimManager.getClaimAt(attacker.getLocation());
 
-            // Ohne Claim darf PvP NIEMALS aktiv sein! PvP ist ausschliesslich auf Claims mit beidseitig aktiviertem PvP-Recht erlaubt.
-            if (victimClaim == null || attackerClaim == null) {
+            boolean victimInProtectedClaim = victimClaim != null && (pvpClaimBypass == null || !pvpClaimBypass.isClaimBypassed(victimClaim.id()));
+            boolean attackerInProtectedClaim = attackerClaim != null && (pvpClaimBypass == null || !pvpClaimBypass.isClaimBypassed(attackerClaim.id()));
+
+            if (victimInProtectedClaim || attackerInProtectedClaim) {
                 e.setCancelled(true);
                 deny(attacker);
                 return;
             }
 
-            if (!allowed(attacker, victim.getLocation(), ClaimPermission.PVP)
-                    || !allowed(victim, victim.getLocation(), ClaimPermission.PVP)
-                    || !allowed(attacker, attacker.getLocation(), ClaimPermission.PVP)
-                    || !allowed(victim, attacker.getLocation(), ClaimPermission.PVP)) {
-                e.setCancelled(true);
-                deny(attacker);
-            }
+            // Weder Opfer noch Angreifer befinden sich in einem geschuetzten Claim (entweder Unclaimed Wilderness oder /claimspvpoverride).
+            // Daher greift hier kein Claim-Schutz; die weitere PvP-Logik (Dimension + /pvp Toggle) erfolgt im CombatListener.
             return;
         }
 
@@ -823,6 +836,14 @@ public final class ProtectionListener implements Listener {
 
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onGeneralDamage(EntityDamageEvent e) {
+        if (e instanceof EntityDamageByEntityEvent edbe && edbe.getDamager() instanceof AbstractWindCharge) {
+            Player shooter = resolvePlayer(edbe.getDamager());
+            if (shooter != null && (allowed(shooter, e.getEntity().getLocation(), ClaimPermission.ENTITY_INTERACT)
+                    || allowed(shooter, e.getEntity().getLocation(), ClaimPermission.BUILD))) {
+                return;
+            }
+        }
+
         if (e.getCause() == EntityDamageEvent.DamageCause.ENTITY_EXPLOSION || e.getCause() == EntityDamageEvent.DamageCause.BLOCK_EXPLOSION) {
             if (!allowsExplosions(e.getEntity().getLocation())) {
                 e.setCancelled(true);
@@ -884,7 +905,41 @@ public final class ProtectionListener implements Listener {
             }
         }
         if (player == null) return;
-        if (claimManager.getClaimAt(to) == null) return;
+        Claim toClaim = claimManager.getClaimAt(to);
+        if (toClaim == null) return;
+
+        // Combat-Pruefung fuer Insassen
+        var ztone = de.Z7534.ztone.Ztone.getInstance();
+        if (ztone != null && ztone.getPvpManager() != null) {
+            var pvpMgr = ztone.getPvpManager();
+            boolean passengerInCombat = false;
+            for (Entity passenger : vehicle.getPassengers()) {
+                if (passenger instanceof Player p && pvpMgr.getCombatManager().isTagged(p.getUniqueId())) {
+                    if (!bypass.isActive(p) && !pvpMgr.getOverrideManager().isOverriding(p.getUniqueId())
+                            && (pvpClaimBypass == null || !pvpClaimBypass.isPlayerBypassed(p))) {
+                        passengerInCombat = true;
+                        break;
+                    }
+                }
+            }
+            if (passengerInCombat && (pvpClaimBypass == null || !pvpClaimBypass.isClaimBypassed(toClaim.id()))) {
+                List<Entity> passengers = new ArrayList<>(vehicle.getPassengers());
+                vehicle.eject();
+                vehicle.teleport(from);
+                for (Entity passenger : passengers) {
+                    passenger.teleport(from);
+                    if (passenger instanceof Player p) {
+                        String msg = config.message("cannot-enter-combat");
+                        if (msg == null || msg.isBlank() || msg.equals("cannot-enter-combat")) {
+                            msg = "<red>\u1d05\u1d1c \u0299\u026a\ua731\u1d1b \u026a\u1d0d \u1d0b\u1d00\u1d0d\u1d18\ua730! \u1d05\u1d1c \u1d0b\u1d00\u0274\u0274\ua731\u1d1b \u1d0b\u1d07\u026a\u0274\u1d07 \u1d04\u029f\u1d00\u026a\u1d0d\ua731 \u0299\u1d07\u1d1b\u0280\u1d07\u1d1b\u1d07\u0274.</red>";
+                        }
+                        p.sendMessage(Text.line(config.prefix() + msg));
+                    }
+                }
+                return;
+            }
+        }
+
         if (allowed(player, to, ClaimPermission.VEHICLES)) return;
 
         List<Entity> passengers = new ArrayList<>(vehicle.getPassengers());
@@ -908,6 +963,26 @@ public final class ProtectionListener implements Listener {
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onExplosionPrime(ExplosionPrimeEvent e) {
         Location explosionLocation = e.getEntity().getLocation();
+
+        // Wind Charges: Mit Rechten auf dem Claim uneingeschraenkt erlaubt!
+        if (e.getEntity() instanceof AbstractWindCharge windCharge) {
+            Player shooter = resolvePlayer(windCharge);
+            if (shooter != null) {
+                if (allowed(shooter, explosionLocation, ClaimPermission.ENTITY_INTERACT)
+                        || allowed(shooter, explosionLocation, ClaimPermission.BUILD)) {
+                    return; // Mit Rechten erlaubt!
+                } else {
+                    e.setCancelled(true);
+                    return;
+                }
+            }
+            Claim claim = claimManager.getClaimAt(explosionLocation);
+            if (claim != null) {
+                e.setCancelled(true);
+                return;
+            }
+            return;
+        }
 
         if (!allowsExplosions(explosionLocation)) {
             e.setCancelled(true);
@@ -935,6 +1010,28 @@ public final class ProtectionListener implements Listener {
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onEntityExplode(EntityExplodeEvent e) {
         Location explosionLocation = e.getLocation();
+
+        // Wind Charges: Mit Rechten auf dem Claim uneingeschraenkt erlaubt!
+        if (e.getEntity() instanceof AbstractWindCharge windCharge) {
+            Player shooter = resolvePlayer(windCharge);
+            if (shooter != null) {
+                if (allowed(shooter, explosionLocation, ClaimPermission.ENTITY_INTERACT)
+                        || allowed(shooter, explosionLocation, ClaimPermission.BUILD)) {
+                    return; // Mit Rechten erlaubt!
+                } else {
+                    e.setCancelled(true);
+                    e.blockList().clear();
+                    return;
+                }
+            }
+            Claim claim = claimManager.getClaimAt(explosionLocation);
+            if (claim != null) {
+                e.setCancelled(true);
+                e.blockList().clear();
+                return;
+            }
+            return;
+        }
 
         if (!allowsExplosions(explosionLocation)) {
             e.setCancelled(true);

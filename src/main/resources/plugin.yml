@@ -1,5 +1,5 @@
 name: Ztone
-version: '1.0.2'
+version: '1.0.3'
 main: de.Z7534.ztone.Ztone
 api-version: '26.2'
 authors: [Z7534]
@@ -58,6 +58,11 @@ commands:
   staffclaim:
     description: Admin-Befehle für das Claim-System
     usage: /staffclaim <addclaims|removeclaims|info|tp|unclaim|unclaimhere|trust|ban|bypass|pvp|reload> ...
+  claimspvpoverride:
+    description: Schaltet PvP auf einem Claim als Admin an/aus (Override)
+    usage: /claimspvpoverride [on|off|toggle|player|list]
+    aliases: [pvpclaimbypass, claimpvpbypass, pvpclaim, claimpvpoverride, pvpclaimoverride]
+    permission: claims.admin.pvpbypass
   pvpclaimbypass:
     description: Erlaubt oder verbietet PvP auf einem Claim für Admins
     usage: /pvpclaimbypass [on|off|toggle|player|list]
@@ -417,7 +422,7 @@ permissions:
     description: Erlaubt /staffclaim bypass <on|off> <spieler> f?r andere Spieler
     default: op
   claims.admin.pvpbypass:
-    description: Erlaubt /pvpclaimbypass (PvP auf Claims freigeben oder als Admin im Claim kämpfen)
+    description: Erlaubt /claimspvpoverride (PvP auf Claims freigeben oder als Admin im Claim kämpfen)
     default: op
   claims.admin.reload:
     description: /staffclaim reload (lädt config.yml und messages.yml neu)

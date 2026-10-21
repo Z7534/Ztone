@@ -19,6 +19,7 @@
 #  - StoneVoice:  plugins/Ztone/stonevoice/
 #  - PlayRewards: plugins/Ztone/playrewards/ (config.yml, rewards/)
 #  - Deathchest:  plugins/Ztone/deathchest/ (config.yml)
+#  - ClearLag:    plugins/Ztone/clearlag/ (config.yml)
 # ==============================================================================
 
 # ==============================================================================
@@ -80,6 +81,11 @@ modules:
   # Deathchest: Todesdoppelkisten bei Spielertod, Anti-Griefing, Hologramm-Timer, Killer-Lock
   # Detaillierte Config: plugins/Ztone/deathchest/
   deathchest: true
+
+  # ClearLag: Intelligente Boden-Item-Bereinigung, Countdown-Warnungen & Auto-Clear
+  # Befehle: /clearlag
+  # Detaillierte Config: plugins/Ztone/clearlag/
+  clearlag: true
 
 
 # ==============================================================================

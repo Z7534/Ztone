@@ -51,33 +51,22 @@ public class CombatListener implements Listener {
             var attackerClaim = claimManager.getClaimAt(attacker.getLocation());
 
             var pvpClaimBypass = claimsPlugin.getPvPClaimBypass();
-            boolean claimBypassed = pvpClaimBypass != null && (
-                    pvpClaimBypass.isClaimBypassed(victim.getLocation())
-                    || pvpClaimBypass.isClaimBypassed(attacker.getLocation())
-                    || pvpClaimBypass.isPlayerBypassed(attacker)
-                    || pvpClaimBypass.isPlayerBypassed(victim));
+            boolean playerBypassed = pvpClaimBypass != null && (
+                    pvpClaimBypass.isPlayerBypassed(attacker) || pvpClaimBypass.isPlayerBypassed(victim));
+            boolean staffBypass = claimsPlugin.getBypassManager() != null && claimsPlugin.getBypassManager().isActive(attacker);
 
-            if (claimBypassed || (claimsPlugin.getBypassManager() != null && claimsPlugin.getBypassManager().isActive(attacker))) {
+            if (playerBypassed || staffBypass) {
                 return true;
             }
 
-            // Ohne Claims ist PvP überall deaktiviert!
-            if (victimClaim == null || attackerClaim == null) {
+            // In Claims ist PvP komplett deaktiviert, AUSSER ein Admin hat den Claim mit /claimspvpoverride freigegeben
+            boolean victimInProtectedClaim = victimClaim != null && (pvpClaimBypass == null || !pvpClaimBypass.isClaimBypassed(victimClaim.id()));
+            boolean attackerInProtectedClaim = attackerClaim != null && (pvpClaimBypass == null || !pvpClaimBypass.isClaimBypassed(attackerClaim.id()));
+
+            if (victimInProtectedClaim || attackerInProtectedClaim) {
                 return false;
             }
 
-            boolean aPermV = victimClaim.hasPermission(attacker.getUniqueId(), de.Z7534.ztone.claims.model.ClaimPermission.PVP);
-            boolean vPermV = victimClaim.hasPermission(victim.getUniqueId(), de.Z7534.ztone.claims.model.ClaimPermission.PVP);
-            if (!aPermV || !vPermV) {
-                return false;
-            }
-            if (attackerClaim != victimClaim) {
-                boolean aPermA = attackerClaim.hasPermission(attacker.getUniqueId(), de.Z7534.ztone.claims.model.ClaimPermission.PVP);
-                boolean vPermA = attackerClaim.hasPermission(victim.getUniqueId(), de.Z7534.ztone.claims.model.ClaimPermission.PVP);
-                if (!aPermA || !vPermA) {
-                    return false;
-                }
-            }
             return true;
         }
 
@@ -120,7 +109,7 @@ public class CombatListener implements Listener {
         }
 
         // TNT und Explosionsminenwagen-Schutz:
-        // Verhindert, dass Spieler mit PvP aus durch geschlagene TNTs/Speere/Knockback getötet werden
+        // Verhindert, dass Spieler mit PvP aus durch geschlagene TNTs/Speere/Knockback getoetet werden
         if (event.getDamager() instanceof TNTPrimed || event.getDamager() instanceof ExplosiveMinecart) {
             Player sourceOrHitter = resolveAttacker(event);
             if (sourceOrHitter != null && sourceOrHitter.equals(victim)) {
@@ -154,8 +143,6 @@ public class CombatListener implements Listener {
             return;
         }
 
-// Override check already handled above
-
         WorldGuardHook.PvpState worldGuardState =
                 plugin.getHookManager().worldGuard().queryPvpState(victim.getLocation());
 
@@ -164,7 +151,7 @@ public class CombatListener implements Listener {
             return;
         }
 
-        // Claims PvP-Prüfung: Ohne Claim ist PvP überall AUS! PvP ist nur auf Claims mit beidseitig aktiviertem PvP erlaubt!
+        // Claims PvP-Pruefung: In Claims ist PvP komplett deaktiviert, ausser durch /claimspvpoverride freigegeben
         if (!isPvpAllowedAtLocations(attacker, victim)) {
             event.setCancelled(true);
             return; // KEIN COMBAT TAG! KEIN COMBAT MODE!
@@ -202,6 +189,7 @@ public class CombatListener implements Listener {
         }
         if (!attackerCanPvP) {
             event.setCancelled(true);
+            plugin.getMessageDispatcher().send(attacker, "Attack_Denied_You");
             return;
         }
 
@@ -237,7 +225,7 @@ public class CombatListener implements Listener {
                         "&c\u1d05\u026a\u1d07\ua731\u1d07\ua731 \u029c\u1d00\u1d1c\ua731\u1d1b\u026a\u1d07\u0280 \u0262\u1d07\u029c\u00f6\u0280\u1d1b \u1d07\u026a\u0274\u1d07\u1d0d \ua731\u1d18\u026a\u1d07\u029f\u1d07\u0280 \u1d0d\u026a\u1d1b \u1d05\u1d07\u1d00\u1d0b\u1d1b\u026a\u1d20\u026a\u1d07\u0280\u1d1b\u1d07\u1d0d \u1d18\u1d20\u1d18!"));
             } else {
                 attacker.sendMessage(LegacyComponentSerializer.legacyAmpersand().deserialize(
-                        "&c\u1d05\u1d1c \u029c\u1d00\ua731\u1d1b \u1d18\u1d20\u1d18 \u1d05\u1d07\u1d00\u1d0b\u1d1b\u026a\u1d20\u026a\u1d07\u0280\u1d1b \u1d1c\u0274\u1d05 \u1d0b\u1d00\u0274\u0274\ua731\u1d1b \u1d0b\u1d07\u026a\u0274\u1d07 \u029c\u1d00\u1d1c\ua731\u1d1b\u026a\u1d07\u0280\u1d07 \u1d00\u0274\u0262\u0280\u1d07\u026a\ua730\u1d07\u0274!"));
+                        "&c\u1d1c\u029c\u1d00\ua731\u1d1b \u1d18\u1d20\u1d18 \u1d05\u1d07\u1d00\u1d0b\u1d1b\u026a\u1d20\u026a\u1d07\u0280\u1d1b \u1d1c\u0274\u1d05 \u1d0b\u1d00\u0274\u0274\ua731\u1d1b \u1d0b\u1d07\u026a\u0274\u1d07 \u029c\u1d00\u1d1c\ua731\u1d1b\u026a\u1d07\u0280\u1d07 \u1d00\u0274\u0262\u0280\u1d07\u026a\ua730\u1d07\u0274!"));
             }
         }
     }
@@ -351,8 +339,7 @@ public class CombatListener implements Listener {
 
     private Player resolveDirectOrShooter(Entity damager) {
         if (damager instanceof Player p) {
-            return p
-;
+            return p;
         }
         if (damager instanceof Projectile proj && proj.getShooter() instanceof Player p) {
             return p;

@@ -164,18 +164,17 @@ public class Pvpmanager {
         if (isForcedWarPvP(player)) return true;
         if (overrideManager != null && overrideManager.isOverriding(player.getUniqueId())) return true;
 
-        // Claims-Prüfung: Ohne Claim oder in einem Claim ohne PvP-Erlaubnis ist kein PvP möglich
+        // Claims-Pruefung: Befindet sich der Spieler in einem Claim?
+        // In Claims ist PvP komplett deaktiviert, AUSSER ein Admin hat den Claim mit /claimspvpoverride freigegeben!
         if (plugin.getConfigManager() != null && plugin.getConfigManager().isClaimsEnabled() && plugin.getClaims() != null) {
             var claims = plugin.getClaims();
             var pvpClaimBypass = claims.getPvPClaimBypass();
-            boolean bypassed = (pvpClaimBypass != null && (pvpClaimBypass.isClaimBypassed(player.getLocation()) || pvpClaimBypass.isPlayerBypassed(player)))
+            boolean adminBypassed = (pvpClaimBypass != null && (pvpClaimBypass.isPlayerBypassed(player)))
                     || (claims.getBypassManager() != null && claims.getBypassManager().isActive(player));
-            if (!bypassed) {
+            if (!adminBypassed) {
                 var claim = claims.getClaimManager().getClaimAt(player.getLocation());
-                if (claim == null) {
-                    return false;
-                }
-                if (claim.isBanned(player.getUniqueId()) || !claim.hasPermission(player.getUniqueId(), de.Z7534.ztone.claims.model.ClaimPermission.PVP)) {
+                // Wenn ein Claim existiert und dieser KEIN Admin-PvP-Override hat: PvP ist auf diesem Claim verboten!
+                if (claim != null && (pvpClaimBypass == null || !pvpClaimBypass.isClaimBypassed(claim.id()))) {
                     return false;
                 }
             }
@@ -186,10 +185,14 @@ public class Pvpmanager {
         boolean dimensionForced = overrideManager != null && overrideManager.isDimensionForced(dimensionKey);
         boolean personal = pvpToggleManager != null && pvpToggleManager.isPvpEnabled(player.getUniqueId());
         boolean exempt = player.hasPermission(Permissions.EXEMPT_DIMENSION);
+
         boolean effective = personal;
         if (dimensionForced && !exempt) {
             effective = dimensionDefaultEnabled;
+        } else if (!dimensionDefaultEnabled && !exempt) {
+            effective = false;
         }
+
         if (hookManager != null && hookManager.worldGuard() != null) {
             if (configManager != null && configManager.config().getBoolean("PvP Toggle.WorldGuard Overrides", false)
                     && hookManager.worldGuard().isPvpForceAllowed(player.getLocation())) {

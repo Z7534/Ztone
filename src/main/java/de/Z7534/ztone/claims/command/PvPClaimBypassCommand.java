@@ -52,7 +52,7 @@ public final class PvPClaimBypassCommand implements CommandExecutor, TabComplete
             return true;
         }
 
-        // /pvpclaimbypass <spieler> <claimnr> [on|off|toggle]
+        // /claimspvpoverride <spieler> <claimnr> [on|off|toggle]
         if (args.length >= 2) {
             handleSpecificClaim(sender, args);
             return true;
@@ -63,17 +63,17 @@ public final class PvPClaimBypassCommand implements CommandExecutor, TabComplete
     }
 
     private void sendHelp(CommandSender sender) {
-        sender.sendMessage("§6=== PvP-Claim-Bypass Hilfe ===");
-        sender.sendMessage("§e/pvpclaimbypass §7- Schaltet PvP auf dem aktuellen Claim um");
-        sender.sendMessage("§e/pvpclaimbypass <on|off> §7- Aktiviert/Deaktiviert PvP auf dem aktuellen Claim");
-        sender.sendMessage("§e/pvpclaimbypass <spieler> <claimnr> [on|off] §7- Setzt PvP-Bypass für einen spezifischen Claim");
-        sender.sendMessage("§e/pvpclaimbypass player <spieler> [on|off] §7- Schaltet Spieler-Bypass um (darf überall PvP machen)");
-        sender.sendMessage("§e/pvpclaimbypass list §7- Listet alle Claims mit aktivem PvP-Bypass auf");
+        sender.sendMessage("§6=== Claims PvP-Override Hilfe ===");
+        sender.sendMessage("§e/claimspvpoverride §7- Schaltet PvP auf dem aktuellen Claim um");
+        sender.sendMessage("§e/claimspvpoverride <on|off> §7- Aktiviert/Deaktiviert PvP auf dem aktuellen Claim");
+        sender.sendMessage("§e/claimspvpoverride <spieler> <claimnr> [on|off] §7- Setzt PvP-Override für einen spezifischen Claim");
+        sender.sendMessage("§e/claimspvpoverride player <spieler> [on|off] §7- Schaltet Spieler-Bypass um (darf überall PvP machen)");
+        sender.sendMessage("§e/claimspvpoverride list §7- Listet alle Claims mit aktivem PvP-Override auf");
     }
 
     private void handleToggleCurrentClaim(CommandSender sender) {
         if (!(sender instanceof Player player)) {
-            sender.sendMessage("§cKonsole muss einen Claim angeben: /pvpclaimbypass <spieler> <claimnr> [on|off]");
+            sender.sendMessage("§cKonsole muss einen Claim angeben: /claimspvpoverride <spieler> <claimnr> [on|off]");
             return;
         }
         Claim claim = ctx.claims().getClaimAt(player.getLocation());
@@ -87,7 +87,7 @@ public final class PvPClaimBypassCommand implements CommandExecutor, TabComplete
 
     private void handleSetCurrentClaim(CommandSender sender, String mode) {
         if (!(sender instanceof Player player)) {
-            sender.sendMessage("§cKonsole muss einen Claim angeben: /pvpclaimbypass <spieler> <claimnr> [on|off]");
+            sender.sendMessage("§cKonsole muss einen Claim angeben: /claimspvpoverride <spieler> <claimnr> [on|off]");
             return;
         }
         Claim claim = ctx.claims().getClaimAt(player.getLocation());
@@ -153,7 +153,7 @@ public final class PvPClaimBypassCommand implements CommandExecutor, TabComplete
     private void handlePlayerBypass(CommandSender sender, String[] args) {
         if (args.length < 2) {
             if (!(sender instanceof Player player)) {
-                sender.sendMessage("§cVerwendung: /pvpclaimbypass player <spieler> [on|off]");
+                sender.sendMessage("§cVerwendung: /claimspvpoverride player <spieler> [on|off]");
                 return;
             }
             boolean active = ctx.pvpClaimBypass().togglePlayerBypass(player);
@@ -191,10 +191,10 @@ public final class PvPClaimBypassCommand implements CommandExecutor, TabComplete
     private void handleList(CommandSender sender) {
         Set<Long> ids = ctx.pvpClaimBypass().getBypassedClaimIds();
         if (ids.isEmpty()) {
-            sender.sendMessage("§7Es gibt derzeit keine Claims mit aktivem PvP-Bypass.");
+            sender.sendMessage("§7Es gibt derzeit keine Claims mit aktivem PvP-Override.");
             return;
         }
-        sender.sendMessage("§6=== Claims mit PvP-Bypass (" + ids.size() + ") ===");
+        sender.sendMessage("§6=== Claims mit PvP-Override (" + ids.size() + ") ===");
         for (Long id : ids) {
             Claim claim = ctx.claims().getById(id);
             if (claim != null) {
@@ -211,9 +211,9 @@ public final class PvPClaimBypassCommand implements CommandExecutor, TabComplete
         String ownerName = Bukkit.getOfflinePlayer(claim.owner()).getName();
         if (ownerName == null) ownerName = claim.owner().toString();
         if (active) {
-            sender.sendMessage("§aPvP-Bypass für Claim §e" + claim.name() + " §7(Besitzer: " + ownerName + ") §2AKTIVIERT§a! Auf diesem Claim ist PvP nun unabhängig von Claim-Rechten erlaubt.");
+            sender.sendMessage("§aPvP-Override für Claim §e" + claim.name() + " §7(Besitzer: " + ownerName + ") §2AKTIVIERT§a! Auf diesem Claim ist PvP nun wie im Unclaimed-Terrain aktiv.");
         } else {
-            sender.sendMessage("§cPvP-Bypass für Claim §e" + claim.name() + " §7(Besitzer: " + ownerName + ") §4DEAKTIVIERT§c! Es gelten wieder normale Claim-PvP-Regeln.");
+            sender.sendMessage("§cPvP-Override für Claim §e" + claim.name() + " §7(Besitzer: " + ownerName + ") §4DEAKTIVIERT§c! PvP ist auf diesem Claim komplett deaktiviert.");
         }
     }
 

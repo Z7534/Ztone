@@ -97,6 +97,11 @@ public final class Claims {
         }
 
         PvPClaimBypassCommand pvpClaimBypassCommand = new PvPClaimBypassCommand(ctx);
+        var pvpOverrideCmd = plugin.getCommand("claimspvpoverride");
+        if (pvpOverrideCmd != null) {
+            pvpOverrideCmd.setExecutor(pvpClaimBypassCommand);
+            pvpOverrideCmd.setTabCompleter(pvpClaimBypassCommand);
+        }
         var pvpClaimCmd = plugin.getCommand("pvpclaimbypass");
         if (pvpClaimCmd != null) {
             pvpClaimCmd.setExecutor(pvpClaimBypassCommand);
@@ -109,7 +114,7 @@ public final class Claims {
         Bukkit.getPluginManager().registerEvents(new ProtectionListener(claimManager, configManager, bypassManager, pvpClaimBypassManager), plugin);
         Bukkit.getPluginManager().registerEvents(
                 new ActivityListener(plugin, activityManager, claimManager, selectionManager, chatInputManager,
-                        configManager, bypassManager, banEnforcer, claimMapManager), plugin);
+                        configManager, bypassManager, banEnforcer, claimMapManager, pvpClaimBypassManager), plugin);
         Bukkit.getPluginManager().registerEvents(new ClaimMapListener(ctx, claimMapManager), plugin);
 
         // SmartSpawner Hook registrieren

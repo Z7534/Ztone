@@ -1,6 +1,6 @@
 # 🛡️ Ztone – All-in-One Server-System
 
-Willkommen in der offiziellen Dokumentation für **Ztone** (Version 1.0.2).  
+Willkommen in der offiziellen Dokumentation für **Ztone** (Version 1.0.3).  
 Ztone ist eine hochgradig optimierte, modulare All-in-One-Lösung für Minecraft Paper-, Purpur- und Leaf-Server (kompatibel mit Java 21 & Java 25).
 
 ---
@@ -18,7 +18,9 @@ Ztone ist eine hochgradig optimierte, modulare All-in-One-Lösung für Minecraft
 10. [Stonemute (LiteBans VoiceChat-Sync)](#9-stonemute-litebans-voicechat-sync)
 11. [MapControl (Minimap- & Radar-Steuerung)](#10-mapcontrol-minimap--radar-steuerung)
 12. [Stonelog & Hauptverwaltung](#11-stonelog--hauptverwaltung)
-13. [PlaceholderAPI Gesamtübersicht](#12-placeholderapi-gesamtübersicht)
+13. [Globale Konfiguration & Datenbank](#12-globale-konfiguration--datenbank)
+14. [PlaceholderAPI Gesamtübersicht](#13-placeholderapi-gesamtübersicht)
+15. [Kompilierung & Entwicklung](#14-kompilierung--entwicklung)
 
 ---
 
@@ -26,9 +28,9 @@ Ztone ist eine hochgradig optimierte, modulare All-in-One-Lösung für Minecraft
 
 Ztone bündelt alle wichtigen Core-Features für moderne Survival- und SMP-Netzwerke in einem einzigen Plugin:
 * **Clansystem:** Eigene Clans, Ränge mit detaillierten Rechten, Clankasse mit Zinsen/Schulden, Clan-Homes, Clan-Warps, Clankriege und Allianzen.
-* **Claims:** Chunk-basiertes Claiming mit interaktiver Karten-GUI, granularen Schutzflags, Subclaims, Trusted- und Ban-System.
-* **PvPManager:** Umfassender Combat-Tag, Spawn-/Respawn-Schutz, Anti-CombatLog, Anti-Kill-Abuse und strenge Claim-PvP-Regeln (PvP ist in der Wildnis standardmäßig deaktiviert und nur in Claims mit explizitem PvP-Recht oder in Clankriegen aktiv).
-* **StoneAttack:** Holographische Leaderboards (Spielzeit, Kills, Tode, Guthaben), dynamisches PlayerLimit und TPS/MSPT-Serverüberwachung.
+* **Claims:** Chunk-basiertes Claiming mit interaktiver Karten-GUI, granularen Schutzflags, Subclaims, Trusted- und Ban-System sowie Combat-Sperre.
+* **PvPManager:** Umfassender Combat-Tag, Spawn-/Respawn-Schutz, Anti-CombatLog, Anti-Kill-Abuse und strenge PvP-Hierarchie (Wildnis: Dimensions- & Spielerstatus; Claims: standardmäßig deaktiviert, außer bei Clankrieg oder Admin-Override).
+* **StoneAttack:** Holographische Leaderboards mit transparentem Display-Design, dynamisches PlayerLimit und TPS/MSPT-Serverüberwachung.
 * **DeathChest:** Sichere Todeskisten mit Despawn-Timer, Dupe-Schutz und Hologrammen.
 * **ClearLag:** Intelligente Boden-Item-Bereinigung mit Countdown-Warnungen und Actionbar.
 * **PlayRewards:** Tägliche Belohnungen, Playtime-Tracking und Streak-System mit Schutzpunkten.
@@ -143,7 +145,7 @@ Ztone bündelt alle wichtigen Core-Features für moderne Survival- und SMP-Netzw
 
 ---
 
-### 🔹 Admin-Befehle (`/staffclaim` & `/pvpclaimbypass`)
+### 🔹 Admin-Befehle (`/staffclaim` & `/claimspvpoverride`)
 
 | Befehl | Beschreibung | Berechtigung |
 | :--- | :--- | :--- |
@@ -158,23 +160,34 @@ Ztone bündelt alle wichtigen Core-Features für moderne Survival- und SMP-Netzw
 | `/staffclaim ban <Spieler> <ClaimNr\|all> <add\|remove\|list> [Spieler2]` | Verwaltet Banns auf fremden Claims (inkl. sofortigem Rauswurf) | `claims.admin.ban` |
 | `/staffclaim bypass [on\|off] [Spieler]` | Schaltet den Admin-Bypass für Schutz und Claim-Grenzen ein/aus | `claims.admin.bypass` |
 | `/staffclaim reload` | Lädt `config.yml` und `messages.yml` des Claims-Moduls neu | `claims.admin.reload` |
-| `/pvpclaimbypass [on\|off\|toggle\|player\|list]` | Schaltet den PvP-Bypass auf Claims für Staff frei *(Aliase: `/claimpvpbypass`, `/pvpclaim`)* | `claims.admin.pvpbypass` |
+| `/claimspvpoverride [on\|off\|toggle\|player\|list]` | Schaltet PvP auf einem Claim frei *(Aliase: `/pvpclaimbypass`, `/claimpvpbypass`, `/pvpclaim`, `/pvpclaimoverride`)* | `claims.admin.pvpbypass` |
 
 ---
 
 ### 🔹 Claim-Flags & Schutzrechte
 Jeder Claim-Besitzer kann pro Spieler oder global folgende Rechte vergeben:
 * `BUILD`: Blöcke abbauen und platzieren.
-* `CONTAINERS`: Kisten, Fässer, Chiseled Bookshelves, Shelves, Braustände, Trichter öffnen.
+* `CONTAINERS`: Kisten, Fässer, Chiseled Bookshelves, Shelves (Regale), Braustände, Trichter öffnen.
 * `DOORS`: Türen, Falltüren, Zauntore öffnen/schließen.
 * `REDSTONE`: Knöpfe, Hebel und Druckplatten betätigen.
 * `VEHICLES`: Boote, Loren und Flöße platzieren, fahren oder abbauen.
-* `ENTITY_INTERACT`: Rüstungsständer, Bilderrahmen, Glow-Frames, Endkristalle nutzen/abbauen; Enderperlen & Wind Charges werfen.
+* `ENTITY_INTERACT`: Rüstungsständer, Bilderrahmen, Glow-Frames, Endkristalle nutzen/abbauen; Enderperlen & Wind Charges werfen (Selbstanwendung wie Wind Charge Boost/Jump in Claims erlaubt).
 * `ATTACK_MOBS`: Tiere, Dorfbewohner und passive Mobs schlagen (Monster-Notwehr ist immer erlaubt).
 * `BUCKETS`: Wasser-, Lava- und Eimer-Nutzung.
 * `SPAWNER`: SmartSpawner GUI öffnen und Mob-Spawner modifizieren/abbauen.
 * `FIRE_EXPLOSIONS`: Feuerzeug, TNT-Zündung und Explosionen.
-* `PVP`: PvP-Kämpfe innerhalb dieses Claims erlauben.
+* `PVP`: Nur relevant, wenn ein Claim durch Admins mit `/claimspvpoverride` freigegeben ist.
+
+---
+
+### 🔹 Combat-Sperre für Claims (Anti-Flucht)
+> [!IMPORTANT]
+> **Claim-Eintrittsverbot im Kampf:**  
+> Spieler mit aktivem Combat-Tag können fremde oder geschützte Claims **nicht betreten**.  
+> Jeder Versuch (Laufen, Springen, Teleportation, Enderperlen, Reittiere) wird mit einer Rollback-Aktion abgewehrt und Reittiere werden abgeworfen (Verhalten analog zum Claim-Bann).  
+> **Ausnahmen:**  
+> 1. Claims, auf denen Admins PvP per `/claimspvpoverride` freigeschaltet haben.  
+> 2. Admins mit aktivem Bypass (`claims.admin.bypass`).
 
 ---
 
@@ -189,7 +202,8 @@ Jeder Claim-Besitzer kann pro Spieler oder global folgende Rechte vergeben:
 | `claims.admin.bypass` | Schaltet den Bypass für Baurechte und Banns frei | `op` |
 | `claims.admin.bypass.join` | Aktiviert den Admin-Bypass automatisch beim Login | `op` |
 | `claims.admin.bypass.other` | Erlaubt `/staffclaim bypass <on\|off> <spieler>` | `op` |
-| `claims.admin.pvpbypass` | Erlaubt `/pvpclaimbypass` | `op` |
+| `claims.admin.pvpbypass` | Erlaubt `/claimspvpoverride` bzw. `/pvpclaimbypass` | `op` |
+| `claims.admin.reload` | Erlaubt `/staffclaim reload` | `op` |
 
 ---
 
@@ -214,17 +228,22 @@ Jeder Claim-Besitzer kann pro Spieler oder global folgende Rechte vergeben:
 
 ---
 
-### 🔹 Wichtige Kampf-Regeln
+### 🔹 Die vollständige PvP-Logik
 > [!IMPORTANT]
-> **Wildnis-PvP-Schutz:**  
-> Außerhalb von Claims (in der Wildnis) ist PvP **ausnahmslos deaktiviert**!  
-> PvP-Kämpfe sind ausschließlich gestattet:
-> 1. Auf Claims, bei denen beide beteiligten Spieler die `PVP`-Flag aktiviert haben.
-> 2. Zwischen Gegnern in einem aktiven **Clankrieg** (`/clan war`).
-> 3. Durch autorisiertes Server-Personal mit `/pvpoverride` oder `/pvpclaimbypass`.
+> **Hierarchie der Kampfbeschränkungen:**
+> 1. **Unclaimed Terrain (Wildnis):**  
+>    * PvP richtet sich nach der Dimension (`/pvpdimensiontoggle`). Ist PvP in der Welt aus, kann niemand kämpfen (sofern nicht `--force` aktiv ist).  
+>    * Ist PvP in der Dimension an, entscheidet der persönliche Spielerstatus (`/pvp on/off`). Beide Spieler müssen PvP aktiviert haben, um sich zu duellieren.  
+> 2. **Claims:**  
+>    * PvP ist auf Claims standardmäßig **vollständig deaktiviert**, unabhängig vom `/pvp`-Status der Spieler.  
+>    * Ausnahme A: Ein Admin hat mit `/claimspvpoverride` PvP auf diesem Claim aktiviert. In diesem Fall verhält sich der Claim exakt wie unbeanspruchtes Gelände (Dimension + Spieler-PvP-Status).  
+>    * Ausnahme B: Die Kontrahenten befinden sich in einem aktiven **Clankrieg** (`/clan war`) mit `WAR_ALWAYS_PVP`.  
+>    * Ausnahme C: Ein Admin besitzt `/pvpoverride` oder den individuellen Claim-PvP-Bypass.  
+> 3. **Selbstinteraktion & Movement:**  
+>    * Wind Charges und Enderperlen auf sich selbst (z. B. Boost-Sprünge) triggern niemals irrtümlich eine PvP-Schadensverweigerung.
 
-* **Combat-Tag:** Bei Schaden im Kampf wird der Spieler getaggt. Befehle, Fliegen, Gamemode und Elytren werden temporär blockiert.
-* **Anti-CombatLog:** Verlässt ein Spieler den Server im Kampf, wird er getötet und sein Loot gedroppt.
+* **Combat-Tag:** Bei Schaden oder aggressiven Aktionen (auch feindliche Wind Charges/Enderperlen) wird der Combat-Tag aktiviert. Befehle, Fliegen, Gamemode und Elytren werden temporär blockiert.
+* **Anti-CombatLog:** Verlässt ein Spieler den Server im Kampf, wird er getötet, sein Loot gedroppt und Blitze schlagen an seiner Position ein.
 * **Respawn-Schutz:** Frisch respawnte Spieler erhalten temporären Schutz vor Schaden und Angriffen.
 
 ---
@@ -238,6 +257,11 @@ Jeder Claim-Besitzer kann pro Spieler oder global folgende Rechte vergeben:
 | `pvpmanager.command.pvpinfo` | Eigene PvP-Info ansehen | `true` |
 | `pvpmanager.command.pvplist` | `/pvplist` abrufen | `true` |
 | `pvpmanager.command.pvpstatus` | Eigene PvP-Statusabfrage | `true` |
+| `pvpmanager.command.pvpdimensiontoggle` | Dimension-PvP steuern | `op` |
+| `pvpmanager.command.override` | Zugriff auf `/pvpoverride` | `op` |
+| `pvpmanager.command.tag` | Combat-Tag manuell setzen/prüfen | `op` |
+| `pvpmanager.command.untag` | Combat-Tag manuell aufheben | `op` |
+| `pvpmanager.command.teleportoverride` | Teleport-Sperre im Kampf aufheben | `op` |
 | `pvpmanager.admin` | Voller Zugriff auf alle PvPManager-Befehle | `op` |
 | `pvpmanager.bypass.lootprotection` | Loot von getöteten Spielern trotz Schutz aufsammeln | `op` |
 | `pvpmanager.exempt.blockcommands` | Befehle auch im Kampf ausführen dürfen | `op` |
@@ -252,7 +276,8 @@ Jeder Claim-Besitzer kann pro Spieler oder global folgende Rechte vergeben:
 ## 4. StoneAttack (Leaderboards, PlayerLimit, Performance)
 
 ### 🔹 Leaderboard-Befehle (`/leaderboard`)
-Verwaltet dynamische Hologramme mit Rüstungsständern für Bestenlisten (Spielzeit, Kills, Tode, Geld).  
+Verwaltet dynamische Ranglisten-Hologramme für Bestenlisten (Spielzeit, Kills, Tode, Geld).  
+*Design:* Nutzt moderne Paper TextDisplay-Entities mit vollständig transparentem Hintergrund (`Color.fromARGB(0)`), gestochen scharfen Schriftfarben und Rangabzeichen (🥇, 🥈, 🥉) ohne störende dunkle Hintergrundboxen.  
 *Berechtigung:* `leaderboard.admin`
 
 | Befehl | Beschreibung |
@@ -400,7 +425,33 @@ Sendet standardisierte Plugin-Nachrichten an VoxelMap, Xaero's Minimap und Journ
 
 ---
 
-## 12. PlaceholderAPI Gesamtübersicht
+## 12. Globale Konfiguration & Datenbank
+
+In der zentralen Konfigurationsdatei `plugins/Ztone/config.yml` können alle Submodule einzeln de-/aktiviert werden:
+
+```yaml
+modules:
+  clansystem: true
+  pvpmanager: true
+  claims: true
+  stoneattack: true
+  stonelog: true
+  stonemute: true
+  mapcontrol: true
+  stonevoice: true
+  playrewards: true
+  deathchest: true
+  clearlag: true
+
+database:
+  type: "sqlite" # oder "mariadb"
+  file: "clans.db"
+  table-prefix: "clan_"
+```
+
+---
+
+## 13. PlaceholderAPI Gesamtübersicht
 
 Alle Platzhalter erfordern das installierte Plugin **PlaceholderAPI**.
 
@@ -512,4 +563,4 @@ Alle Platzhalter erfordern das installierte Plugin **PlaceholderAPI**.
 # Projekt mit Gradle bauen:
 gradlew build shadowJar
 ```
-Das fertige Artefakt befindet sich unter `build/libs/Ztone-1.0.2.jar`.
+Das fertige Artefakt befindet sich unter `build/libs/Ztone-1.0.3.jar`.

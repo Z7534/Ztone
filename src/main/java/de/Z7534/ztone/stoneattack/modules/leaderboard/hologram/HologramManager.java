@@ -36,7 +36,7 @@ import java.util.concurrent.ConcurrentHashMap;
  *
  * Aufbau (siehe {@link HologramLayout}):
  * <ul>
- *   <li>{@link HologramBoard} - geteilter Teil (Platten, Buttons, Klickflaechen), 1x pro Leaderboard</li>
+ *   <li>{@link HologramBoard} - geteilter Teil (Klickflaechen), 1x pro Leaderboard</li>
  *   <li>{@link HologramInstance} - Teil pro Spieler (Liste, Titel, Seite, "Du"-Zeile)</li>
  * </ul>
  * Ein Board wird nur aufgebaut, solange ein Spieler in Sichtweite ist.
@@ -61,8 +61,7 @@ public class HologramManager {
     private static final double LAYER_BODY = 0.015;
     private static final double LAYER_PLATE = 0.020;
     private static final double LAYER_HIGHLIGHT = 0.025;
-    // Die Hover-Ebenen (Fuellung 0,0270 / Rahmen 0,0295 / Glanz 0,0320, siehe HoverAnimator) liegen
-    // VOR der Aktiv-Markierung, damit beides gleichzeitig sichtbar ist, und HINTER dem Text.
+    // Die Hover-Ebenen liegen VOR der Aktiv-Markierung und HINTER dem Text.
     private static final double LAYER_CONTENT = 0.0355;
 
     /** So viel groesser als der Button ist der "Blick-Treffer"-Bereich, solange der Button schon gehovert wird. */
@@ -270,7 +269,7 @@ public class HologramManager {
     }
 
     // ------------------------------------------------------------
-    // Teil pro Spieler (TextDisplays mit nativen ARGB-Hintergruenden)
+    // Teil pro Spieler (TextDisplays ohne Hintergrundboxen)
     // ------------------------------------------------------------
 
     private HologramInstance spawnViewerPart(Player viewer, BoardFrame f, HologramLayout l) {
@@ -278,44 +277,40 @@ public class HologramManager {
         HologramInstance instance = new HologramInstance();
         float s = l.textScale;
 
-        int panelBg = color(cfg, "leaderboard.style.panel-color", "#12151B");
-        int buttonBg = color(cfg, "leaderboard.style.button-color", "#252B36");
-        int pillBg = color(cfg, "leaderboard.style.page-pill-color", "#1C2029");
-
         instance.title = factory.spawnText(
                 f.at(0, l.textPivot(l.titleCenter, s), LAYER_CONTENT), viewer, false, s);
-        factory.setBackground(instance.title, panelBg);
+        factory.setBackground(instance.title, 0);
 
         // Die komplette Liste ist EIN mehrzeiliges Display; es haengt an der UNTERSTEN Zeile.
         instance.list = factory.spawnText(
                 f.at(l.listU, l.textPivot(l.rowCenter(l.perPage - 1), s), LAYER_CONTENT), viewer, false, s);
-        factory.setBackground(instance.list, panelBg);
+        factory.setBackground(instance.list, 0);
 
         instance.self = factory.spawnText(
                 f.at(0, l.textPivot(l.selfCenter, s), LAYER_CONTENT), viewer, false, s);
-        factory.setBackground(instance.self, panelBg);
+        factory.setBackground(instance.self, 0);
 
         if (cfg.getBoolean("leaderboard.show-page-indicator", true)) {
             instance.pager = factory.spawnText(
                     f.at(0, l.textPivot(l.pagerCenter(), l.pagerTextScale), LAYER_CONTENT),
                     viewer, false, l.pagerTextScale);
-            factory.setBackground(instance.pager, pillBg);
+            factory.setBackground(instance.pager, 0);
         }
         double leftArrowCenter = l.left + HologramLayout.ARROW_WIDTH / 2.0;
         double rightArrowCenter = l.left + l.width - HologramLayout.ARROW_WIDTH / 2.0;
         double arrowPivot = l.textPivot(l.pagerCenter(), l.arrowTextScale);
         instance.arrowLeft = factory.spawnText(f.at(leftArrowCenter, arrowPivot, LAYER_CONTENT), viewer, false, l.arrowTextScale);
-        factory.setBackground(instance.arrowLeft, buttonBg);
+        factory.setBackground(instance.arrowLeft, 0);
 
         instance.arrowRight = factory.spawnText(f.at(rightArrowCenter, arrowPivot, LAYER_CONTENT), viewer, false, l.arrowTextScale);
-        factory.setBackground(instance.arrowRight, buttonBg);
+        factory.setBackground(instance.arrowRight, 0);
 
         instance.labels.put(ClickBinding.Action.ARROW_LEFT,
                 new HoverLabel(instance.arrowLeft, l.arrowTextScale, l.centerOffset(), -1.0));
         instance.labels.put(ClickBinding.Action.ARROW_RIGHT,
                 new HoverLabel(instance.arrowRight, l.arrowTextScale, l.centerOffset(), 1.0));
 
-        // Beschriftung der 3 Modus-Buttons (Icon + Name) mit edlem Button-Hintergrund
+        // Beschriftung der 3 Modus-Buttons (Icon + Name)
         double modeWidth = l.modeWidth();
         double modePivot = l.textPivot(l.modeCenter(), l.buttonTextScale);
         for (int i = 0; i < MODE_PERIODS.length; i++) {
@@ -325,8 +320,8 @@ public class HologramManager {
             String text = icon.isEmpty() ? name : icon + " " + name;
             TextDisplay label = factory.spawnText(f.at(l.modeLeft(i) + modeWidth / 2.0, modePivot, LAYER_CONTENT),
                     viewer, false, l.buttonTextScale);
-            factory.setBackground(label, buttonBg);
-            factory.setText(label, styled(ColorUtil.parse("<white><b>   " + text + "   </b></white>")));
+            factory.setBackground(label, 0);
+            factory.setText(label, styled(ColorUtil.parse("<white><b>" + text + "</b></white>")));
             instance.modeLabels[i] = label;
             instance.labels.put(MODE_ACTIONS[i], new HoverLabel(label, l.buttonTextScale, l.centerOffset(), 0.0));
         }
@@ -366,10 +361,10 @@ public class HologramManager {
         }
         instance.renderKey = key;
 
-        // Titel mit horizontaler Polsterung fuer den Hintergrund
+        // Titel
         String periodName = cfg.getString("leaderboard.period-names." + period.key(), period.key());
         String titleTemplate = cfg.getString("leaderboard.titles." + type.key(), type.key());
-        factory.setText(instance.title, styled(ColorUtil.parse("   " + titleTemplate + "   ", Map.of("period", periodName))));
+        factory.setText(instance.title, styled(ColorUtil.parse(titleTemplate, Map.of("period", periodName))));
 
         // Eintraege der aktuellen Seite - alle Zeilen in EINEM Text-Display mit schoenen Badges
         List<LeaderboardEntry> pageEntries = cache.getPage(type, period, page, perPage);
@@ -403,21 +398,21 @@ public class HologramManager {
                 }
 
                 try {
-                    rows.add(styled(ColorUtil.parse("   " + rowTemplate + "   ", Map.of(
+                    rows.add(styled(ColorUtil.parse(rowTemplate, Map.of(
                             "rank_prefix", prefix,
                             "player", entry.name(),
                             "value", entry.formattedValue()
                     ))));
                 } catch (Throwable t) {
-                    rows.add(Component.text("   " + prefix + " " + entry.name() + " " + entry.formattedValue() + "   "));
+                    rows.add(Component.text(prefix + " " + entry.name() + " " + entry.formattedValue()));
                 }
             } else {
-                rows.add(styled(ColorUtil.parse("   <dark_gray>―  ―  ―</dark_gray>   ")));
+                rows.add(styled(ColorUtil.parse("<dark_gray>―  ―  ―</dark_gray>")));
             }
         }
         factory.setText(instance.list, Component.join(JoinConfiguration.newlines(), rows));
 
-        // "Du"-Zeile mit eleganter Umrahmung
+        // "Du"-Zeile
         LeaderboardEntry own = cache.getEntry(type, period, viewer.getUniqueId());
         int ownRank = cache.getRank(type, period, viewer.getUniqueId());
         Component selfLine;
@@ -429,33 +424,30 @@ public class HologramManager {
                 } catch (Throwable ignored) {}
             }
             try {
-                selfLine = ColorUtil.parse("   " + selfTemplate + "   ",
+                selfLine = ColorUtil.parse(selfTemplate,
                         Map.of("rank", String.valueOf(ownRank), "value", own.formattedValue()));
             } catch (Throwable t) {
-                selfLine = Component.text("   Du #" + ownRank + " " + own.formattedValue() + "   ");
+                selfLine = Component.text("Du #" + ownRank + " " + own.formattedValue());
             }
         } else {
             String fallback = cfg.getString("leaderboard.self-line.fallback-text", "<gray>Du – Noch keine Daten</gray>");
-            selfLine = ColorUtil.parse("   " + fallback + "   ");
+            selfLine = ColorUtil.parse(fallback);
         }
         factory.setText(instance.self, styled(selfLine));
 
-        // Seitenanzeige mit Polsterung
+        // Seitenanzeige
         if (instance.pager != null) {
             factory.setText(instance.pager, styled(ColorUtil.parse(
-                    "   " + cfg.getString("leaderboard.page-indicator-format", "<gray>Seite %page%/%max_page%</gray>") + "   ",
+                    cfg.getString("leaderboard.page-indicator-format", "<gray>Seite %page%/%max_page%</gray>"),
                     Map.of("page", String.valueOf(page), "max_page", String.valueOf(maxPage)))));
         }
 
-        // Pfeile: auf der ersten/letzten Seite abgedunkelt + passender Button-Hintergrund
-        int buttonBg = color(cfg, "leaderboard.style.button-color", "#252B36");
-        int dimBg = (70 << 24) | parseRgb(cfg.getString("leaderboard.style.button-color", "#252B36"), "#252B36");
-
+        // Pfeile: auf der ersten/letzten Seite abgedunkelt, ohne Hintergrund
         factory.setText(instance.arrowLeft, arrowLabel(cfg, "arrow-left", "\\u276E", page <= 1));
-        factory.setBackground(instance.arrowLeft, page <= 1 ? dimBg : buttonBg);
+        factory.setBackground(instance.arrowLeft, 0);
 
         factory.setText(instance.arrowRight, arrowLabel(cfg, "arrow-right", "\\u276F", page >= maxPage));
-        factory.setBackground(instance.arrowRight, page >= maxPage ? dimBg : buttonBg);
+        factory.setBackground(instance.arrowRight, 0);
 
         applyHighlight(viewer, board, instance, period);
     }
@@ -463,15 +455,13 @@ public class HologramManager {
     private Component arrowLabel(FileConfiguration cfg, String key, String fallback, boolean inactive) {
         String icon = cfg.getString("leaderboard.style.icons." + key, fallback);
         return inactive
-                ? ColorUtil.parse("<dark_gray>   " + icon + "   </dark_gray>")
-                : ColorUtil.parse("<gradient:#FFFFFF:#B0B0B0><b>   " + icon + "   </b></gradient>");
+                ? ColorUtil.parse("<dark_gray>" + icon + "</dark_gray>")
+                : ColorUtil.parse("<gradient:#FFFFFF:#B0B0B0><b>" + icon + "</b></gradient>");
     }
 
-    /** Hebt den aktiven Zeitraum hervor mit dynamischem Button-Hintergrund und Farbverlauf. */
+    /** Hebt den aktiven Zeitraum hervor mit Farbverlauf und Auswahl-Klammern (ohne Hintergrundbox). */
     private void applyHighlight(Player viewer, HologramBoard board, HologramInstance instance, TimePeriod period) {
         FileConfiguration cfg = plugin.getConfigManager().get();
-        int activeBg = color(cfg, "leaderboard.style.button-active-color", "#2E8B57");
-        int buttonBg = color(cfg, "leaderboard.style.button-color", "#252B36");
 
         for (int i = 0; i < MODE_PERIODS.length; i++) {
             TimePeriod p = MODE_PERIODS[i];
@@ -480,13 +470,12 @@ public class HologramManager {
                 String name = cfg.getString("leaderboard.period-names." + p.key(), p.key());
                 String text = icon.isEmpty() ? name : icon + " " + name;
                 boolean active = (p == period);
+                factory.setBackground(instance.modeLabels[i], 0);
                 if (active) {
-                    factory.setBackground(instance.modeLabels[i], activeBg);
-                    String formatted = "<gradient:#FFFFFF:#E0FFE0><b>   " + text + "   </b></gradient>";
+                    String formatted = "<gradient:#55FF55:#2E8B57><b>[ " + text + " ]</b></gradient>";
                     factory.setText(instance.modeLabels[i], styled(ColorUtil.parse(formatted)));
                 } else {
-                    factory.setBackground(instance.modeLabels[i], buttonBg);
-                    String formatted = "<gray><b>   " + text + "   </b></gray>";
+                    String formatted = "<gray><b>" + text + "</b></gray>";
                     factory.setText(instance.modeLabels[i], styled(ColorUtil.parse(formatted)));
                 }
             }

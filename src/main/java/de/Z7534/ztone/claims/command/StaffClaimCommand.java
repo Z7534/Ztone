@@ -50,7 +50,7 @@ public final class StaffClaimCommand implements CommandExecutor, TabCompleter {
             case "trust" -> handleTrustOrBan(sender, args, true);
             case "ban" -> handleTrustOrBan(sender, args, false);
             case "bypass" -> handleBypass(sender, args);
-            case "pvp", "pvpclaimbypass" -> pvpBypassCommand.onCommand(sender, command, label, Arrays.copyOfRange(args, 1, args.length));
+            case "pvp", "pvpclaimbypass", "claimspvpoverride" -> pvpBypassCommand.onCommand(sender, command, label, Arrays.copyOfRange(args, 1, args.length));
             case "reload" -> handleReload(sender);
             default -> sender.sendMessage("§cUnbekannter Unterbefehl.");
         }
@@ -454,6 +454,7 @@ public final class StaffClaimCommand implements CommandExecutor, TabCompleter {
             addIfPerm(subs, sender, "bypass", BypassManager.PERMISSION);
             addIfPerm(subs, sender, "pvp", PvPClaimBypassManager.PERMISSION);
             addIfPerm(subs, sender, "pvpclaimbypass", PvPClaimBypassManager.PERMISSION);
+            addIfPerm(subs, sender, "claimspvpoverride", PvPClaimBypassManager.PERMISSION);
             addIfPerm(subs, sender, "reload", "claims.admin.reload");
             StringUtil.copyPartialMatches(args[0], subs, out);
             Collections.sort(out);
@@ -462,7 +463,7 @@ public final class StaffClaimCommand implements CommandExecutor, TabCompleter {
 
         String sub = args[0].toLowerCase(Locale.ROOT);
 
-        if (sub.equals("pvp") || sub.equals("pvpclaimbypass")) {
+        if (sub.equals("pvp") || sub.equals("pvpclaimbypass") || sub.equals("claimspvpoverride")) {
             return pvpBypassCommand.onTabComplete(sender, command, alias, Arrays.copyOfRange(args, 1, args.length));
         }
 
