@@ -2,16 +2,12 @@ package de.Z7534.ztone.stoneattack.config;
 
 import de.Z7534.ztone.stoneattack.Stoneattack;
 import de.Z7534.ztone.stoneattack.util.ColorUtil;
+import de.Z7534.ztone.util.ConfigUtil;
 import net.kyori.adventure.text.Component;
 import org.bukkit.command.CommandSender;
 import org.bukkit.configuration.file.FileConfiguration;
-import org.bukkit.configuration.file.YamlConfiguration;
 
 import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.nio.charset.StandardCharsets;
 import java.util.Map;
 
 /**
@@ -31,26 +27,7 @@ public class MessagesManager {
 
     public void load() {
         file = new File(plugin.getDataFolder(), "messages.yml");
-        if (!file.exists()) {
-            plugin.saveResource("messages.yml", false);
-        }
-        messages = YamlConfiguration.loadConfiguration(file);
-
-        try (InputStream defStream = plugin.getResource("messages.yml")) {
-            if (defStream != null) {
-                YamlConfiguration defaults = YamlConfiguration.loadConfiguration(
-                        new InputStreamReader(defStream, StandardCharsets.UTF_8));
-                messages.setDefaults(defaults);
-                messages.options().copyDefaults(true);
-                try {
-                    messages.save(file);
-                } catch (IOException e) {
-                    plugin.getLogger().warning("Konnte messages.yml nicht speichern: " + e.getMessage());
-                }
-            }
-        } catch (IOException e) {
-            plugin.getLogger().warning("Konnte Standard-messages.yml nicht laden: " + e.getMessage());
-        }
+        messages = ConfigUtil.loadAndSync(plugin.getPlugin(), file, "stoneattack/messages.yml");
     }
 
     public void reload() {

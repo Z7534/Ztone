@@ -56,6 +56,8 @@ public class ClanAdminCommand implements CommandExecutor, TabCompleter {
             case "bold" -> handleBold(sender, args);
             case "home" -> handleHome(sender, args);
             case "warp" -> handleWarp(sender, args);
+            case "promote" -> handlePromote(sender, args);
+            case "demote" -> handleDemote(sender, args);
             case "help", "?" -> sendHelp(sender);
             default -> sendHelp(sender);
         }
@@ -612,6 +614,152 @@ public class ClanAdminCommand implements CommandExecutor, TabCompleter {
                 MessageManager.of("clan", clan.getColoredName(), "name", warp.getName()));
     }
 
+    private void handlePromote(CommandSender sender, String[] args) {
+        if (!sender.hasPermission("clansystem.admin.promote") && !sender.hasPermission("clansystem.admin")) {
+            plugin.getMessageManager().send(sender, "general.no-permission");
+            return;
+        }
+
+        if (args.length < 2) {
+            plugin.getMessageManager().send(sender, "general.invalid-usage",
+                    MessageManager.of("usage", "/clanadmin promote <spieler> [clan]"));
+            return;
+        }
+
+        String targetName = args[1];
+        Player targetPlayer = Bukkit.getPlayer(targetName);
+        UUID targetUuid = targetPlayer != null ? targetPlayer.getUniqueId() : Bukkit.getOfflinePlayer(targetName).getUniqueId();
+        String resolvedName = targetPlayer != null ? targetPlayer.getName() : targetName;
+
+        Clan clan;
+        if (args.length >= 3) {
+            clan = plugin.getClanManager().getClan(args[2]);
+            if (clan == null) {
+                plugin.getMessageManager().send(sender, "clan.not-found",
+                        MessageManager.of("clan", args[2]));
+                return;
+            }
+        } else {
+            clan = plugin.getClanManager().getClanByPlayer(targetUuid);
+            if (clan == null) {
+                plugin.getMessageManager().send(sender, "clan.target-not-in-clan",
+                        MessageManager.of("player", resolvedName));
+                return;
+            }
+        }
+
+        ClanMember targetMember = clan.getMember(targetUuid);
+        if (targetMember == null) {
+            plugin.getMessageManager().send(sender, "clan.target-not-in-your-clan",
+                    MessageManager.of("player", resolvedName));
+            return;
+        }
+
+        if (clan.isLeader(targetUuid) || targetMember.isLeader()) {
+            sender.sendMessage(ColorUtils.colorize("&8[&6Clan-Admin&8] &cDer Clan-Leader hat bereits die höchste Stellung und kann nicht befördert werden!"));
+            return;
+        }
+
+        List<ClanRank> sortedRanks = clan.getSortedRanks();
+        ClanRank currentRank = targetMember.getRank();
+        ClanRank nextRank = null;
+
+        for (int i = 0; i < sortedRanks.size() - 1; i++) {
+            if (sortedRanks.get(i + 1).equals(currentRank)) {
+                nextRank = sortedRanks.get(i);
+                break;
+            }
+        }
+
+        if (nextRank == null) {
+            sender.sendMessage(ColorUtils.colorize("&8[&6Clan-Admin&8] &c" + resolvedName + " hat bereits den höchsten Rang (" + (currentRank != null ? currentRank.getName() : "Co. Owner") + ")!"));
+            return;
+        }
+
+        targetMember.setRank(nextRank);
+        plugin.getDatabaseManager().updateMember(targetMember);
+
+        sender.sendMessage(ColorUtils.colorize("&8[&6Clan-Admin&8] &a" + resolvedName + " im Clan &e" + clan.getName() + " &awurde auf den Rang &e" + nextRank.getName() + " &abefördert."));
+
+        if (targetPlayer != null) {
+            plugin.getMessageManager().send(targetPlayer, "rank.rank-changed",
+                    MessageManager.of("rank", nextRank.getName()));
+        }
+    }
+
+    private void handleDemote(CommandSender sender, String[] args) {
+        if (!sender.hasPermission("clansystem.admin.demote") && !sender.hasPermission("clansystem.admin")) {
+            plugin.getMessageManager().send(sender, "general.no-permission");
+            return;
+        }
+
+        if (args.length < 2) {
+            plugin.getMessageManager().send(sender, "general.invalid-usage",
+                    MessageManager.of("usage", "/clanadmin demote <spieler> [clan]"));
+            return;
+        }
+
+        String targetName = args[1];
+        Player targetPlayer = Bukkit.getPlayer(targetName);
+        UUID targetUuid = targetPlayer != null ? targetPlayer.getUniqueId() : Bukkit.getOfflinePlayer(targetName).getUniqueId();
+        String resolvedName = targetPlayer != null ? targetPlayer.getName() : targetName;
+
+        Clan clan;
+        if (args.length >= 3) {
+            clan = plugin.getClanManager().getClan(args[2]);
+            if (clan == null) {
+                plugin.getMessageManager().send(sender, "clan.not-found",
+                        MessageManager.of("clan", args[2]));
+                return;
+            }
+        } else {
+            clan = plugin.getClanManager().getClanByPlayer(targetUuid);
+            if (clan == null) {
+                plugin.getMessageManager().send(sender, "clan.target-not-in-clan",
+                        MessageManager.of("player", resolvedName));
+                return;
+            }
+        }
+
+        ClanMember targetMember = clan.getMember(targetUuid);
+        if (targetMember == null) {
+            plugin.getMessageManager().send(sender, "clan.target-not-in-your-clan",
+                    MessageManager.of("player", resolvedName));
+            return;
+        }
+
+        if (clan.isLeader(targetUuid) || targetMember.isLeader()) {
+            sender.sendMessage(ColorUtils.colorize("&8[&6Clan-Admin&8] &cDer Clan-Leader kann nicht degradiert werden! Nutze /clanadmin setleader <clan> <spieler>."));
+            return;
+        }
+
+        List<ClanRank> sortedRanks = clan.getSortedRanks();
+        ClanRank currentRank = targetMember.getRank();
+        ClanRank prevRank = null;
+
+        for (int i = 1; i < sortedRanks.size(); i++) {
+            if (sortedRanks.get(i - 1).equals(currentRank)) {
+                prevRank = sortedRanks.get(i);
+                break;
+            }
+        }
+
+        if (prevRank == null) {
+            sender.sendMessage(ColorUtils.colorize("&8[&6Clan-Admin&8] &c" + resolvedName + " hat bereits den niedrigsten Rang (" + (currentRank != null ? currentRank.getName() : "Member") + ")!"));
+            return;
+        }
+
+        targetMember.setRank(prevRank);
+        plugin.getDatabaseManager().updateMember(targetMember);
+
+        sender.sendMessage(ColorUtils.colorize("&8[&6Clan-Admin&8] &a" + resolvedName + " im Clan &e" + clan.getName() + " &awurde auf den Rang &e" + prevRank.getName() + " &adegradiert."));
+
+        if (targetPlayer != null) {
+            plugin.getMessageManager().send(targetPlayer, "rank.rank-changed",
+                    MessageManager.of("rank", prevRank.getName()));
+        }
+    }
+
     private void sendHelp(CommandSender sender) {
         sender.sendMessage(de.Z7534.ztone.clansystem.utils.ColorUtils.colorize("&8&m----------&8[ &6Clan-Admin &8]&m----------"));
         sender.sendMessage(de.Z7534.ztone.clansystem.utils.ColorUtils.colorize("&e/clanadmin reload &8- &7Konfiguration neu laden"));
@@ -628,6 +776,8 @@ public class ClanAdminCommand implements CommandExecutor, TabCompleter {
         sender.sendMessage(de.Z7534.ztone.clansystem.utils.ColorUtils.colorize("&e/clanadmin bold <clan> <true|false> &8- &7Suffix fett schalten"));
         sender.sendMessage(de.Z7534.ztone.clansystem.utils.ColorUtils.colorize("&e/clanadmin home <clan> &8- &7Zum Home des Clans teleportieren"));
         sender.sendMessage(de.Z7534.ztone.clansystem.utils.ColorUtils.colorize("&e/clanadmin warp <clan> <list|warp> &8- &7Zu einem Clan-Warp teleportieren"));
+        sender.sendMessage(de.Z7534.ztone.clansystem.utils.ColorUtils.colorize("&e/clanadmin promote <spieler> [clan] &8- &7Spieler im Clan befördern"));
+        sender.sendMessage(de.Z7534.ztone.clansystem.utils.ColorUtils.colorize("&e/clanadmin demote <spieler> [clan] &8- &7Spieler im Clan degradieren"));
         sender.sendMessage(de.Z7534.ztone.clansystem.utils.ColorUtils.colorize("&8&m---------------------------------"));
     }
 
@@ -643,7 +793,7 @@ public class ClanAdminCommand implements CommandExecutor, TabCompleter {
             List<String> subCommands = Arrays.asList(
                     "reload", "delete", "setlevel", "setleader", "chest", "addpoints",
                     "info", "forcejoin", "forceleave", "list", "settings", "bold",
-                    "home", "warp", "help"
+                    "home", "warp", "promote", "demote", "help"
             );
             String input = args[0].toLowerCase();
             completions = subCommands.stream()
@@ -665,7 +815,7 @@ public class ClanAdminCommand implements CommandExecutor, TabCompleter {
                             .filter(s -> s.startsWith(input))
                             .collect(Collectors.toList());
                 }
-                case "forcejoin", "forceleave" -> {
+                case "forcejoin", "forceleave", "promote", "demote" -> {
 
                     completions = Arrays.stream(Bukkit.getOfflinePlayers())
                             .map(OfflinePlayer::getName)
@@ -696,7 +846,7 @@ public class ClanAdminCommand implements CommandExecutor, TabCompleter {
                                 .collect(Collectors.toList());
                     }
                 }
-                case "forcejoin" -> {
+                case "forcejoin", "promote", "demote" -> {
                     completions = plugin.getClanManager().getAllClans().stream()
                             .map(Clan::getName)
                             .filter(n -> n.toLowerCase().startsWith(input))

@@ -5,15 +5,11 @@ import de.Z7534.ztone.clansystem.models.Clan;
 import de.Z7534.ztone.clansystem.models.ClanRank;
 import de.Z7534.ztone.clansystem.models.Permission;
 import de.Z7534.ztone.clansystem.storage.StorageType;
+import de.Z7534.ztone.util.ConfigUtil;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
-import org.bukkit.configuration.file.YamlConfiguration;
 
 import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Pattern;
@@ -87,32 +83,21 @@ public class ConfigManager {
     }
 
     public void reload() {
-        // 1. Globale Konfiguration laden (plugins/Ztone/config.yml)
+        // 1. Globale Konfiguration laden und synchronisieren (plugins/Ztone/config.yml)
+        File rootConfigFile = new File(plugin.getDataFolder(), "config.yml");
+        this.globalConfig = ConfigUtil.loadAndSync(plugin, rootConfigFile, "config.yml");
         plugin.reloadConfig();
         this.globalConfig = plugin.getConfig();
         loadGlobalSettings();
 
-        // 2. Clan-spezifische Konfiguration laden (plugins/Ztone/clansystem/config.yml)
+        // 2. Clan-spezifische Konfiguration laden und synchronisieren (plugins/Ztone/clansystem/config.yml)
         File clanFolder = new File(plugin.getDataFolder(), "clansystem");
         File clanConfigFile = new File(clanFolder, "config.yml");
 
-        if (!clanConfigFile.exists()) {
-            if (globalConfig.contains("clan")) {
-                this.clanConfig = globalConfig;
-            } else {
-                plugin.saveResource("clansystem/config.yml", false);
-                this.clanConfig = YamlConfiguration.loadConfiguration(clanConfigFile);
-            }
+        if (!clanConfigFile.exists() && globalConfig.contains("clan")) {
+            this.clanConfig = globalConfig;
         } else {
-            this.clanConfig = YamlConfiguration.loadConfiguration(clanConfigFile);
-        }
-
-        try (InputStream defStream = plugin.getResource("clansystem/config.yml")) {
-            if (defStream != null) {
-                clanConfig.setDefaults(YamlConfiguration.loadConfiguration(
-                        new InputStreamReader(defStream, StandardCharsets.UTF_8)));
-            }
-        } catch (IOException ignored) {
+            this.clanConfig = ConfigUtil.loadAndSync(plugin, clanConfigFile, "clansystem/config.yml");
         }
 
         loadClanSettings();
@@ -156,47 +141,45 @@ public class ConfigManager {
 
         ConfigurationSection db = globalConfig.getConfigurationSection("database");
         if (db != null) {
-            storageType = parseStorageType(db.getString("type", "sqlite"));
-            dbFile = db.getString("file", db.getString("clans.file", "clans.db"));
-            dbTablePrefix = db.getString("table-prefix", db.getString("clans.table-prefix", "clan_"));
-
-            ConfigurationSection mariadb = db.getConfigurationSection("mariadb");
-            if (mariadb != null) {
-                mariaDbHost = mariadb.getString("host", "localhost");
-                mariaDbPort = mariadb.getInt("port", 3306);
-                mariaDbDatabase = mariadb.getString("database", "clansystem");
-                mariaDbUsername = mariadb.getString("username", "root");
-                mariaDbPassword = mariadb.getString("password", "");
-                mariaDbUseSsl = mariadb.getBoolean("use-ssl", false);
-                mariaDbPoolSize = mariadb.getInt("pool-size", 6);
+            String typeStr = db.getString("type", "SQLITE");
+            try {
+                this.storageType = StorageType.valueOf(typeStr.toUpperCase());
+            } catch (IllegalArgumentException e) {
+                this.storageType = StorageType.SQLITE;
             }
-        } else {
-            storageType = StorageType.SQLITE;
-            dbFile = "clans.db";
-            dbTablePrefix = "clan_";
-        }
-    }
 
-    private StorageType parseStorageType(String value) {
-        try {
-            return StorageType.valueOf(value.trim().toUpperCase(java.util.Locale.ROOT));
-        } catch (IllegalArgumentException | NullPointerException e) {
-            plugin.getLogger().warning("Unbekannter Datenbank-Typ '" + value + "' - falle zurück auf SQLITE.");
-            return StorageType.SQLITE;
+            this.dbFile = db.getString("sqlite.file", "ztone.db");
+            this.dbTablePrefix = db.getString("table-prefix", "ztone_");
+
+            this.mariaDbHost = db.getString("mariadb.host", "localhost");
+            this.mariaDbPort = db.getInt("mariadb.port", 3306);
+            this.mariaDbDatabase = db.getString("mariadb.database", "ztone");
+            this.mariaDbUsername = db.getString("mariadb.username", "root");
+            this.mariaDbPassword = db.getString("mariadb.password", "");
+            this.mariaDbUseSsl = db.getBoolean("mariadb.use-ssl", false);
+            this.mariaDbPoolSize = db.getInt("mariadb.pool-size", 10);
+        } else {
+            this.storageType = StorageType.SQLITE;
+            this.dbFile = "ztone.db";
+            this.dbTablePrefix = "ztone_";
+            this.mariaDbHost = "localhost";
+            this.mariaDbPort = 3306;
+            this.mariaDbDatabase = "ztone";
+            this.mariaDbUsername = "root";
+            this.mariaDbPassword = "";
+            this.mariaDbUseSsl = false;
+            this.mariaDbPoolSize = 10;
         }
     }
 
     private void loadClanSettings() {
         ConfigurationSection clan = clanConfig.getConfigurationSection("clan");
         if (clan != null) {
-            ConfigurationSection name = clan.getConfigurationSection("name");
-            if (name != null) {
-                clanNameMinLength = name.getInt("min-length", 3);
-                clanNameMaxLength = name.getInt("max-length", 16);
-                String patternStr = name.getString("allowed-characters", "^[a-zA-ZÄÜÖäüö0-9_]+$");
-                clanNamePattern = Pattern.compile(patternStr);
-            }
+            clanNameMinLength = clan.getInt("name-min-length", 3);
+            clanNameMaxLength = clan.getInt("name-max-length", 16);
+            clanNamePattern = Pattern.compile(clan.getString("name-pattern", "^[a-zA-Z0-9_]+$"));
             leaveCooldown = clan.getInt("leave-cooldown", 86400);
+
             String joinTypeStr = clan.getString("default-join-type", "INVITE");
             try {
                 defaultJoinType = Clan.JoinType.valueOf(joinTypeStr.toUpperCase());

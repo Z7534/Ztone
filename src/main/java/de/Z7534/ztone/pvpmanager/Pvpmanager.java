@@ -186,11 +186,11 @@ public class Pvpmanager {
         boolean personal = pvpToggleManager != null && pvpToggleManager.isPvpEnabled(player.getUniqueId());
         boolean exempt = player.hasPermission(Permissions.EXEMPT_DIMENSION);
 
+        // Wenn die Dimension forciert ist (--force), gilt der Dimensionsstatus zwingend fuer alle nicht-befreiten Spieler.
+        // Wenn die Dimension NICHT forciert ist, entscheidet der persoenliche Toggle (/pvp on / /pvp off) des Spielers!
         boolean effective = personal;
         if (dimensionForced && !exempt) {
             effective = dimensionDefaultEnabled;
-        } else if (!dimensionDefaultEnabled && !exempt) {
-            effective = false;
         }
 
         if (hookManager != null && hookManager.worldGuard() != null) {

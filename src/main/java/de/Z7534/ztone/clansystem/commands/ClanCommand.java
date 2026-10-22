@@ -689,8 +689,9 @@ public class ClanCommand implements CommandExecutor, TabCompleter {
 
 
         ClanMember kicker = clan.getMember(player.getUniqueId());
+        boolean isLeader = clan.isLeader(player.getUniqueId()) || (kicker != null && kicker.isLeader());
 
-        if (kicker == null || !kicker.hasPermission(Permission.KICK)) {
+        if (!isLeader && (kicker == null || !kicker.hasPermission(Permission.KICK))) {
 
             plugin.getMessageManager().send(player, "general.no-permission");
 
@@ -730,9 +731,15 @@ public class ClanCommand implements CommandExecutor, TabCompleter {
 
         }
 
+        if (clan.isLeader(targetUuid) || targetMember.isLeader()) {
 
+            player.sendMessage(de.Z7534.ztone.clansystem.utils.ColorUtils.colorize("&8[&6Clan&8] &cDer Clan-Leader kann nicht gekickt werden!"));
 
-        if (targetMember.getRank() != null && kicker.getRank() != null) {
+            return;
+
+        }
+
+        if (!isLeader && targetMember.getRank() != null && kicker.getRank() != null) {
 
             if (targetMember.getRank().isHigherOrEqual(kicker.getRank())) {
 
@@ -2416,7 +2423,9 @@ public class ClanCommand implements CommandExecutor, TabCompleter {
 
 
 
-                if (!member.hasPermission(Permission.PROMOTE) && !member.hasPermission(Permission.DEMOTE)) {
+                boolean isLeader = clan.isLeader(player.getUniqueId()) || (member != null && member.isLeader());
+
+                if (!isLeader && (!member.hasPermission(Permission.PROMOTE) && !member.hasPermission(Permission.DEMOTE))) {
 
                     plugin.getMessageManager().send(player, "general.no-permission");
 
@@ -2468,9 +2477,15 @@ public class ClanCommand implements CommandExecutor, TabCompleter {
 
                 }
 
+                if (clan.isLeader(targetMember.getUuid()) || targetMember.isLeader()) {
 
+                    player.sendMessage(de.Z7534.ztone.clansystem.utils.ColorUtils.colorize("&8[&6Clan&8] &cDer Rang des Clan-Leaders kann nicht geändert werden!"));
 
-                if (targetMember.getRank() != null && member.getRank() != null) {
+                    return;
+
+                }
+
+                if (!isLeader && targetMember.getRank() != null && member.getRank() != null) {
 
                     if (targetMember.getRank().isHigherOrEqual(member.getRank())) {
 
@@ -2481,8 +2496,6 @@ public class ClanCommand implements CommandExecutor, TabCompleter {
                     }
 
                 }
-
-
 
                 ClanRank newRank = clan.getRankByName(rankName);
 
@@ -2496,9 +2509,7 @@ public class ClanCommand implements CommandExecutor, TabCompleter {
 
                 }
 
-
-
-                if (member.getRank() != null && newRank.isHigherThan(member.getRank())) {
+                if (!isLeader && member.getRank() != null && newRank.isHigherThan(member.getRank())) {
 
                     plugin.getMessageManager().send(player, "rank.cannot-set-higher");
 
@@ -2753,8 +2764,9 @@ public class ClanCommand implements CommandExecutor, TabCompleter {
 
 
         ClanMember member = clan.getMember(player.getUniqueId());
+        boolean isLeader = clan.isLeader(player.getUniqueId()) || (member != null && member.isLeader());
 
-        if (member == null || !member.hasPermission(Permission.PROMOTE)) {
+        if (!isLeader && (member == null || !member.hasPermission(Permission.PROMOTE))) {
 
             plugin.getMessageManager().send(player, "general.no-permission");
 
@@ -2792,7 +2804,13 @@ public class ClanCommand implements CommandExecutor, TabCompleter {
 
         }
 
+        if (clan.isLeader(targetMember.getUuid()) || targetMember.isLeader()) {
 
+            player.sendMessage(de.Z7534.ztone.clansystem.utils.ColorUtils.colorize("&8[&6Clan&8] &cDer Clan-Leader hat bereits die höchste Stellung!"));
+
+            return;
+
+        }
 
         List<ClanRank> sortedRanks = clan.getSortedRanks();
 
@@ -2824,9 +2842,7 @@ public class ClanCommand implements CommandExecutor, TabCompleter {
 
         }
 
-
-
-        if (member.getRank() != null && nextRank.isHigherOrEqual(member.getRank())) {
+        if (!isLeader && member.getRank() != null && nextRank.isHigherOrEqual(member.getRank())) {
 
             plugin.getMessageManager().send(player, "rank.cannot-set-higher");
 
@@ -2845,6 +2861,12 @@ public class ClanCommand implements CommandExecutor, TabCompleter {
         plugin.getMessageManager().send(player, "rank.set",
 
                 MessageManager.of("player", targetMember.getName(), "rank", nextRank.getName()));
+
+        Player targetPlayer = targetMember.getPlayer();
+        if (targetPlayer != null) {
+            plugin.getMessageManager().send(targetPlayer, "rank.rank-changed",
+                    MessageManager.of("rank", nextRank.getName()));
+        }
 
     }
 
@@ -2877,8 +2899,9 @@ public class ClanCommand implements CommandExecutor, TabCompleter {
 
 
         ClanMember member = clan.getMember(player.getUniqueId());
+        boolean isLeader = clan.isLeader(player.getUniqueId()) || (member != null && member.isLeader());
 
-        if (member == null || !member.hasPermission(Permission.DEMOTE)) {
+        if (!isLeader && (member == null || !member.hasPermission(Permission.DEMOTE))) {
 
             plugin.getMessageManager().send(player, "general.no-permission");
 
@@ -2916,7 +2939,21 @@ public class ClanCommand implements CommandExecutor, TabCompleter {
 
         }
 
+        if (clan.isLeader(targetMember.getUuid()) || targetMember.isLeader()) {
 
+            player.sendMessage(de.Z7534.ztone.clansystem.utils.ColorUtils.colorize("&8[&6Clan&8] &cDer Clan-Leader kann nicht degradiert werden!"));
+
+            return;
+
+        }
+
+        if (!isLeader && targetMember.getRank() != null && member.getRank() != null && targetMember.getRank().isHigherOrEqual(member.getRank())) {
+
+            plugin.getMessageManager().send(player, "rank.cannot-change-higher");
+
+            return;
+
+        }
 
         List<ClanRank> sortedRanks = clan.getSortedRanks();
 
@@ -2959,6 +2996,12 @@ public class ClanCommand implements CommandExecutor, TabCompleter {
         plugin.getMessageManager().send(player, "rank.set",
 
                 MessageManager.of("player", targetMember.getName(), "rank", prevRank.getName()));
+
+        Player targetPlayer = targetMember.getPlayer();
+        if (targetPlayer != null) {
+            plugin.getMessageManager().send(targetPlayer, "rank.rank-changed",
+                    MessageManager.of("rank", prevRank.getName()));
+        }
 
     }
 

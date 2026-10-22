@@ -2,12 +2,14 @@ package de.Z7534.ztone.clansystem.managers;
 
 import de.Z7534.ztone.Ztone;
 import de.Z7534.ztone.clansystem.utils.ColorUtils;
+import de.Z7534.ztone.util.ConfigUtil;
 import de.Z7534.ztone.util.SmallCapsUtil;
 import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
+import org.bukkit.entity.Player;
 
 import java.io.File;
 import java.io.InputStream;
@@ -36,11 +38,9 @@ public class MessageManager {
             File legacyFile = new File(plugin.getDataFolder(), "messages.yml");
             if (legacyFile.exists()) {
                 messagesFile = legacyFile;
-            } else {
-                plugin.saveResource("clansystem/messages.yml", false);
             }
         }
-        messagesConfig = YamlConfiguration.loadConfiguration(messagesFile);
+        messagesConfig = ConfigUtil.loadAndSync(plugin, messagesFile, "clansystem/messages.yml");
 
         defaultMessages = null;
         InputStream bundled = plugin.getResource("clansystem/messages.yml");
@@ -80,34 +80,32 @@ public class MessageManager {
     }
 
     public String get(String path, Map<String, String> placeholders) {
-        String full = prefix + getRaw(path);
-        String smallCapsTemplate = SmallCapsUtil.toSmallCaps(full);
-        return applyPlaceholders(smallCapsTemplate, placeholders);
+        String message = applyPlaceholders(getRaw(path), placeholders);
+        String full = prefix + message;
+        return SmallCapsUtil.toSmallCaps(full);
+    }
+
+    public String applyPlaceholders(String text, Map<String, String> placeholders) {
+        if (text == null) return "";
+        if (placeholders == null || placeholders.isEmpty()) return text;
+        for (Map.Entry<String, String> entry : placeholders.entrySet()) {
+            String key = entry.getKey();
+            String val = entry.getValue() != null ? entry.getValue() : "";
+            if (text.contains("%" + key + "%")) {
+                text = text.replace("%" + key + "%", val);
+            }
+            if (text.contains("{" + key + "}")) {
+                text = text.replace("{" + key + "}", val);
+            }
+            if (!text.contains("%" + key + "%") && !text.contains("{" + key + "}") && text.contains(key)) {
+                text = text.replace(key, val);
+            }
+        }
+        return text;
     }
 
     public String getRawWithPlaceholders(String path, Map<String, String> placeholders) {
         return applyPlaceholders(getRaw(path), placeholders);
-    }
-
-    public String applyPlaceholders(String text, Map<String, String> placeholders) {
-        if (text == null || placeholders == null) {
-            return text != null ? text : "";
-        }
-        for (Map.Entry<String, String> entry : placeholders.entrySet()) {
-            String key = entry.getKey();
-            String val = entry.getValue() != null ? entry.getValue() : "";
-            if (val.isEmpty()) {
-                // Bereinige umschließende eckige Klammern, falls Platzhalter leer ist
-                text = text.replace("&7[%" + key + "%&7] ", "");
-                text = text.replace("&8[%" + key + "%&8] ", "");
-                text = text.replace("[%" + key + "%] ", "");
-                text = text.replace("&7[%" + key + "%&7]", "");
-                text = text.replace("&8[%" + key + "%&8]", "");
-                text = text.replace("[%" + key + "%]", "");
-            }
-            text = text.replace("%" + key + "%", val);
-        }
-        return text;
     }
 
     public Component getComponent(String path) {
@@ -119,137 +117,72 @@ public class MessageManager {
     }
 
     public void send(CommandSender sender, String path) {
-        sender.sendMessage(getComponent(path));
+        if (sender != null) {
+            sender.sendMessage(getComponent(path));
+        }
     }
 
     public void send(CommandSender sender, String path, Map<String, String> placeholders) {
-        sender.sendMessage(getComponent(path, placeholders));
+        if (sender != null) {
+            sender.sendMessage(getComponent(path, placeholders));
+        }
     }
 
     public void sendRaw(CommandSender sender, String path) {
-        sender.sendMessage(ColorUtils.colorize(getRaw(path)));
+        if (sender != null) {
+            sender.sendMessage(ColorUtils.colorize(SmallCapsUtil.toSmallCaps(getRaw(path))));
+        }
     }
 
     public void sendRaw(CommandSender sender, String path, Map<String, String> placeholders) {
-        sender.sendMessage(ColorUtils.colorize(getRawWithPlaceholders(path, placeholders)));
+        if (sender != null) {
+            sender.sendMessage(ColorUtils.colorize(SmallCapsUtil.toSmallCaps(getRawWithPlaceholders(path, placeholders))));
+        }
     }
 
     public void broadcast(String path) {
-        Component message = getComponent(path);
-        Bukkit.broadcast(message);
+        Bukkit.broadcast(getComponent(path));
     }
 
     public void broadcast(String path, Map<String, String> placeholders) {
-        Component message = getComponent(path, placeholders);
-        Bukkit.broadcast(message);
+        Bukkit.broadcast(getComponent(path, placeholders));
     }
 
-    public void broadcastExcept(String path, org.bukkit.entity.Player exclude, Map<String, String> placeholders) {
-        broadcastExcept(path, placeholders, exclude);
-    }
-
-    public void broadcastExcept(String path, Map<String, String> placeholders, org.bukkit.entity.Player... exclude) {
-        Component message = getComponent(path, placeholders);
-        java.util.Set<java.util.UUID> excludedIds = new java.util.HashSet<>();
-        if (exclude != null) {
-            for (org.bukkit.entity.Player p : exclude) {
-                if (p != null) {
-                    excludedIds.add(p.getUniqueId());
-                }
-            }
-        }
-        for (org.bukkit.entity.Player online : Bukkit.getOnlinePlayers()) {
-            if (excludedIds.contains(online.getUniqueId())) {
+    public void broadcastExcept(String path, Player exceptPlayer, Map<String, String> placeholders) {
+        Component comp = getComponent(path, placeholders);
+        for (Player online : Bukkit.getOnlinePlayers()) {
+            if (exceptPlayer != null && online.getUniqueId().equals(exceptPlayer.getUniqueId())) {
                 continue;
             }
-            online.sendMessage(message);
+            online.sendMessage(comp);
         }
-        Bukkit.getConsoleSender().sendMessage(message);
     }
 
-    public static Map<String, String> of(String key, String value) {
-        Map<String, String> map = new HashMap<>();
-        map.put(key, value);
-        return map;
+    public void broadcastExcept(String path, Player exceptPlayer) {
+        broadcastExcept(path, exceptPlayer, Map.of());
     }
 
-    public static Map<String, String> of(String k1, String v1, String k2, String v2) {
+    public static Map<String, String> of(String... pairs) {
         Map<String, String> map = new HashMap<>();
-        map.put(k1, v1);
-        map.put(k2, v2);
-        return map;
-    }
-
-    public static Map<String, String> of(String k1, String v1, String k2, String v2, String k3, String v3) {
-        Map<String, String> map = new HashMap<>();
-        map.put(k1, v1);
-        map.put(k2, v2);
-        map.put(k3, v3);
-        return map;
-    }
-
-    public static Map<String, String> of(String k1, String v1, String k2, String v2,
-                                         String k3, String v3, String k4, String v4) {
-        Map<String, String> map = new HashMap<>();
-        map.put(k1, v1);
-        map.put(k2, v2);
-        map.put(k3, v3);
-        map.put(k4, v4);
-        return map;
-    }
-
-    public static Map<String, String> of(String k1, String v1, String k2, String v2,
-                                         String k3, String v3, String k4, String v4,
-                                         String k5, String v5) {
-        Map<String, String> map = new HashMap<>();
-        map.put(k1, v1);
-        map.put(k2, v2);
-        map.put(k3, v3);
-        map.put(k4, v4);
-        map.put(k5, v5);
-        return map;
-    }
-
-    public static Map<String, String> of(String k1, String v1, String k2, String v2,
-                                         String k3, String v3, String k4, String v4,
-                                         String k5, String v5, String k6, String v6) {
-        Map<String, String> map = new HashMap<>();
-        map.put(k1, v1);
-        map.put(k2, v2);
-        map.put(k3, v3);
-        map.put(k4, v4);
-        map.put(k5, v5);
-        map.put(k6, v6);
+        if (pairs == null) return map;
+        for (int i = 0; i < pairs.length - 1; i += 2) {
+            map.put(pairs[i], pairs[i + 1]);
+        }
         return map;
     }
 
     public static String formatTime(long seconds) {
-        if (seconds < 60) {
-            return seconds + " Sekunden";
-        } else if (seconds < 3600) {
-            long minutes = seconds / 60;
-            long secs = seconds % 60;
-            return minutes + " Minuten" + (secs > 0 ? " " + secs + " Sekunden" : "");
-        } else if (seconds < 86400) {
-            long hours = seconds / 3600;
-            long minutes = (seconds % 3600) / 60;
-            return hours + " Stunden" + (minutes > 0 ? " " + minutes + " Minuten" : "");
-        } else {
-            long days = seconds / 86400;
-            long hours = (seconds % 86400) / 3600;
-            return days + " Tage" + (hours > 0 ? " " + hours + " Stunden" : "");
-        }
-    }
+        if (seconds <= 0) return "0s";
+        long days = seconds / 86400;
+        long hours = (seconds % 86400) / 3600;
+        long minutes = (seconds % 3600) / 60;
+        long secs = seconds % 60;
 
-    public static String formatTimeShort(long seconds) {
-        if (seconds < 60) {
-            return seconds + "s";
-        } else if (seconds < 3600) {
-            return (seconds / 60) + "m " + (seconds % 60) + "s";
-        } else if (seconds < 86400) {
-            return (seconds / 3600) + "h " + ((seconds % 3600) / 60) + "m";
-        } else {
-            return (seconds / 86400) + "d " + ((seconds % 86400) / 3600) + "h";
-        }
+        StringBuilder sb = new StringBuilder();
+        if (days > 0) sb.append(days).append("d ");
+        if (hours > 0) sb.append(hours).append("h ");
+        if (minutes > 0) sb.append(minutes).append("m ");
+        if (secs > 0 || sb.length() == 0) sb.append(secs).append("s");
+        return sb.toString().trim();
     }
 }

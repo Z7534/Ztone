@@ -1,6 +1,6 @@
 # 🛡️ Ztone – All-in-One Server-System
 
-Willkommen in der offiziellen Dokumentation für **Ztone** (Version 1.0.3).  
+Willkommen in der offiziellen Dokumentation für **Ztone** (Version 1.0.4).  
 Ztone ist eine hochgradig optimierte, modulare All-in-One-Lösung für Minecraft Paper-, Purpur- und Leaf-Server (kompatibel mit Java 21 & Java 25).
 
 ---
@@ -18,7 +18,7 @@ Ztone ist eine hochgradig optimierte, modulare All-in-One-Lösung für Minecraft
 10. [Stonemute (LiteBans VoiceChat-Sync)](#9-stonemute-litebans-voicechat-sync)
 11. [MapControl (Minimap- & Radar-Steuerung)](#10-mapcontrol-minimap--radar-steuerung)
 12. [Stonelog & Hauptverwaltung](#11-stonelog--hauptverwaltung)
-13. [Globale Konfiguration & Datenbank](#12-globale-konfiguration--datenbank)
+13. [Globale Konfiguration, Auto-Updater & Datenbank](#12-globale-konfiguration-auto-updater--datenbank)
 14. [PlaceholderAPI Gesamtübersicht](#13-placeholderapi-gesamtübersicht)
 15. [Kompilierung & Entwicklung](#14-kompilierung--entwicklung)
 
@@ -27,8 +27,8 @@ Ztone ist eine hochgradig optimierte, modulare All-in-One-Lösung für Minecraft
 ## 🧩 Übersicht & Module
 
 Ztone bündelt alle wichtigen Core-Features für moderne Survival- und SMP-Netzwerke in einem einzigen Plugin:
-* **Clansystem:** Eigene Clans, Ränge mit detaillierten Rechten, Clankasse mit Zinsen/Schulden, Clan-Homes, Clan-Warps, Clankriege und Allianzen.
-* **Claims:** Chunk-basiertes Claiming mit interaktiver Karten-GUI, granularen Schutzflags, Subclaims, Trusted- und Ban-System sowie Combat-Sperre.
+* **Clansystem:** Eigene Clans, Ränge mit detaillierten Rechten, Clankasse mit Zinsen/Schulden, Clan-Homes, Clan-Warps, Clankriege und Allianzen. Volle Leader-Rechte über alle Clan-Ränge (inkl. Co-Owner-Beförderung).
+* **Claims:** Chunk-basiertes Claiming mit interaktiver Karten-GUI, granularen Schutzflags, Subclaims, Trusted- und Ban-System sowie Anti-Combat-Fluchtsperre.
 * **PvPManager:** Umfassender Combat-Tag, Spawn-/Respawn-Schutz, Anti-CombatLog, Anti-Kill-Abuse und strenge PvP-Hierarchie (Wildnis: Dimensions- & Spielerstatus; Claims: standardmäßig deaktiviert, außer bei Clankrieg oder Admin-Override).
 * **StoneAttack:** Holographische Leaderboards mit transparentem Display-Design, dynamisches PlayerLimit und TPS/MSPT-Serverüberwachung.
 * **DeathChest:** Sichere Todeskisten mit Despawn-Timer, Dupe-Schutz und Hologrammen.
@@ -36,6 +36,7 @@ Ztone bündelt alle wichtigen Core-Features für moderne Survival- und SMP-Netzw
 * **PlayRewards:** Tägliche Belohnungen, Playtime-Tracking und Streak-System mit Schutzpunkten.
 * **StoneVoice & Stonemute:** SimpleVoiceChat-Gruppenüberwachung für Admins sowie automatischer Mute-Sync über LiteBans.
 * **MapControl:** Erzwingen von Fairplay-Regeln für Client-Minimaps (Xaero, JourneyMap, VoxelMap).
+* **Auto-Config-Sync:** Automatisches Ergänzen neuer Funktionen und Konfigurationsoptionen bei Versionsupdates direkt in bestehende `.yml`-Dateien.
 
 ---
 
@@ -82,6 +83,9 @@ Ztone bündelt alle wichtigen Core-Features für moderne Survival- und SMP-Netzw
 | `/clan demote <Spieler>` | Degradiert ein Clan-Mitglied im Rang | Leader / Ränge |
 | `/clan transfer <Spieler>` | Übergibt die Clan-Leitung an ein anderes Mitglied | Leader |
 
+> [!TIP]
+> **Volle Leader-Befugnisse:** Der Clan-Owner/Leader ist von jeglichen Rang-Prioritätsbeschränkungen befreit. Er kann Mitglieder uneingeschränkt bis zum höchsten Rang (z. B. Co-Owner) befördern, degradieren oder kicken.
+
 ---
 
 ### 🔹 Clan-Admin-Befehle (`/clanadmin`)
@@ -89,6 +93,8 @@ Ztone bündelt alle wichtigen Core-Features für moderne Survival- und SMP-Netzw
 
 | Befehl | Beschreibung | Berechtigung |
 | :--- | :--- | :--- |
+| `/clanadmin promote <Spieler> [Clan]` | Befördert einen Spieler administrativ im Rang | `clansystem.admin.promote` |
+| `/clanadmin demote <Spieler> [Clan]` | Degradiert einen Spieler administrativ im Rang | `clansystem.admin.demote` |
 | `/clanadmin reload` | Lädt alle Clan-Konfigurationsdateien neu | `clansystem.admin.reload` |
 | `/clanadmin delete <Clan>` | Löscht einen Clan unwiderruflich | `clansystem.admin.delete` |
 | `/clanadmin setlevel <Clan> <Level>` | Setzt das Level eines Clans manuell | `clansystem.admin.setlevel` |
@@ -130,6 +136,8 @@ Ztone bündelt alle wichtigen Core-Features für moderne Survival- und SMP-Netzw
 | `clansystem.bypass.cooldown` | Umgeht alle Teleport-Cooldowns | `op` |
 | `clansystem.bypass.warmup` | Umgeht alle Teleport-Warmups | `op` |
 | `clansystem.admin` | Voller Admin-Zugriff auf das Clan-System | `op` |
+| `clansystem.admin.promote` | Erlaubt `/clanadmin promote` | `op` |
+| `clansystem.admin.demote` | Erlaubt `/clanadmin demote` | `op` |
 
 ---
 
@@ -180,14 +188,14 @@ Jeder Claim-Besitzer kann pro Spieler oder global folgende Rechte vergeben:
 
 ---
 
-### 🔹 Combat-Sperre für Claims (Anti-Flucht)
+### 🔹 Combat-Sperre für Claims (Anti-Combat-Flucht)
 > [!IMPORTANT]
 > **Claim-Eintrittsverbot im Kampf:**  
 > Spieler mit aktivem Combat-Tag können fremde oder geschützte Claims **nicht betreten**.  
 > Jeder Versuch (Laufen, Springen, Teleportation, Enderperlen, Reittiere) wird mit einer Rollback-Aktion abgewehrt und Reittiere werden abgeworfen (Verhalten analog zum Claim-Bann).  
 > **Ausnahmen:**  
 > 1. Claims, auf denen Admins PvP per `/claimspvpoverride` freigeschaltet haben.  
-> 2. Admins mit aktivem Bypass (`claims.admin.bypass`).
+> 2. Admins mit aktivem Bypass (`claims.admin.bypass` oder `/pvpoverride`).
 
 ---
 
@@ -199,7 +207,7 @@ Jeder Claim-Besitzer kann pro Spieler oder global folgende Rechte vergeben:
 | `claims.pay` | Claim-Slots per `/claim pay` übertragen | `true` |
 | `claims.transfer` | Claims im GUI an andere Spieler verschenken | `true` |
 | `claims.admin` | Übergeordnete Admin-Berechtigung für `/staffclaim` | `op` |
-| `claims.admin.bypass` | Schaltet den Bypass für Baurechte und Banns frei | `op` |
+| `claims.admin.bypass` | Schaltet den Bypass für Baurechte, Banns und Combat-Sperren frei | `op` |
 | `claims.admin.bypass.join` | Aktiviert den Admin-Bypass automatisch beim Login | `op` |
 | `claims.admin.bypass.other` | Erlaubt `/staffclaim bypass <on\|off> <spieler>` | `op` |
 | `claims.admin.pvpbypass` | Erlaubt `/claimspvpoverride` bzw. `/pvpclaimbypass` | `op` |
@@ -232,13 +240,13 @@ Jeder Claim-Besitzer kann pro Spieler oder global folgende Rechte vergeben:
 > [!IMPORTANT]
 > **Hierarchie der Kampfbeschränkungen:**
 > 1. **Unclaimed Terrain (Wildnis):**  
->    * PvP richtet sich nach der Dimension (`/pvpdimensiontoggle`). Ist PvP in der Welt aus, kann niemand kämpfen (sofern nicht `--force` aktiv ist).  
->    * Ist PvP in der Dimension an, entscheidet der persönliche Spielerstatus (`/pvp on/off`). Beide Spieler müssen PvP aktiviert haben, um sich zu duellieren.  
+>    * In nicht-forcierten Welten entscheidet der persönliche Spielerstatus (`/pvp on/off`). Haben beide Spieler `/pvp on`, können sie kämpfen.  
+>    * Bei forcierten Dimensionen (`--force`) greift der globale Dimensions-Status zwingend für alle Spieler ohne Ausnahmerechte.  
 > 2. **Claims:**  
 >    * PvP ist auf Claims standardmäßig **vollständig deaktiviert**, unabhängig vom `/pvp`-Status der Spieler.  
->    * Ausnahme A: Ein Admin hat mit `/claimspvpoverride` PvP auf diesem Claim aktiviert. In diesem Fall verhält sich der Claim exakt wie unbeanspruchtes Gelände (Dimension + Spieler-PvP-Status).  
->    * Ausnahme B: Die Kontrahenten befinden sich in einem aktiven **Clankrieg** (`/clan war`) mit `WAR_ALWAYS_PVP`.  
->    * Ausnahme C: Ein Admin besitzt `/pvpoverride` oder den individuellen Claim-PvP-Bypass.  
+>    * Ausnahme A: Ein Admin hat mit `/claimspvpoverride` PvP auf diesem Claim aktiviert (verhält sich dann wie Wildnis).  
+>    * Ausnahme B: Die Kontrahenten befinden sich in einem aktiven **Clankrieg** (`/clan war`).  
+>    * Ausnahme C: Ein Admin besitzt `/pvpoverride` oder den individuellen Admin-Bypass.  
 > 3. **Selbstinteraktion & Movement:**  
 >    * Wind Charges und Enderperlen auf sich selbst (z. B. Boost-Sprünge) triggern niemals irrtümlich eine PvP-Schadensverweigerung.
 
@@ -425,9 +433,17 @@ Sendet standardisierte Plugin-Nachrichten an VoxelMap, Xaero's Minimap und Journ
 
 ---
 
-## 12. Globale Konfiguration & Datenbank
+## 12. Globale Konfiguration, Auto-Updater & Datenbank
 
-In der zentralen Konfigurationsdatei `plugins/Ztone/config.yml` können alle Submodule einzeln de-/aktiviert werden:
+### 🔄 Automatischer Konfigurations-Updater (Auto-Sync)
+Ztone verfügt über ein integriertes **Auto-Sync-System** (`ConfigUtil`):
+* Beim Starten oder Neuladen des Plugins gleicht Ztone alle physischen `.yml`-Dateien auf der Festplatte mit den neuesten Standarddateien aus der JAR ab.
+* **Kein Verlust bestehender Werte:** Bereits vorhandene Benutzereinstellungen, geänderte Texte oder Zahlen werden niemals überschrieben.
+* **Automatische Ergänzung:** Neu hinzugekommene Optionen, Untersektionen und Standard-Kommentare werden automatisch in die Datei auf der Festplatte eingefügt.
+* **Gilt für alle Configs:** Hauptkonfiguration (`config.yml`), Clan-System (`clansystem/`), PvPManager (`pvpmanager/`), Claims (`claims/`), DeathChest (`deathchest/`), ClearLag (`clearlag/`), StoneAttack (`stoneattack/`), StoneLog (`stonelog/`), StoneMute (`stonemute/`), MapControl (`mapcontrol/`) und PlayRewards (`playrewards/`).
+
+### ⚙️ Modul-Aktivierung (`plugins/Ztone/config.yml`)
+In der zentralen Konfigurationsdatei können alle Submodule einzeln de-/aktiviert werden:
 
 ```yaml
 modules:
@@ -445,8 +461,8 @@ modules:
 
 database:
   type: "sqlite" # oder "mariadb"
-  file: "clans.db"
-  table-prefix: "clan_"
+  file: "ztone.db"
+  table-prefix: "ztone_"
 ```
 
 ---
@@ -563,4 +579,4 @@ Alle Platzhalter erfordern das installierte Plugin **PlaceholderAPI**.
 # Projekt mit Gradle bauen:
 gradlew build shadowJar
 ```
-Das fertige Artefakt befindet sich unter `build/libs/Ztone-1.0.3.jar`.
+Das fertige Artefakt befindet sich unter `build/libs/Ztone-1.0.4.jar`.

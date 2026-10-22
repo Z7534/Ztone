@@ -7,10 +7,10 @@ import de.Z7534.ztone.stonemute.hook.LuckPermsHook;
 import de.Z7534.ztone.stonemute.hook.VoiceChatHook;
 import de.Z7534.ztone.stonemute.listener.PlayerConnectionListener;
 import de.Z7534.ztone.stonemute.mute.MuteService;
+import de.Z7534.ztone.util.ConfigUtil;
 import de.maxhenkel.voicechat.api.BukkitVoicechatService;
 import org.bukkit.Server;
 import org.bukkit.configuration.file.FileConfiguration;
-import org.bukkit.configuration.file.YamlConfiguration;
 
 import java.io.File;
 import java.io.InputStream;
@@ -97,14 +97,11 @@ public final class Stonemute {
 
     public void reloadConfig() {
         File configFile = new File(getDataFolder(), "config.yml");
-        config = YamlConfiguration.loadConfiguration(configFile);
+        config = ConfigUtil.loadAndSync(plugin, configFile, "stonemute/config.yml");
     }
 
     public void saveDefaultConfig() {
-        File configFile = new File(getDataFolder(), "config.yml");
-        if (!configFile.exists()) {
-            saveResource("config.yml", false);
-        }
+        reloadConfig();
     }
 
     public File getDataFolder() {

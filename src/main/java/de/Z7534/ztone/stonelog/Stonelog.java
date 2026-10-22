@@ -8,15 +8,12 @@ import de.Z7534.ztone.stonelog.listener.ChatListener;
 import de.Z7534.ztone.stonelog.listener.CommandListener;
 import de.Z7534.ztone.stonelog.listener.DeathListener;
 import de.Z7534.ztone.stonelog.listener.JoinLeaveListener;
+import de.Z7534.ztone.util.ConfigUtil;
 import org.bukkit.Server;
 import org.bukkit.command.PluginCommand;
 import org.bukkit.configuration.file.FileConfiguration;
-import org.bukkit.configuration.file.YamlConfiguration;
 
 import java.io.File;
-import java.io.InputStream;
-import java.nio.file.Files;
-import java.nio.file.StandardCopyOption;
 import java.util.logging.Logger;
 
 public class Stonelog {
@@ -35,7 +32,7 @@ public class Stonelog {
     public void onEnable() {
         instance = this;
 
-        saveDefaultConfig();
+        reloadConfig();
         this.configManager = new ConfigManager(this);
         this.webhookSender = new DiscordWebhookSender(this);
 
@@ -79,24 +76,11 @@ public class Stonelog {
 
     public void reloadConfig() {
         File file = new File(getDataFolder(), "config.yml");
-        if (!file.exists()) {
-            saveDefaultConfig();
-        }
-        this.config = YamlConfiguration.loadConfiguration(file);
+        this.config = ConfigUtil.loadAndSync(plugin, file, "stonelog/config.yml");
     }
 
     public void saveDefaultConfig() {
-        File out = new File(getDataFolder(), "config.yml");
-        if (!out.exists()) {
-            out.getParentFile().mkdirs();
-            try (InputStream in = plugin.getResource("stonelog/config.yml")) {
-                if (in != null) {
-                    Files.copy(in, out.toPath(), StandardCopyOption.REPLACE_EXISTING);
-                }
-            } catch (Exception e) {
-                getLogger().warning("Konnte stonelog/config.yml nicht speichern: " + e.getMessage());
-            }
-        }
+        reloadConfig();
     }
 
     public Ztone getPlugin() {

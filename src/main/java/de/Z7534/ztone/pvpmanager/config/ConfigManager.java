@@ -1,14 +1,10 @@
 package de.Z7534.ztone.pvpmanager.config;
 
 import de.Z7534.ztone.pvpmanager.Pvpmanager;
+import de.Z7534.ztone.util.ConfigUtil;
 import org.bukkit.configuration.file.FileConfiguration;
-import org.bukkit.configuration.file.YamlConfiguration;
 
 import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.nio.charset.StandardCharsets;
 
 public class ConfigManager {
 
@@ -33,54 +29,18 @@ public class ConfigManager {
                 this.configFile = legacyInFolder;
             } else if (legacyRoot.exists()) {
                 this.configFile = legacyRoot;
-            } else {
-                plugin.saveResource("pvpmanager/config.yml", false);
             }
         }
-        this.config = YamlConfiguration.loadConfiguration(configFile);
-
-        InputStream defaultStream = plugin.getResource("pvpmanager/config.yml");
-        if (defaultStream == null) {
-            defaultStream = plugin.getResource("pvpmanager.yml");
-        }
-        if (defaultStream != null) {
-            try {
-                config.setDefaults(YamlConfiguration.loadConfiguration(
-                        new InputStreamReader(defaultStream, StandardCharsets.UTF_8)));
-            } finally {
-                try {
-                    defaultStream.close();
-                } catch (IOException ignored) {
-                }
-            }
-        }
+        this.config = ConfigUtil.loadAndSync(plugin.getPlugin(), configFile, "pvpmanager/config.yml");
 
         this.hooksFile = new File(pvpFolder, "plugin-hooks.yml");
         if (!hooksFile.exists()) {
             File legacyHooks = new File(plugin.getDataFolder(), "plugin-hooks.yml");
             if (legacyHooks.exists()) {
                 this.hooksFile = legacyHooks;
-            } else {
-                plugin.saveResource("pvpmanager/plugin-hooks.yml", false);
             }
         }
-        this.hooks = YamlConfiguration.loadConfiguration(hooksFile);
-
-        InputStream defaultHooksStream = plugin.getResource("pvpmanager/plugin-hooks.yml");
-        if (defaultHooksStream == null) {
-            defaultHooksStream = plugin.getResource("plugin-hooks.yml");
-        }
-        if (defaultHooksStream != null) {
-            try {
-                hooks.setDefaults(YamlConfiguration.loadConfiguration(
-                        new InputStreamReader(defaultHooksStream, StandardCharsets.UTF_8)));
-            } finally {
-                try {
-                    defaultHooksStream.close();
-                } catch (IOException ignored) {
-                }
-            }
-        }
+        this.hooks = ConfigUtil.loadAndSync(plugin.getPlugin(), hooksFile, "pvpmanager/plugin-hooks.yml");
     }
 
     public void reload() {

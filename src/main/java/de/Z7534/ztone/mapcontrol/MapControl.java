@@ -8,19 +8,14 @@ import de.Z7534.ztone.mapcontrol.handlers.VoxelMapHandler;
 import de.Z7534.ztone.mapcontrol.handlers.WorldInfoHandler;
 import de.Z7534.ztone.mapcontrol.handlers.XaeroHandler;
 import de.Z7534.ztone.mapcontrol.listeners.PlayerListener;
+import de.Z7534.ztone.util.ConfigUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.Server;
 import org.bukkit.command.PluginCommand;
 import org.bukkit.configuration.file.FileConfiguration;
-import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 
 import java.io.File;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.StandardCopyOption;
 import java.util.logging.Logger;
 
 public final class MapControl {
@@ -106,32 +101,12 @@ public final class MapControl {
     }
 
     public void saveDefaultConfig() {
-        File configFile = new File(getDataFolder(), "config.yml");
-        if (!configFile.exists()) {
-            getDataFolder().mkdirs();
-            try (InputStream in = plugin.getResource("mapcontrol/config.yml")) {
-                if (in != null) {
-                    Files.copy(in, configFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
-                }
-            } catch (Exception e) {
-                getLogger().warning("Konnte mapcontrol/config.yml nicht erstellen: " + e.getMessage());
-            }
-        }
+        reloadConfig();
     }
 
     public void reloadConfig() {
         File configFile = new File(getDataFolder(), "config.yml");
-        if (!configFile.exists()) {
-            saveDefaultConfig();
-        }
-        this.config = YamlConfiguration.loadConfiguration(configFile);
-        try (InputStream defStream = plugin.getResource("mapcontrol/config.yml")) {
-            if (defStream != null) {
-                config.setDefaults(YamlConfiguration.loadConfiguration(
-                        new InputStreamReader(defStream, StandardCharsets.UTF_8)));
-            }
-        } catch (Exception ignored) {
-        }
+        this.config = ConfigUtil.loadAndSync(plugin, configFile, "mapcontrol/config.yml");
     }
 
     public FileConfiguration getConfig() {

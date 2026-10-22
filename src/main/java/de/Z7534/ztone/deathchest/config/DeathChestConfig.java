@@ -2,14 +2,11 @@ package de.Z7534.ztone.deathchest.config;
 
 import de.Z7534.ztone.Ztone;
 import de.Z7534.ztone.claims.util.Text;
+import de.Z7534.ztone.util.ConfigUtil;
 import net.kyori.adventure.text.Component;
 import org.bukkit.configuration.file.FileConfiguration;
-import org.bukkit.configuration.file.YamlConfiguration;
 
 import java.io.File;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.nio.charset.StandardCharsets;
 import java.util.Map;
 
 public class DeathChestConfig {
@@ -40,18 +37,7 @@ public class DeathChestConfig {
     }
 
     public void load() {
-        if (!configFile.exists()) {
-            plugin.saveResource("deathchest/config.yml", false);
-        }
-        this.config = YamlConfiguration.loadConfiguration(configFile);
-
-        try (InputStream defStream = plugin.getResource("deathchest/config.yml")) {
-            if (defStream != null) {
-                this.config.setDefaults(YamlConfiguration.loadConfiguration(
-                        new InputStreamReader(defStream, StandardCharsets.UTF_8)));
-            }
-        } catch (Exception ignored) {
-        }
+        this.config = ConfigUtil.loadAndSync(plugin, configFile, "deathchest/config.yml");
 
         this.killerLockSeconds = config.getInt("killer-lock-seconds", 30);
         this.totalDespawnSeconds = config.getInt("total-despawn-seconds", 300);

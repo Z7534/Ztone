@@ -2,14 +2,11 @@ package de.Z7534.ztone.clansystem.managers;
 
 import de.Z7534.ztone.Ztone;
 import de.Z7534.ztone.clansystem.models.Clan;
+import de.Z7534.ztone.util.ConfigUtil;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
-import org.bukkit.configuration.file.YamlConfiguration;
 
 import java.io.File;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -37,27 +34,9 @@ public class LevelManager {
             File legacyFile = new File(plugin.getDataFolder(), "level.yml");
             if (legacyFile.exists()) {
                 levelFile = legacyFile;
-            } else {
-                plugin.saveResource("clansystem/level.yml", false);
             }
         }
-        levelConfig = YamlConfiguration.loadConfiguration(levelFile);
-
-        InputStream bundled = plugin.getResource("clansystem/level.yml");
-        if (bundled == null) {
-            bundled = plugin.getResource("level.yml");
-        }
-        if (bundled != null) {
-            try {
-                levelConfig.setDefaults(YamlConfiguration.loadConfiguration(
-                        new InputStreamReader(bundled, StandardCharsets.UTF_8)));
-            } finally {
-                try {
-                    bundled.close();
-                } catch (Exception ignored) {
-                }
-            }
-        }
+        levelConfig = ConfigUtil.loadAndSync(plugin, levelFile, "clansystem/level.yml");
 
         loadLevels();
     }
@@ -180,7 +159,6 @@ public class LevelManager {
     }
 
     public int getMaxHomes(int level) {
-
         return 1;
     }
 
@@ -219,8 +197,6 @@ public class LevelManager {
             int newChestSize = getChestSize(nextLevel);
             if (clan.getChestSize() < newChestSize) {
                 clan.resizeChest(newChestSize);
-                // Offene Truhe schließen, damit sie beim erneuten Öffnen mit der neuen Größe aufgebaut wird.
-                // Clan chest closed
             }
 
             return true;

@@ -25,27 +25,28 @@ public class ClanMemberActionsGUI extends AbstractGUI {
     public void setup() {
         fillFancyBorder();
 
-        boolean isLeader = clan.isLeader(target.getUuid());
+        boolean targetIsLeader = clan.isLeader(target.getUuid()) || target.isLeader();
         String rankName = target.getDisplayRankName();
 
         java.util.List<String> infoLore = new java.util.ArrayList<>();
         infoLore.add("&7Rang: &e" + rankName);
         infoLore.add("&7Status: " + (target.isOnline() ? "&a● Online" : "&c● Offline"));
-        if (isLeader) {
+        if (targetIsLeader) {
             infoLore.add("");
             infoLore.add("&6★ Clan-Leader");
         }
 
         setItem(4, new ItemBuilder(Material.PLAYER_HEAD)
                 .skullOwner(target.getUuid())
-                .name((target.isOnline() ? "&a" : "&7") + (isLeader ? "&l★ " : "") + target.getName())
+                .name((target.isOnline() ? "&a" : "&7") + (targetIsLeader ? "&l★ " : "") + target.getName())
                 .lore(infoLore)
-                .glow(isLeader)
+                .glow(targetIsLeader)
                 .build());
 
         boolean self = target.getUuid().equals(player.getUniqueId());
+        boolean viewerIsLeader = clan.isLeader(player.getUniqueId()) || (viewer != null && viewer.isLeader());
 
-        if (!self && viewer != null && viewer.hasPermission(Permission.PROMOTE)) {
+        if (!self && !targetIsLeader && (viewerIsLeader || (viewer != null && viewer.hasPermission(Permission.PROMOTE)))) {
             setItem(11, new ItemBuilder(Material.LIME_DYE)
                     .name("&a&l⇧ Befördern")
                     .lore("&a▶ &7Klicke zum Befördern")
@@ -55,7 +56,7 @@ public class ClanMemberActionsGUI extends AbstractGUI {
             });
         }
 
-        if (!self && viewer != null && viewer.hasPermission(Permission.DEMOTE)) {
+        if (!self && !targetIsLeader && (viewerIsLeader || (viewer != null && viewer.hasPermission(Permission.DEMOTE)))) {
             setItem(13, new ItemBuilder(Material.YELLOW_DYE)
                     .name("&e&l⇩ Degradieren")
                     .lore("&a▶ &7Klicke zum Degradieren")
@@ -65,7 +66,7 @@ public class ClanMemberActionsGUI extends AbstractGUI {
             });
         }
 
-        if (!self && !isLeader && viewer != null && viewer.hasPermission(Permission.KICK)) {
+        if (!self && !targetIsLeader && (viewerIsLeader || (viewer != null && viewer.hasPermission(Permission.KICK)))) {
             setItem(15, new ItemBuilder(Material.BARRIER)
                     .name("&c&l✘ Kicken")
                     .lore("&a▶ &7Klicke zum Kicken")
@@ -79,7 +80,7 @@ public class ClanMemberActionsGUI extends AbstractGUI {
             ).open());
         }
 
-        if (!self && clan.isLeader(player.getUniqueId())) {
+        if (!self && viewerIsLeader) {
             setItem(22, new ItemBuilder(Material.NETHER_STAR)
                     .name("&6&l★ Eigentümer übertragen")
                     .lore(

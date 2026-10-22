@@ -14,19 +14,17 @@ import de.Z7534.ztone.playrewards.listener.PlayerConnectionListener;
 import de.Z7534.ztone.playrewards.service.PlaytimeService;
 import de.Z7534.ztone.playrewards.service.RewardClaimService;
 import de.Z7534.ztone.playrewards.service.StreakService;
+import de.Z7534.ztone.util.ConfigUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.Server;
 import org.bukkit.command.PluginCommand;
 import org.bukkit.configuration.file.FileConfiguration;
-import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.plugin.PluginDescriptionFile;
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.scheduler.BukkitTask;
 
 import java.io.File;
 import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
@@ -140,7 +138,7 @@ public final class PlayReward {
     }
 
     public void saveDefaultConfig() {
-        saveResource("config.yml", false);
+        reloadConfig();
     }
 
     public void saveResource(String resourcePath, boolean replace) {
@@ -165,17 +163,7 @@ public final class PlayReward {
 
     public void reloadConfig() {
         File configFile = new File(getDataFolder(), "config.yml");
-        if (!configFile.exists()) {
-            saveDefaultConfig();
-        }
-        this.config = YamlConfiguration.loadConfiguration(configFile);
-        try (InputStream defStream = plugin.getResource("playrewards/config.yml")) {
-            if (defStream != null) {
-                config.setDefaults(YamlConfiguration.loadConfiguration(
-                        new InputStreamReader(defStream, StandardCharsets.UTF_8)));
-            }
-        } catch (Exception ignored) {
-        }
+        this.config = ConfigUtil.loadAndSync(plugin, configFile, "playrewards/config.yml");
     }
 
     public FileConfiguration getConfig() {
