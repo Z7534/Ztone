@@ -45,12 +45,6 @@ public class OverrideManager {
         dimensionDefaultEnabled.put(key, enabled);
         dimensionForced.put(key, forced);
         saveDimensionSetting(key, enabled, forced);
-
-        for (org.bukkit.entity.Player online : Bukkit.getOnlinePlayers()) {
-            if (key.equals(getDimensionKey(online.getWorld()))) {
-                plugin.getPvpToggleManager().applyDimensionDefault(online, enabled);
-            }
-        }
         updateWorldMetadata();
     }
 
@@ -77,10 +71,6 @@ public class OverrideManager {
             dimensionDefaultEnabled.put(key, enabled);
             dimensionForced.put(key, forced);
             saveDimensionSetting(key, enabled, forced);
-        }
-
-        for (org.bukkit.entity.Player online : Bukkit.getOnlinePlayers()) {
-            plugin.getPvpToggleManager().applyDimensionDefault(online, enabled);
         }
         updateWorldMetadata();
     }
@@ -127,9 +117,9 @@ public class OverrideManager {
 
     private boolean getDefaultPvPFallback() {
         if (plugin.getConfigManager() != null && plugin.getConfigManager().config() != null) {
-            return plugin.getConfigManager().config().getBoolean("PvP Toggle.Default PvP", true);
+            return plugin.getConfigManager().config().getBoolean("PvP Toggle.Default PvP", false);
         }
-        return true;
+        return false;
     }
 
     public boolean isDimensionForced(String dimension) {

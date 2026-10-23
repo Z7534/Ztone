@@ -1,5 +1,5 @@
 name: Ztone
-version: '1.0.4'
+version: '1.0.5'
 main: de.Z7534.ztone.Ztone
 api-version: '26.2'
 authors: [Z7534]

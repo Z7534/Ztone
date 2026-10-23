@@ -287,22 +287,9 @@ public class DatabaseManager {
                             ")"
             );
 
-            stmt.executeUpdate(
-                    "CREATE TABLE IF NOT EXISTS " + tablePrefix + "pvpmanager_players (" +
-                            "uuid VARCHAR(36) PRIMARY KEY," +
-                            "pvp_enabled " + (dialect.type() == StorageType.MARIADB ? "BOOLEAN NOT NULL" : "INTEGER NOT NULL") + "," +
-                            "teleport_override " + (dialect.type() == StorageType.MARIADB ? "BOOLEAN NOT NULL DEFAULT 0" : "INTEGER NOT NULL DEFAULT 0") +
-                            ")"
-            );
-
+            stmt.executeUpdate("DROP TABLE IF EXISTS " + tablePrefix + "pvpmanager_players");
             if (!tablePrefix.isEmpty()) {
-                stmt.executeUpdate(
-                        "CREATE TABLE IF NOT EXISTS pvpmanager_players (" +
-                                "uuid VARCHAR(36) PRIMARY KEY," +
-                                "pvp_enabled " + (dialect.type() == StorageType.MARIADB ? "BOOLEAN NOT NULL" : "INTEGER NOT NULL") + "," +
-                                "teleport_override " + (dialect.type() == StorageType.MARIADB ? "BOOLEAN NOT NULL DEFAULT 0" : "INTEGER NOT NULL DEFAULT 0") +
-                                ")"
-                );
+                stmt.executeUpdate("DROP TABLE IF EXISTS pvpmanager_players");
             }
 
             ensureColumn(conn, tablePrefix + "clans", "icon", "VARCHAR(64) DEFAULT 'SHIELD'");

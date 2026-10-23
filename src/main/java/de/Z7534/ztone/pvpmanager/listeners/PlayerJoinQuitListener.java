@@ -2,7 +2,6 @@ package de.Z7534.ztone.pvpmanager.listeners;
 
 import de.Z7534.ztone.pvpmanager.Pvpmanager;
 import de.Z7534.ztone.pvpmanager.permissions.Permissions;
-import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -23,12 +22,12 @@ public class PlayerJoinQuitListener implements Listener {
     @EventHandler
     public void onJoin(PlayerJoinEvent event) {
         Player player = event.getPlayer();
-        plugin.getPlayerDataManager().loadOnJoin(player, () -> applyDimensionDefaultOnEnter(player));
+        plugin.getPlayerDataManager().loadOnJoin(player);
     }
 
     @EventHandler
     public void onWorldChange(PlayerChangedWorldEvent event) {
-        applyDimensionDefaultOnEnter(event.getPlayer());
+        // Dimensionswechsel veraendert nicht mehr ungefragt den persoenlichen PvP-Status des Spielers
     }
 
     @EventHandler
@@ -36,18 +35,6 @@ public class PlayerJoinQuitListener implements Listener {
         if (plugin.getOverrideManager() != null) {
             plugin.getOverrideManager().updateWorldMetadata(event.getWorld());
         }
-    }
-
-    private void applyDimensionDefaultOnEnter(Player player) {
-        if (!player.isOnline()) {
-            return;
-        }
-        String dimension = plugin.getOverrideManager().getDimensionKey(player.getWorld());
-        if (!plugin.getOverrideManager().hasDimensionDefault(dimension)) {
-            return;
-        }
-        boolean defaultEnabled = plugin.getOverrideManager().getDimensionDefault(dimension);
-        plugin.getPvpToggleManager().applyDimensionDefault(player, defaultEnabled);
     }
 
     @EventHandler

@@ -9,6 +9,8 @@ import java.util.List;
  */
 public class Embed {
 
+    public String authorName;
+    public String authorIconUrl;
     public String title;
     public String description;
     public Integer color;

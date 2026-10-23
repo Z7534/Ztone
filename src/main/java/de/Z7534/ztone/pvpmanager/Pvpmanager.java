@@ -89,12 +89,7 @@ public class Pvpmanager {
         registerListeners();
 
         for (Player player : getServer().getOnlinePlayers()) {
-            playerDataManager.loadOnJoin(player, () -> {
-                String dimension = overrideManager.getDimensionKey(player.getWorld());
-                if (overrideManager.hasDimensionDefault(dimension)) {
-                    pvpToggleManager.applyDimensionDefault(player, overrideManager.getDimensionDefault(dimension));
-                }
-            });
+            playerDataManager.loadOnJoin(player);
         }
 
         if (configManager.config().getBoolean("Update Check.Enabled", false)) {

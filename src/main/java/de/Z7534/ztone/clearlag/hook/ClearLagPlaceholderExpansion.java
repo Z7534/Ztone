@@ -2,7 +2,7 @@ package de.Z7534.ztone.clearlag.hook;
 
 import de.Z7534.ztone.clearlag.manager.ClearLagManager;
 import me.clip.placeholderapi.expansion.PlaceholderExpansion;
-import org.bukkit.OfflinePlayer;
+import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -26,7 +26,7 @@ public class ClearLagPlaceholderExpansion extends PlaceholderExpansion {
 
     @Override
     public @NotNull String getVersion() {
-        return "1.0.4";
+        return "1.0.5";
     }
 
     @Override
@@ -35,13 +35,11 @@ public class ClearLagPlaceholderExpansion extends PlaceholderExpansion {
     }
 
     @Override
-    public @Nullable String onRequest(OfflinePlayer player, @NotNull String params) {
-        String p = params.toLowerCase();
-        return switch (p) {
-            case "countdown", "smallcaps", "unformatted" -> manager.getCountdownSmallCaps();
-            case "time", "digital" -> manager.getCountdownDigital();
-            case "seconds", "sec" -> String.valueOf(manager.getRemainingSeconds());
-            case "minutes", "min" -> String.valueOf(manager.getRemainingSeconds() / 60);
+    public @Nullable String onPlaceholderRequest(Player player, @NotNull String params) {
+        return switch (params.toLowerCase()) {
+            case "countdown" -> String.valueOf(manager.getRemainingSeconds());
+            case "countdown_formatted", "countdown_digital" -> manager.getCountdownDigital();
+            case "countdown_smallcaps" -> manager.getCountdownSmallCaps();
             default -> null;
         };
     }

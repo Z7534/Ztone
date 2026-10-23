@@ -96,10 +96,8 @@ public class PvpToggleManager {
     }
 
     public void applyDimensionDefault(Player player, boolean newState) {
-        if (isPvpEnabled(player.getUniqueId()) == newState) {
-            return;
-        }
-        applyState(player, newState);
+        // No-op: Der persoenliche Toggle des Spielers darf nicht durch Dimensionswechsel
+        // oder -defaults ueberschrieben werden!
     }
 
     private void runCommands(String path, Player player) {

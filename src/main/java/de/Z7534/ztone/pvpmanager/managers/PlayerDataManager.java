@@ -9,6 +9,10 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
+/**
+ * Verwaltet Spieler-PvP-Daten rein im Arbeitsspeicher (Session-basiert).
+ * Keine dauerhafte Speicherung in der Datenbank (temporaere Daten).
+ */
 public class PlayerDataManager {
 
     private final Pvpmanager plugin;
@@ -26,39 +30,31 @@ public class PlayerDataManager {
 
     public void loadOnJoin(Player player, Runnable afterLoad) {
         UUID uuid = player.getUniqueId();
-        plugin.getServer().getScheduler().runTaskAsynchronously(plugin.getPlugin(), () -> {
-            boolean defaultPvp = plugin.getConfigManager().config().getBoolean("PvP Toggle.Default PvP", true);
-            PlayerData data = dao.find(uuid).orElseGet(() -> PlayerData.createDefault(uuid, defaultPvp));
-            cache.put(uuid, data);
+        boolean defaultPvp = plugin.getConfigManager().config().getBoolean("PvP Toggle.Default PvP", false);
+        cache.computeIfAbsent(uuid, id -> PlayerData.createDefault(id, defaultPvp));
 
-            if (afterLoad != null) {
-                plugin.getServer().getScheduler().runTask(plugin.getPlugin(), afterLoad);
-            }
-        });
+        if (afterLoad != null) {
+            afterLoad.run();
+        }
     }
 
     public void saveAndUnload(Player player) {
         UUID uuid = player.getUniqueId();
-        PlayerData data = cache.remove(uuid);
-        if (data != null) {
-            plugin.getServer().getScheduler().runTaskAsynchronously(plugin.getPlugin(), () -> dao.save(data));
-        }
+        cache.remove(uuid);
     }
 
     public void saveAll() {
-        for (PlayerData data : cache.values()) {
-            dao.save(data);
-        }
+        // Nicht persistent in der Datenbank speichern
     }
 
     public PlayerData get(UUID uuid) {
         return cache.computeIfAbsent(uuid, id -> {
-            boolean defaultPvp = plugin.getConfigManager().config().getBoolean("PvP Toggle.Default PvP", true);
+            boolean defaultPvp = plugin.getConfigManager().config().getBoolean("PvP Toggle.Default PvP", false);
             return PlayerData.createDefault(id, defaultPvp);
         });
     }
 
     public void save(PlayerData data) {
-        plugin.getServer().getScheduler().runTaskAsynchronously(plugin.getPlugin(), () -> dao.save(data));
+        // Rein im Arbeitsspeicher verwaltet
     }
 }
