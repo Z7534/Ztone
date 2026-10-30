@@ -28,6 +28,7 @@ public final class Claims {
     private ClaimMapManager claimMapManager;
     private PvPClaimBypassManager pvpClaimBypassManager;
     private ClaimsPlaceholderExpansion placeholderExpansion;
+    private BanEnforcer banEnforcer;
     private BukkitTask activityTask;
     private BukkitTask particleTask;
 
@@ -68,7 +69,7 @@ public final class Claims {
         SafeSpotFinder safeSpotFinder = new SafeSpotFinder();
         activityManager = new ActivityManager(plugin, claimManager, configManager);
         particleManager = new ParticleManager(claimManager, selectionManager, configManager);
-        BanEnforcer banEnforcer = new BanEnforcer(configManager, safeSpotFinder, bypassManager);
+        this.banEnforcer = new BanEnforcer(configManager, safeSpotFinder, bypassManager);
         claimMapManager = new ClaimMapManager(plugin, claimManager, selectionManager);
 
         selectionManager.setOnEnd(uuid -> {
@@ -186,5 +187,13 @@ public final class Claims {
 
     public PvPClaimBypassManager getPvPClaimBypassManager() {
         return pvpClaimBypassManager;
+    }
+
+    public Database getDatabase() {
+        return database;
+    }
+
+    public BanEnforcer getBanEnforcer() {
+        return banEnforcer;
     }
 }

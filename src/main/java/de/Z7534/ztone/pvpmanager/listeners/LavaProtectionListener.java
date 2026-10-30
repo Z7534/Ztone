@@ -91,43 +91,46 @@ public class LavaProtectionListener implements Listener {
         if (!(event.getEntity() instanceof Player victim)) {
             return;
         }
+
+        // Zuerst den (billigen) DamageCause pruefen - canPvP() inkl. Claim- und WorldGuard-Abfrage
+        // wird nur noch bei Lava-/Feuerschaden ausgefuehrt, nicht mehr bei JEDEM Schaden-Event.
+        EntityDamageEvent.DamageCause cause = event.getCause();
+        if (cause != EntityDamageEvent.DamageCause.LAVA
+                && cause != EntityDamageEvent.DamageCause.FIRE
+                && cause != EntityDamageEvent.DamageCause.FIRE_TICK) {
+            return;
+        }
         if (plugin.canPvP(victim)) {
             return;
         }
 
-        EntityDamageEvent.DamageCause cause = event.getCause();
-        if (cause == EntityDamageEvent.DamageCause.LAVA
-                || cause == EntityDamageEvent.DamageCause.FIRE
-                || cause == EntityDamageEvent.DamageCause.FIRE_TICK) {
+        Location loc = victim.getLocation();
+        long now = System.currentTimeMillis();
+        boolean isPlayerLava = false;
 
-            Location loc = victim.getLocation();
-            long now = System.currentTimeMillis();
-            boolean isPlayerLava = false;
-
-            for (int x = -1; x <= 1 && !isPlayerLava; x++) {
-                for (int y = -1; y <= 2 && !isPlayerLava; y++) {
-                    for (int z = -1; z <= 1 && !isPlayerLava; z++) {
-                        Location check = loc.clone().add(x, y, z).getBlock().getLocation();
-                        PlacedLava pl = trackedLava.get(check);
-                        if (pl != null && now - pl.placedAt() < 180_000L && !pl.placer().equals(victim.getUniqueId())) {
-                            isPlayerLava = true;
-                        }
+        for (int x = -1; x <= 1 && !isPlayerLava; x++) {
+            for (int y = -1; y <= 2 && !isPlayerLava; y++) {
+                for (int z = -1; z <= 1 && !isPlayerLava; z++) {
+                    Location check = loc.clone().add(x, y, z).getBlock().getLocation();
+                    PlacedLava pl = trackedLava.get(check);
+                    if (pl != null && now - pl.placedAt() < 180_000L && !pl.placer().equals(victim.getUniqueId())) {
+                        isPlayerLava = true;
                     }
                 }
             }
+        }
 
-            boolean hostileNearby = false;
-            for (Entity entity : loc.getWorld().getNearbyEntities(loc, 8.0, 8.0, 8.0)) {
-                if (entity instanceof Player other && !other.equals(victim)) {
-                    hostileNearby = true;
-                    break;
-                }
+        boolean hostileNearby = false;
+        for (Entity entity : loc.getWorld().getNearbyEntities(loc, 8.0, 8.0, 8.0)) {
+            if (entity instanceof Player other && !other.equals(victim)) {
+                hostileNearby = true;
+                break;
             }
+        }
 
-            if (isPlayerLava || (hostileNearby && cause == EntityDamageEvent.DamageCause.FIRE_TICK)) {
-                event.setCancelled(true);
-                victim.setFireTicks(0);
-            }
+        if (isPlayerLava || (hostileNearby && cause == EntityDamageEvent.DamageCause.FIRE_TICK)) {
+            event.setCancelled(true);
+            victim.setFireTicks(0);
         }
     }
 

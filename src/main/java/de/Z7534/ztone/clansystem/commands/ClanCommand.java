@@ -208,19 +208,7 @@ public class ClanCommand implements CommandExecutor, TabCompleter {
 
             case "list" -> handleList(player);
 
-            case "top" -> {
-
-                if (!plugin.getConfigManager().isClankasseEnabled()) {
-
-                    plugin.getMessageManager().send(player, "bank.not-available");
-
-                    return true;
-
-                }
-
-                handleTop(player);
-
-            }
+            case "top" -> handleTop(player, args.length >= 2 ? args[1] : null);
 
             case "deposit", "einzahlen" -> {
 
@@ -3173,12 +3161,32 @@ public class ClanCommand implements CommandExecutor, TabCompleter {
 
 
 
-    private void handleTop(Player player) {
+    /**
+     * /clan top [punkte|kasse] – öffnet die Clan-Rangliste.
+     * Ohne Argument bzw. mit "punkte" wird nach Clan-Punkten sortiert,
+     * mit "kasse"/"geld"/"bank" nach dem Guthaben der Clankasse.
+     */
+    private void handleTop(Player player, String modeArg) {
         if (!player.hasPermission("clansystem.top") && !player.hasPermission("clansystem.use")) {
             plugin.getMessageManager().send(player, "general.no-permission");
             return;
         }
-        new ClanTopGUI(plugin, player).open();
+        ClanTopGUI.Mode mode = ClanTopGUI.Mode.POINTS;
+        if (modeArg != null) {
+            switch (modeArg.toLowerCase(java.util.Locale.ROOT)) {
+                case "kasse", "clankasse", "geld", "bank", "money", "balance" -> mode = ClanTopGUI.Mode.BALANCE;
+                case "punkte", "points", "p" -> mode = ClanTopGUI.Mode.POINTS;
+                default -> {
+                    player.sendMessage("§cNutzung: §e/clan top [punkte|kasse]");
+                    return;
+                }
+            }
+        }
+        if (mode == ClanTopGUI.Mode.BALANCE && !plugin.getConfigManager().isClankasseEnabled()) {
+            plugin.getMessageManager().send(player, "bank.not-available");
+            return;
+        }
+        new ClanTopGUI(plugin, player, mode).open();
     }
 
     private void handleDeposit(Player player, String[] args) {
@@ -3483,6 +3491,14 @@ public class ClanCommand implements CommandExecutor, TabCompleter {
 
     private void handleBank(Player player, String[] args) {
 
+        if (args.length >= 2 && args[1].equalsIgnoreCase("top")) {
+
+            handleTop(player, "kasse");
+
+            return;
+
+        }
+
         Clan clan = plugin.getClanManager().getClanByPlayer(player);
 
         if (clan == null) {
@@ -3547,7 +3563,7 @@ public class ClanCommand implements CommandExecutor, TabCompleter {
 
             }
 
-            case "top" -> handleTop(player);
+            case "top" -> handleTop(player, "kasse");
 
             case "gui", "transactions", "transaktionen" -> {
 
@@ -3861,7 +3877,7 @@ public class ClanCommand implements CommandExecutor, TabCompleter {
 
         player.sendMessage(de.Z7534.ztone.clansystem.utils.ColorUtils.colorize("&e/clan list &8- &7Clan-Liste anzeigen"));
 
-        player.sendMessage(de.Z7534.ztone.clansystem.utils.ColorUtils.colorize("&e/clan top &8- &7Top 10 reichste Clans"));
+        player.sendMessage(de.Z7534.ztone.clansystem.utils.ColorUtils.colorize("&e/clan top [punkte|kasse] &8- &7Top 10 Clans (Punkte oder Clankasse)"));
 
         player.sendMessage(de.Z7534.ztone.clansystem.utils.ColorUtils.colorize("&e/clan deposit <betrag> &8- &7Geld in Clankasse einzahlen"));
 
@@ -3907,13 +3923,13 @@ public class ClanCommand implements CommandExecutor, TabCompleter {
 
                     "chest", "ally", "war", "rank", "settings", "list", "info", "chat", "ac", "suffix",
 
-                    "promote", "demote", "transfer", "help"
+                    "promote", "demote", "transfer", "help", "top"
 
             ));
 
             if (plugin.getConfigManager().isClankasseEnabled()) {
 
-                subCommands.addAll(Arrays.asList("top", "deposit", "einzahlen", "withdraw", "auszahlen", "bank", "kasse"));
+                subCommands.addAll(Arrays.asList("deposit", "einzahlen", "withdraw", "auszahlen", "bank", "kasse"));
 
             }
 
@@ -4027,7 +4043,25 @@ public class ClanCommand implements CommandExecutor, TabCompleter {
 
                 case "bank", "kasse" -> {
 
-                    completions = Arrays.asList("deposit", "withdraw", "info", "transaktionen").stream()
+                    completions = Arrays.asList("deposit", "withdraw", "info", "transaktionen", "top").stream()
+
+                            .filter(s -> s.startsWith(input))
+
+                            .collect(Collectors.toList());
+
+                }
+
+                case "top" -> {
+
+                    List<String> modes = new ArrayList<>(List.of("punkte"));
+
+                    if (plugin.getConfigManager().isClankasseEnabled()) {
+
+                        modes.addAll(List.of("kasse", "geld"));
+
+                    }
+
+                    completions = modes.stream()
 
                             .filter(s -> s.startsWith(input))
 
@@ -4106,4 +4140,3 @@ public class ClanCommand implements CommandExecutor, TabCompleter {
     }
 
 }
-

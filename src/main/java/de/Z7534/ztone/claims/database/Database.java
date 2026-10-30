@@ -205,6 +205,7 @@ public final class Database {
                     visitor_perm_mask INTEGER NOT NULL DEFAULT 0,
                     clan_trust_enabled INTEGER NOT NULL DEFAULT 0,
                     ally_trust_enabled INTEGER NOT NULL DEFAULT 0,
+                    ban_all INTEGER NOT NULL DEFAULT 0,
                     created_at INTEGER NOT NULL
                 );
                 """);
@@ -215,6 +216,10 @@ public final class Database {
             }
             try {
                 st.execute("ALTER TABLE claims_claims ADD COLUMN ally_trust_enabled INTEGER NOT NULL DEFAULT 0;");
+            } catch (SQLException ignored) {
+            }
+            try {
+                st.execute("ALTER TABLE claims_claims ADD COLUMN ban_all INTEGER NOT NULL DEFAULT 0;");
             } catch (SQLException ignored) {
             }
 
@@ -255,14 +260,14 @@ public final class Database {
             st.execute("CREATE INDEX IF NOT EXISTS idx_claims_chunks_world ON claims_chunks(claim_id);");
             st.execute("CREATE INDEX IF NOT EXISTS idx_claims_owner ON claims_claims(owner_uuid);");
 
-            // Kompatibilitaets-Views fuer alte Namen anlegen
+            // Kompatibilitaets-Views entfernen, um Konflikte und Schreibfehler in SQLite zu verhindern
             try {
-                st.executeUpdate("CREATE VIEW IF NOT EXISTS players AS SELECT * FROM claims_players;");
-                st.executeUpdate("CREATE VIEW IF NOT EXISTS claims AS SELECT * FROM claims_claims;");
-                st.executeUpdate("CREATE VIEW IF NOT EXISTS claim_chunks AS SELECT * FROM claims_chunks;");
-                st.executeUpdate("CREATE VIEW IF NOT EXISTS claim_trust AS SELECT * FROM claims_trust;");
-                st.executeUpdate("CREATE VIEW IF NOT EXISTS claim_managers AS SELECT * FROM claims_managers;");
-                st.executeUpdate("CREATE VIEW IF NOT EXISTS claim_bans AS SELECT * FROM claims_bans;");
+                st.executeUpdate("DROP VIEW IF EXISTS players;");
+                st.executeUpdate("DROP VIEW IF EXISTS claims;");
+                st.executeUpdate("DROP VIEW IF EXISTS claim_chunks;");
+                st.executeUpdate("DROP VIEW IF EXISTS claim_trust;");
+                st.executeUpdate("DROP VIEW IF EXISTS claim_managers;");
+                st.executeUpdate("DROP VIEW IF EXISTS claim_bans;");
             } catch (SQLException ignored) {
             }
         }

@@ -33,6 +33,8 @@ public class ConfigManager {
     private boolean playrewardsEnabled = true;
     private boolean deathchestEnabled = true;
     private boolean clearlagEnabled = true;
+    private boolean stonesitEnabled = true;
+    private boolean dragoneggEnabled = true;
 
     // Globale Datenbank-Einstellungen
     private StorageType storageType;
@@ -45,6 +47,11 @@ public class ConfigManager {
     private String mariaDbPassword;
     private boolean mariaDbUseSsl;
     private int mariaDbPoolSize;
+
+    // Datenbank-Backup-Einstellungen
+    private boolean backupEnabled = true;
+    private int backupIntervalMinutes = 5;
+    private int backupMaxCount = 50;
 
     // Clan-spezifische Einstellungen (aus clansystem/config.yml)
     private int clanNameMinLength;
@@ -124,6 +131,8 @@ public class ConfigManager {
             this.playrewardsEnabled = modules.getBoolean("playrewards", true);
             this.deathchestEnabled = modules.getBoolean("deathchest", true);
             this.clearlagEnabled = modules.getBoolean("clearlag", true);
+            this.stonesitEnabled = modules.getBoolean("stonesit", true);
+            this.dragoneggEnabled = modules.getBoolean("dragonegg", true);
         } else {
             this.clansystemEnabled = globalConfig.getBoolean("modules.clansystem", true);
             this.clankasseEnabled = globalConfig.getBoolean("modules.clankasse", clansystemEnabled);
@@ -137,6 +146,8 @@ public class ConfigManager {
             this.playrewardsEnabled = globalConfig.getBoolean("modules.playrewards", true);
             this.deathchestEnabled = globalConfig.getBoolean("modules.deathchest", true);
             this.clearlagEnabled = globalConfig.getBoolean("modules.clearlag", true);
+            this.stonesitEnabled = globalConfig.getBoolean("modules.stonesit", true);
+            this.dragoneggEnabled = globalConfig.getBoolean("modules.dragonegg", true);
         }
 
         ConfigurationSection db = globalConfig.getConfigurationSection("database");
@@ -148,8 +159,17 @@ public class ConfigManager {
                 this.storageType = StorageType.SQLITE;
             }
 
-            this.dbFile = db.getString("sqlite.file", "ztone.db");
-            this.dbTablePrefix = db.getString("table-prefix", "ztone_");
+            String file = db.getString("file");
+            if (file == null || file.isBlank()) {
+                file = db.getString("sqlite.file", "clans.db");
+            }
+            this.dbFile = file;
+
+            String prefix = db.getString("table-prefix");
+            if (prefix == null || prefix.isBlank()) {
+                prefix = db.getString("prefix", "clan_");
+            }
+            this.dbTablePrefix = prefix;
 
             this.mariaDbHost = db.getString("mariadb.host", "localhost");
             this.mariaDbPort = db.getInt("mariadb.port", 3306);
@@ -160,8 +180,8 @@ public class ConfigManager {
             this.mariaDbPoolSize = db.getInt("mariadb.pool-size", 10);
         } else {
             this.storageType = StorageType.SQLITE;
-            this.dbFile = "ztone.db";
-            this.dbTablePrefix = "ztone_";
+            this.dbFile = "clans.db";
+            this.dbTablePrefix = "clan_";
             this.mariaDbHost = "localhost";
             this.mariaDbPort = 3306;
             this.mariaDbDatabase = "ztone";
@@ -169,6 +189,20 @@ public class ConfigManager {
             this.mariaDbPassword = "";
             this.mariaDbUseSsl = false;
             this.mariaDbPoolSize = 10;
+        }
+
+        ConfigurationSection backupSec = globalConfig.getConfigurationSection("database-backup");
+        if (backupSec == null && db != null) {
+            backupSec = db.getConfigurationSection("backup");
+        }
+        if (backupSec != null) {
+            this.backupEnabled = backupSec.getBoolean("enabled", true);
+            this.backupIntervalMinutes = backupSec.getInt("interval-minutes", 5);
+            this.backupMaxCount = backupSec.getInt("max-backups", 50);
+        } else {
+            this.backupEnabled = true;
+            this.backupIntervalMinutes = 5;
+            this.backupMaxCount = 50;
         }
     }
 
@@ -199,12 +233,12 @@ public class ConfigManager {
     }
 
     private void loadTeleportSettings() {
-        ConfigurationSection teleport = clanConfig.getConfigurationSection("teleport");
-        if (teleport != null) {
-            teleportWarmup = teleport.getInt("warmup", 3);
-            teleportCooldown = teleport.getInt("cooldown", 60);
-            cancelOnMove = teleport.getBoolean("cancel-on-move", true);
-            cancelOnDamage = teleport.getBoolean("cancel-on-damage", true);
+        ConfigurationSection tp = clanConfig.getConfigurationSection("teleport");
+        if (tp != null) {
+            teleportWarmup = tp.getInt("warmup", 3);
+            teleportCooldown = tp.getInt("cooldown", 60);
+            cancelOnMove = tp.getBoolean("cancel-on-move", true);
+            cancelOnDamage = tp.getBoolean("cancel-on-damage", true);
         }
     }
 
@@ -212,75 +246,72 @@ public class ConfigManager {
         ConfigurationSection pvp = clanConfig.getConfigurationSection("pvp");
         if (pvp != null) {
             warKillPoints = pvp.getInt("war-kill-points", 10);
-            normalKillPoints = pvp.getInt("normal-kill-points", 2);
-            countNormalKills = pvp.getBoolean("count-normal-kills", true);
+            normalKillPoints = pvp.getInt("normal-kill-points", 1);
+            countNormalKills = pvp.getBoolean("count-normal-kills", false);
             disableFriendlyFire = pvp.getBoolean("disable-friendly-fire", true);
             disableAllyFire = pvp.getBoolean("disable-ally-fire", true);
         }
     }
 
     private void loadBroadcastSettings() {
-        ConfigurationSection broadcasts = clanConfig.getConfigurationSection("broadcasts");
-        if (broadcasts != null) {
-            broadcastClanCreated = broadcasts.getBoolean("clan-created", true);
-            broadcastClanDisbanded = broadcasts.getBoolean("clan-disbanded", true);
-            broadcastMemberJoined = broadcasts.getBoolean("member-joined", true);
-            broadcastMemberLeft = broadcasts.getBoolean("member-left", true);
+        ConfigurationSection bc = clanConfig.getConfigurationSection("broadcast");
+        if (bc != null) {
+            broadcastClanCreated = bc.getBoolean("clan-created", true);
+            broadcastClanDisbanded = bc.getBoolean("clan-disbanded", true);
+            broadcastMemberJoined = bc.getBoolean("member-joined", true);
+            broadcastMemberLeft = bc.getBoolean("member-left", true);
         }
     }
 
     private void loadDefaultRanks() {
         defaultRanks.clear();
-        List<?> ranksList = clanConfig.getList("default-ranks");
-        if (ranksList != null) {
-            for (Object obj : ranksList) {
-                if (obj instanceof java.util.Map) {
-                    @SuppressWarnings("unchecked")
-                    java.util.Map<String, Object> rankMap = (java.util.Map<String, Object>) obj;
-
-                    String name = (String) rankMap.get("name");
-                    int priority = (int) rankMap.get("priority");
-
-                    ClanRank rank = new ClanRank(name, priority);
-
-                    @SuppressWarnings("unchecked")
-                    List<String> permList = (List<String>) rankMap.get("permissions");
-                    if (permList != null) {
-                        for (String permStr : permList) {
-                            Permission perm = Permission.fromString(permStr);
-                            if (perm != null) {
-                                rank.addPermission(perm);
-                            }
-                        }
+        ConfigurationSection ranks = clanConfig.getConfigurationSection("default-ranks");
+        if (ranks != null) {
+            for (String key : ranks.getKeys(false)) {
+                ConfigurationSection rank = ranks.getConfigurationSection(key);
+                if (rank != null) {
+                    String name = rank.getString("name", key);
+                    int priority = rank.getInt("priority", 0);
+                    List<String> permStrings = rank.getStringList("permissions");
+                    ClanRank rankObj = new ClanRank(name, priority);
+                    for (String permStr : permStrings) {
+                        try {
+                            rankObj.getPermissions().add(Permission.valueOf(permStr.toUpperCase()));
+                        } catch (IllegalArgumentException ignored) {}
                     }
-
-                    defaultRanks.add(rank);
+                    defaultRanks.add(rankObj);
                 }
             }
         }
 
         if (defaultRanks.isEmpty()) {
-            ClanRank admin = new ClanRank("Admin", 100);
-            for (Permission perm : Permission.values()) {
-                if (perm != Permission.DISBAND) {
-                    admin.addPermission(perm);
-                }
-            }
-            defaultRanks.add(admin);
+            ClanRank leader = new ClanRank("Leader", 100);
+            leader.getPermissions().addAll(java.util.Arrays.asList(Permission.values()));
+            defaultRanks.add(leader);
+
+            ClanRank coLeader = new ClanRank("Co-Leader", 80);
+            coLeader.getPermissions().addAll(java.util.List.of(
+                    Permission.INVITE, Permission.KICK, Permission.SET_HOME,
+                    Permission.DEL_HOME, Permission.SET_WARP, Permission.DEL_WARP,
+                    Permission.CHEST_ACCESS, Permission.CHEST_WITHDRAW,
+                    Permission.BANK_DEPOSIT, Permission.BANK_WITHDRAW, Permission.BANK_VIEW_TRANSACTIONS
+            ));
+            defaultRanks.add(coLeader);
 
             ClanRank member = new ClanRank("Mitglied", 10);
-            member.addPermission(Permission.CHEST_ACCESS);
+            member.getPermissions().addAll(java.util.List.of(
+                    Permission.CHEST_ACCESS, Permission.BANK_DEPOSIT, Permission.BANK_VIEW_TRANSACTIONS
+            ));
             defaultRanks.add(member);
         }
     }
 
-    // Modul-Status
     public boolean isClansystemEnabled() {
         return clansystemEnabled;
     }
 
     public boolean isClankasseEnabled() {
-        return clansystemEnabled && clankasseEnabled;
+        return clankasseEnabled && clansystemEnabled;
     }
 
     public boolean isPvpmanagerEnabled() {
@@ -323,6 +354,14 @@ public class ConfigManager {
         return clearlagEnabled;
     }
 
+    public boolean isStonesitEnabled() {
+        return stonesitEnabled;
+    }
+
+    public boolean isDragoneggEnabled() {
+        return dragoneggEnabled;
+    }
+
     public boolean isModuleEnabled(String module) {
         if ("clansystem".equalsIgnoreCase(module) || "clans".equalsIgnoreCase(module) || "clan".equalsIgnoreCase(module)) {
             return clansystemEnabled;
@@ -360,6 +399,12 @@ public class ConfigManager {
         if ("clearlag".equalsIgnoreCase(module)) {
             return clearlagEnabled;
         }
+        if ("stonesit".equalsIgnoreCase(module) || "gsit".equalsIgnoreCase(module) || "sit".equalsIgnoreCase(module)) {
+            return stonesitEnabled;
+        }
+        if ("dragonegg".equalsIgnoreCase(module) || "egg".equalsIgnoreCase(module)) {
+            return dragoneggEnabled;
+        }
         return globalConfig.getBoolean("modules." + module, true);
     }
 
@@ -373,6 +418,10 @@ public class ConfigManager {
     public String getMariaDbPassword() { return mariaDbPassword; }
     public boolean isMariaDbUseSsl() { return mariaDbUseSsl; }
     public int getMariaDbPoolSize() { return mariaDbPoolSize; }
+
+    public boolean isBackupEnabled() { return backupEnabled; }
+    public int getBackupIntervalMinutes() { return backupIntervalMinutes; }
+    public int getBackupMaxCount() { return backupMaxCount; }
 
     public int getClanNameMinLength() { return clanNameMinLength; }
     public int getClanNameMaxLength() { return clanNameMaxLength; }
@@ -401,10 +450,8 @@ public class ConfigManager {
     public boolean isBroadcastMemberJoined() { return broadcastMemberJoined; }
     public boolean isBroadcastMemberLeft() { return broadcastMemberLeft; }
 
-    public List<ClanRank> getDefaultRanks() { return new ArrayList<>(defaultRanks); }
-
+    public List<ClanRank> getDefaultRanks() { return defaultRanks; }
     public boolean isChestLogging() { return chestLogging; }
-
     public FileConfiguration getGlobalConfig() { return globalConfig; }
     public FileConfiguration getClanConfig() { return clanConfig; }
 }

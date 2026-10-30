@@ -44,7 +44,7 @@ public class PvpGlowPacketHook {
     }
 
     private void forceGlowBit(PacketEvent event) {
-        if (glowManager.getGlowing().isEmpty()) {
+        if (glowManager.getGlowing().isEmpty() && !plugin.getPlugin().hasAnyDragonEggGlowing()) {
             return;
         }
         try {
@@ -72,7 +72,12 @@ public class PvpGlowPacketHook {
                 }
             }
 
-            if (targetPlayer == null || !glowManager.isGlowing(targetPlayer.getUniqueId())) {
+            if (targetPlayer == null) {
+                return;
+            }
+            boolean targetGlowing = glowManager.isGlowing(targetPlayer.getUniqueId())
+                    || plugin.getPlugin().isDragonEggGlowing(targetPlayer);
+            if (!targetGlowing) {
                 return;
             }
 

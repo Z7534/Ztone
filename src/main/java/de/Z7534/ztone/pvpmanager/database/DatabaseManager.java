@@ -17,7 +17,7 @@ public class DatabaseManager {
     }
 
     public void connect() {
-        if (plugin.getClansystem().getDatabaseManager() != null) {
+        if (plugin.getClansystem() != null && plugin.getClansystem().getDatabaseManager() != null) {
             this.dataSource = plugin.getClansystem().getDatabaseManager().getDataSource();
         }
         createTables();
@@ -25,18 +25,30 @@ public class DatabaseManager {
 
     private void createTables() {
         if (dataSource == null) {
-            plugin.getLogger().warning("Zentrale Datenbank nicht verfuegbar - Bereinigung fuer PvPManager uebersprungen.");
+            plugin.getLogger().warning("Zentrale Datenbank nicht verfuegbar fuer PvPManager.");
             return;
         }
-        // Temporaere Spieler-PvP-Daten werden nicht persistent in der DB gespeichert,
-        // daher wird die alte Tabelle vollstaendig zurueckgesetzt/entfernt.
-        String sql = "DROP TABLE IF EXISTS pvpmanager_players;";
+
+        String prefix = "";
+        if (plugin.getClansystem() != null && plugin.getClansystem().getDatabaseManager() != null) {
+            prefix = plugin.getClansystem().getDatabaseManager().getTablePrefix();
+            if (prefix == null) prefix = "";
+        }
 
         try (Connection connection = dataSource.getConnection();
              Statement statement = connection.createStatement()) {
-            statement.execute(sql);
+            statement.execute("CREATE TABLE IF NOT EXISTS " + prefix + "pvpmanager_players (" +
+                    "uuid VARCHAR(36) PRIMARY KEY," +
+                    "pvp_enabled INTEGER NOT NULL DEFAULT 0," +
+                    "teleport_override INTEGER NOT NULL DEFAULT 0);");
+            if (!prefix.isEmpty()) {
+                statement.execute("CREATE TABLE IF NOT EXISTS pvpmanager_players (" +
+                        "uuid VARCHAR(36) PRIMARY KEY," +
+                        "pvp_enabled INTEGER NOT NULL DEFAULT 0," +
+                        "teleport_override INTEGER NOT NULL DEFAULT 0);");
+            }
         } catch (SQLException exception) {
-            plugin.getLogger().severe("Konnte temporaere PvPManager-Tabelle nicht bereinigen: " + exception.getMessage());
+            plugin.getLogger().severe("Konnte PvPManager-Tabelle nicht erstellen: " + exception.getMessage());
         }
     }
 
@@ -49,7 +61,7 @@ public class DatabaseManager {
     }
 
     public Connection getConnection() throws SQLException {
-        if (dataSource == null && plugin.getClansystem().getDatabaseManager() != null) {
+        if (dataSource == null && plugin.getClansystem() != null && plugin.getClansystem().getDatabaseManager() != null) {
             this.dataSource = plugin.getClansystem().getDatabaseManager().getDataSource();
         }
         if (dataSource == null) {

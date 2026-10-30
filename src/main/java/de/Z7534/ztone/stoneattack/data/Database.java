@@ -123,11 +123,11 @@ public class Database {
                 statement.execute("""
                         CREATE TABLE IF NOT EXISTS stoneattack_period_state (\n                            period TEXT PRIMARY KEY,\n                            period_start INTEGER NOT NULL\n                        )\n                        """);
 
-                // Kompatibilitaets-Views fuer alte Namen anlegen
+                // Kompatibilitaets-Views entfernen, um Konflikte und Schreibfehler in SQLite zu verhindern
                 try {
-                    statement.executeUpdate("CREATE VIEW IF NOT EXISTS snapshots AS SELECT * FROM stoneattack_snapshots;");
-                    statement.executeUpdate("CREATE VIEW IF NOT EXISTS exclusions AS SELECT * FROM stoneattack_exclusions;");
-                    statement.executeUpdate("CREATE VIEW IF NOT EXISTS period_state AS SELECT * FROM stoneattack_period_state;");
+                    statement.executeUpdate("DROP VIEW IF EXISTS snapshots;");
+                    statement.executeUpdate("DROP VIEW IF EXISTS exclusions;");
+                    statement.executeUpdate("DROP VIEW IF EXISTS period_state;");
                 } catch (SQLException ignored) {}
             }
 

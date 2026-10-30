@@ -1,9 +1,9 @@
 name: Ztone
-version: '1.0.5'
+version: '1.1.0'
 main: de.Z7534.ztone.Ztone
 api-version: '26.2'
 authors: [Z7534]
-description: All-in-One Ztone System (Clansystem, Clankasse, PvPManager, Claims, StoneAttack, Stonelog, Stonemute, MapControl, StoneVoice, PlayRewards)
+description: All-in-One Ztone System (Clansystem, Clankasse, PvPManager, Claims, StoneAttack, Stonelog, Stonemute, MapControl, StoneVoice, PlayRewards, Deathchest, ClearLag, StoneSit, DragonEgg)
 softdepend: [Vault, PlaceholderAPI, LuckPerms, ProtocolLib, WorldGuard, GriefPrevention, Towny, Lands, Kingdoms, SimpleClans, HuskTowns, BountyHunters, NotBounties, CMI, Essentials, TAB, LibsDisguises, LiteBans, voicechat, floodgate, Plan, StoneSMPCore]
 
 commands:
@@ -53,8 +53,8 @@ commands:
 
   # Claims Commands
   claim:
-    description: Öffnet das Claim-Hauptmenü
-    usage: /claim [pay <spieler> <anzahl>]
+    description: Öffnet das Claim-Hauptmenü oder verwaltet Claim-Zahlungen und Bans
+    usage: /claim [pay <spieler> <anzahl> | ban <spieler|*> [hier|alle|<claim>] | unban <spieler|*> [hier|alle|<claim>]]
   staffclaim:
     description: Admin-Befehle für das Claim-System
     usage: /staffclaim <addclaims|removeclaims|info|tp|unclaim|unclaimhere|trust|ban|bypass|pvp|reload> ...
@@ -115,15 +115,38 @@ commands:
 
   # DeathChest Commands
   deathchest:
-    description: Verwaltet die Todeskisten
-    usage: /deathchest <clear|reload>
-    permission: deathchest.admin
+    description: Verwaltet die Todeskisten und den Lock-Bypass
+    usage: /deathchest <bypass|clear|reload> [on|off] [spieler]
 
   # ClearLag Commands
   clearlag:
     description: Entfernt herumliegende Items auf dem Boden
     usage: /clearlag <clear|time|reload>
     permission: clearlag.admin
+
+  # StoneSit Commands
+  sit:
+    description: Setzt dich auf den aktuellen Block
+    usage: /sit
+    aliases: [gsit, stonesit]
+  lay:
+    description: Legt dich auf den aktuellen Block (zählt als Schlafen ohne Respawn-Punkt)
+    usage: /lay
+    aliases: [glay, layback, glayback]
+  legsup:
+    description: Legt dich mit hochgestreckten Beinen auf den aktuellen Block
+    usage: /legsup
+    aliases: [glegsup]
+  stonesitreload:
+    description: Lädt die StoneSit-Konfiguration neu
+    usage: /stonesitreload
+    aliases: [gsitreload, gsitrl, stonesitrl]
+    permission: stonesit.reload
+
+  # DragonEgg Commands
+  dragonegg:
+    description: Verwaltet das DragonEgg-Modul (Bypass, Give, Reload)
+    usage: /dragonegg <bypass|give|reload> [on|off] [spieler]
 
 permissions:
   # Clansystem Permissions
@@ -155,7 +178,7 @@ permissions:
     description: Erlaubt das Anzeigen der Clan-Liste
     default: true
   clansystem.top:
-    description: Erlaubt das Anzeigen der Top 10 Clans nach Guthaben
+    description: Erlaubt das Anzeigen der Top 10 Clans (Punkte & Clankasse)
     default: true
   clansystem.info:
     description: Erlaubt das Anzeigen von Clan-Infos
@@ -387,7 +410,6 @@ permissions:
       claims.admin.trust: true
       claims.admin.ban: true
       claims.admin.bypass: true
-      claims.admin.bypass.join: true
       claims.admin.bypass.other: true
       claims.admin.pvpbypass: true
       claims.admin.reload: true
@@ -417,9 +439,9 @@ permissions:
     default: op
   claims.admin.bypass.join:
     description: Aktiviert /staffclaim bypass automatisch beim Betreten des Servers
-    default: op
+    default: false
   claims.admin.bypass.other:
-    description: Erlaubt /staffclaim bypass <on|off> <spieler> f?r andere Spieler
+    description: Erlaubt /staffclaim bypass <on|off> <spieler> für andere Spieler
     default: op
   claims.admin.pvpbypass:
     description: Erlaubt /claimspvpoverride (PvP auf Claims freigeben oder als Admin im Claim kämpfen)
@@ -492,11 +514,126 @@ permissions:
   deathchest.admin:
     description: Erlaubt Zugriff auf alle /deathchest Admin-Befehle
     default: op
+    children:
+      deathchest.bypass: true
+      deathchest.bypass.other: true
+  deathchest.bypass:
+    description: Erlaubt /deathchest bypass, um gesperrte Todeskisten trotz Killer-Lock zu öffnen und Items zu entnehmen
+    default: op
+  deathchest.bypass.other:
+    description: Erlaubt /deathchest bypass <on|off> <spieler> für andere Spieler
+    default: op
+  deathchest.bypass.join:
+    description: "Aktiviert /deathchest bypass automatisch beim Betreten des Servers (Standard: aus)"
+    default: false
 
   # ClearLag Permissions
   clearlag.admin:
     description: Erlaubt Zugriff auf alle /clearlag Admin-Befehle
     default: op
+
+  # StoneSit Permissions
+  stonesit.*:
+    description: Voller Zugriff auf alle StoneSit-Funktionen
+    default: op
+    children:
+      stonesit.sit.*: true
+      stonesit.pose.*: true
+      stonesit.playersit.*: true
+      stonesit.kick.*: true
+      stonesit.bypass.*: true
+      stonesit.reload: true
+      stonesit.admin: true
+  stonesit.admin:
+    description: Admin-Zugriff auf StoneSit inkl. Schutz vor Sneak-Abwurf vom Kopf
+    default: op
+    children:
+      stonesit.bypass.sneakeject: true
+      stonesit.reload: true
+  stonesit.sit.*:
+    description: Alle Block-Sit Berechtigungen
+    default: true
+    children:
+      stonesit.sit: true
+      stonesit.sitclick: true
+  stonesit.sit:
+    description: Erlaubt die Nutzung von /sit (/gsit)
+    default: true
+  stonesit.sitclick:
+    description: Erlaubt das Hinsetzen per Rechtsklick auf Stufen/Treppen/Teppiche
+    default: true
+  stonesit.pose.*:
+    description: Alle Pose-Berechtigungen (/lay & /legsup)
+    default: true
+    children:
+      stonesit.lay: true
+      stonesit.legsup: true
+  stonesit.lay:
+    description: Erlaubt die Nutzung von /lay (/glay, /layback, /glayback)
+    default: true
+  stonesit.legsup:
+    description: Erlaubt die Nutzung von /legsup (/glegsup)
+    default: true
+  stonesit.playersit.*:
+    description: Alle PlayerSit Berechtigungen
+    default: true
+    children:
+      stonesit.playersit: true
+  stonesit.playersit:
+    description: Erlaubt das Setzen auf andere Spieler per Rechtsklick
+    default: true
+  stonesit.kick.*:
+    description: Erlaubt das Kicken sitzender/liegenden Spieler von Blöcken
+    default: op
+    children:
+      stonesit.kick.sit: true
+      stonesit.kick.pose: true
+  stonesit.kick.sit:
+    description: Erlaubt das Kicken eines sitzenden Spielers von seinem Block
+    default: op
+  stonesit.kick.pose:
+    description: Erlaubt das Kicken eines liegenden Spielers (/lay, /legsup) von seinem Block
+    default: op
+  stonesit.bypass.*:
+    description: Umgeht alle StoneSit-Einschränkungen und schützt vor Sneak-Abwurf vom Kopf
+    default: op
+    children:
+      stonesit.bypass.sneakeject: true
+      stonesit.bypass.command: true
+      stonesit.bypass.world: true
+      stonesit.bypass.region: true
+  stonesit.bypass.sneakeject:
+    description: Verhindert, dass man als Admin durch Sneaken vom Kopf eines Spielers gekickt werden kann
+    default: op
+  stonesit.bypass.command:
+    description: Umgeht die Command-Blacklist während des Sitzens/Liegens
+    default: op
+  stonesit.bypass.world:
+    description: Umgeht die World-Blacklist/Whitelist
+    default: op
+  stonesit.bypass.region:
+    description: Umgeht Regions-/Claim-Einschränkungen beim Sitzen/Liegen
+    default: op
+  stonesit.reload:
+    description: Erlaubt das Neuladen der StoneSit-Konfiguration (/stonesitreload)
+    default: op
+
+  # DragonEgg Permissions
+  dragonegg.admin:
+    description: Erlaubt Zugriff auf alle /dragonegg Admin-Befehle
+    default: op
+    children:
+      dragonegg.bypass: true
+      dragonegg.bypass.other: true
+  dragonegg.bypass:
+    description: Erlaubt /dragonegg bypass, um Glowing, permanentes PvP und Claim-Sperren des Dracheneis zu umgehen
+    default: op
+  dragonegg.bypass.other:
+    description: Erlaubt /dragonegg bypass <on|off> <spieler> für andere Spieler
+    default: op
+  dragonegg.bypass.join:
+    description: "Aktiviert /dragonegg bypass automatisch beim Betreten des Servers (Standard: aus)"
+    default: false
 
   # Ztone Permissions
   ztone.admin:

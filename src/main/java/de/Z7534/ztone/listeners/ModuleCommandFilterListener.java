@@ -108,6 +108,23 @@ public class ModuleCommandFilterListener implements Listener {
             }, "§cDas ClearLag-Modul ist auf diesem Server deaktiviert.", pluginPrefix);
         }
 
+        // 12. StoneSit Module
+        if (!cfg.isStonesitEnabled()) {
+            registerDisabled(new String[]{
+                    "sit", "gsit", "stonesit",
+                    "lay", "glay", "layback", "glayback",
+                    "legsup", "glegsup",
+                    "stonesitreload", "gsitreload", "gsitrl", "stonesitrl"
+            }, "§cDas StoneSit-Modul ist auf diesem Server deaktiviert.", pluginPrefix);
+        }
+
+        // 13. DragonEgg Module
+        if (!cfg.isDragoneggEnabled()) {
+            registerDisabled(new String[]{
+                    "dragonegg"
+            }, "§cDas DragonEgg-Modul ist auf diesem Server deaktiviert.", pluginPrefix);
+        }
+
         // Unregister disabled commands from Bukkit's CommandMap so Brigadier doesn't register them
         unregisterFromCommandMap();
 

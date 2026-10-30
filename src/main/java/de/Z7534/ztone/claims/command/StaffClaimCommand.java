@@ -370,13 +370,26 @@ public final class StaffClaimCommand implements CommandExecutor, TabCompleter {
                         sender.sendMessage("§6Getrustete Spieler auf " + claim.name() + ":");
                         claim.trusted().keySet().forEach(u -> sender.sendMessage("§7- " + nameOf(u)));
                     } else {
-                        sender.sendMessage("§6Gebannte Spieler auf " + claim.name() + ":");
+                        sender.sendMessage("§6Gebannte Spieler auf " + claim.name() + " (Ban-All: " + (claim.isBanAll() ? "§cAktiv" : "§7Inaktiv") + "§6):");
                         claim.banned().forEach(u -> sender.sendMessage("§7- " + nameOf(u)));
                     }
                 }
                 case "add", "remove" -> {
                     if (args.length < 5) {
                         sender.sendMessage("§cEs fehlt der Zielspieler.");
+                        return;
+                    }
+                    String targetInput = args[4];
+                    if (!trust && (targetInput.equals("*") || targetInput.equalsIgnoreCase("alle") || targetInput.equalsIgnoreCase("all"))) {
+                        boolean banState = action.equals("add");
+                        Claim fresh = ctx.claims().getById(claim.id());
+                        if (fresh != null) {
+                            ctx.claims().setBanAll(fresh, banState);
+                            if (banState) {
+                                ctx.banEnforcer().handleBanAll(fresh, sender.getName());
+                            }
+                            sender.sendMessage("§aAlle fremden Spieler wurden auf " + fresh.name() + (banState ? " gebannt." : " entbannt."));
+                        }
                         return;
                     }
                     ctx.lookup().resolve(args[4]).thenAccept(opt -> Bukkit.getScheduler().runTask(ctx.plugin(), () -> {
@@ -513,6 +526,10 @@ public final class StaffClaimCommand implements CommandExecutor, TabCompleter {
         if (args.length == 5) {
             if ((sub.equals("trust") || sub.equals("ban"))
                     && (args[3].equalsIgnoreCase("add") || args[3].equalsIgnoreCase("remove"))) {
+                if (sub.equals("ban")) {
+                    out.add("*");
+                    out.add("alle");
+                }
                 StringUtil.copyPartialMatches(args[4], getKnownPlayerNames(), out);
                 Collections.sort(out);
             }

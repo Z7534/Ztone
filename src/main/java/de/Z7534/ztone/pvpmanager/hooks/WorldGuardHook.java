@@ -3,6 +3,7 @@ package de.Z7534.ztone.pvpmanager.hooks;
 import de.Z7534.ztone.pvpmanager.Pvpmanager;
 import org.bukkit.Location;
 
+import java.lang.reflect.Array;
 import java.lang.reflect.Method;
 
 public class WorldGuardHook {
@@ -20,6 +21,21 @@ public class WorldGuardHook {
     private final Pvpmanager plugin;
     private boolean available;
 
+    // ---- Reflection-Cache --------------------------------------------------------------------
+    // Alle Reflection-Lookups (Class.forName, getMethod, getMethods, getField, valueOf) werden nur
+    // EINMAL beim ersten Aufruf aufgeloest und danach wiederverwendet. Vorher lief z. B.
+    // Class.getMethods() bei JEDEM Schaden-Event (mehrfach pro Hit), was unnoetig teuer war.
+    private volatile boolean reflectionResolved;
+    private volatile boolean reflectionBroken;
+    private Object regionContainer;
+    private Method createQueryMethod;
+    private Method adaptLocationMethod;
+    private Method queryStateMethod;
+    private Class<?> flagComponentType;
+    private Object pvpFlag;
+    private Object allowState;
+    private Object denyState;
+
     public WorldGuardHook(Pvpmanager plugin) {
         this.plugin = plugin;
         try {
@@ -35,6 +51,51 @@ public class WorldGuardHook {
     }
 
     /**
+     * Loest alle benoetigten WorldGuard-Klassen/Methoden einmalig auf und cached sie.
+     * Wird lazy beim ersten Query aufgerufen (WorldGuard ist dann sicher fertig geladen).
+     */
+    private synchronized void resolveReflection() {
+        if (reflectionResolved || reflectionBroken) {
+            return;
+        }
+        try {
+            Class<?> worldGuardClass = Class.forName("com.sk89q.worldguard.WorldGuard");
+            Object worldGuard = worldGuardClass.getMethod("getInstance").invoke(null);
+            Object platform = worldGuardClass.getMethod("getPlatform").invoke(worldGuard);
+            Object container = platform.getClass().getMethod("getRegionContainer").invoke(platform);
+            Method createQuery = container.getClass().getMethod("createQuery");
+
+            Class<?> adapterClass = Class.forName("com.sk89q.worldedit.bukkit.BukkitAdapter");
+            Method adapt = adapterClass.getMethod("adapt", Location.class);
+
+            Class<?> flagsClass = Class.forName("com.sk89q.worldguard.protection.flags.Flags");
+            Object flag = flagsClass.getField("PVP").get(null);
+
+            // queryState-Methode einmalig ueber den Rueckgabetyp von createQuery() suchen
+            Method queryState = findQueryStateMethod(createQuery.getReturnType());
+            // WICHTIG: queryState(Location, RegionAssociable, StateFlag...) ist eine varargs-Methode.
+            // Bei Method.invoke() muss das Array fuer den letzten (varargs-)Parameter selbst gebaut werden.
+            Class<?> componentType = queryState.getParameterTypes()[2].getComponentType();
+
+            Class<?> stateClass = Class.forName("com.sk89q.worldguard.protection.flags.StateFlag$State");
+            Method valueOf = stateClass.getMethod("valueOf", String.class);
+
+            this.regionContainer = container;
+            this.createQueryMethod = createQuery;
+            this.adaptLocationMethod = adapt;
+            this.pvpFlag = flag;
+            this.queryStateMethod = queryState;
+            this.flagComponentType = componentType;
+            this.allowState = valueOf.invoke(null, "ALLOW");
+            this.denyState = valueOf.invoke(null, "DENY");
+            this.reflectionResolved = true;
+        } catch (Throwable throwable) {
+            this.reflectionBroken = true;
+            logQueryFailureOnce(throwable);
+        }
+    }
+
+    /**
      * Fragt den pvp-Flag von WorldGuard an der angegebenen Position ab.
      * Liefert UNDEFINED zurueck, wenn WorldGuard nicht verfuegbar ist, kein Flag gesetzt ist,
      * oder die Reflection-Abfrage fehlschlaegt (z. B. wegen einer API-Aenderung) - in dem Fall
@@ -42,43 +103,27 @@ public class WorldGuardHook {
      * beibehalten.
      */
     public PvpState queryPvpState(Location location) {
-        if (!available) {
+        if (!available || location == null) {
             return PvpState.UNDEFINED;
         }
+        if (!reflectionResolved) {
+            resolveReflection();
+            if (!reflectionResolved) {
+                return PvpState.UNDEFINED;
+            }
+        }
         try {
-            Class<?> worldGuardClass = Class.forName("com.sk89q.worldguard.WorldGuard");
-            Object worldGuard = worldGuardClass.getMethod("getInstance").invoke(null);
-            Object platform = worldGuardClass.getMethod("getPlatform").invoke(worldGuard);
-            Object regionContainer = platform.getClass().getMethod("getRegionContainer").invoke(platform);
-            Object query = regionContainer.getClass().getMethod("createQuery").invoke(regionContainer);
+            Object query = createQueryMethod.invoke(regionContainer);
+            Object adaptedLocation = adaptLocationMethod.invoke(null, location);
 
-            Class<?> adapterClass = Class.forName("com.sk89q.worldedit.bukkit.BukkitAdapter");
-            Object adaptedLocation = adapterClass.getMethod("adapt", Location.class).invoke(null, location);
-
-            Class<?> flagsClass = Class.forName("com.sk89q.worldguard.protection.flags.Flags");
-            Object pvpFlag = flagsClass.getField("PVP").get(null);
-
-            Method queryStateMethod = findQueryStateMethod(query);
-            // WICHTIG: queryState(Location, RegionAssociable, StateFlag...) ist eine varargs-Methode.
-            // Bei Method.invoke() wird das NICHT automatisch in ein Array gepackt wie bei normalem Java-Code -
-            // man muss das Array fuer den letzten (varargs-)Parameter selbst bauen, sonst wirft invoke() ein
-            // IllegalArgumentException ("argument type mismatch"), das hier vorher lautlos im catch-Block
-            // verschluckt wurde und die Abfrage IMMER auf UNDEFINED fallen liess (weder ALLOW noch DENY
-            // wurden je erkannt).
-            Class<?> varargsArrayType = queryStateMethod.getParameterTypes()[2];
-            Object flagsArray = java.lang.reflect.Array.newInstance(varargsArrayType.getComponentType(), 1);
-            java.lang.reflect.Array.set(flagsArray, 0, pvpFlag);
+            Object flagsArray = Array.newInstance(flagComponentType, 1);
+            Array.set(flagsArray, 0, pvpFlag);
             Object state = queryStateMethod.invoke(query, adaptedLocation, null, flagsArray);
 
             if (state == null) {
                 // Kein Flag an dieser Stelle gesetzt (weder ALLOW noch DENY) -> undefiniert
                 return PvpState.UNDEFINED;
             }
-
-            Class<?> stateClass = Class.forName("com.sk89q.worldguard.protection.flags.StateFlag$State");
-            Object allowState = stateClass.getMethod("valueOf", String.class).invoke(null, "ALLOW");
-            Object denyState = stateClass.getMethod("valueOf", String.class).invoke(null, "DENY");
-
             if (state == allowState) {
                 return PvpState.ALLOW;
             }
@@ -122,9 +167,10 @@ public class WorldGuardHook {
         return queryPvpState(location) == PvpState.DENY;
     }
 
-    private Method findQueryStateMethod(Object query) {
-        for (Method method : query.getClass().getMethods()) {
-            if (method.getName().equals("queryState") && method.getParameterCount() == 3) {
+    private Method findQueryStateMethod(Class<?> queryClass) {
+        for (Method method : queryClass.getMethods()) {
+            if (method.getName().equals("queryState") && method.getParameterCount() == 3
+                    && method.getParameterTypes()[2].isArray()) {
                 return method;
             }
         }

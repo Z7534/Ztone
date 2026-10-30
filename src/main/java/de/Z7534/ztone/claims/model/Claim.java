@@ -18,6 +18,7 @@ public final class Claim {
     private int visitorPermissionMask = ClaimPermission.NONE_MASK;
     private boolean clanTrustEnabled = false;
     private boolean allyTrustEnabled = false;
+    private boolean banAll = false; // Sperrt den Claim für ALLE Fremden (Nicht-Trusts)
     private final Set<UUID> managers = new HashSet<>();
     private long createdAt;
 
@@ -101,6 +102,14 @@ public final class Claim {
         this.allyTrustEnabled = enabled;
     }
 
+    public boolean isBanAll() {
+        return banAll;
+    }
+
+    public void setBanAll(boolean banAll) {
+        this.banAll = banAll;
+    }
+
     public Set<UUID> managers() {
         return managers;
     }
@@ -118,11 +127,34 @@ public final class Claim {
     }
 
     /**
-     * Der Besitzer kann nie von seinem eigenen Claim gebannt sein - sonst würde er sich
-     * z.B. per /staffclaim ban oder nach einer Übertragung selbst aussperren.
+     * Der Besitzer kann nie von seinem eigenen Claim gebannt sein.
+     * Wenn banAll aktiv ist, sind alle Fremden gebannt, AUSSER:
+     * - Besitzer & Manager
+     * - Explizit getrustete Spieler
+     * - Clanmitglieder / Allierte (sofern Clan-/Ally-Trust aktiv ist)
      */
     public boolean isBanned(UUID uuid) {
-        return !isOwner(uuid) && banned.contains(uuid);
+        if (uuid == null || isOwner(uuid) || isManager(uuid)) {
+            return false;
+        }
+        if (banned.contains(uuid)) {
+            return true;
+        }
+        if (banAll) {
+            if (trusted.containsKey(uuid)) {
+                return false;
+            }
+            if (clanTrustEnabled && de.Z7534.ztone.Ztone.getInstance() != null
+                    && de.Z7534.ztone.Ztone.getInstance().isSameClan(owner, uuid)) {
+                return false;
+            }
+            if (allyTrustEnabled && de.Z7534.ztone.Ztone.getInstance() != null
+                    && de.Z7534.ztone.Ztone.getInstance().isAlly(owner, uuid)) {
+                return false;
+            }
+            return true;
+        }
+        return false;
     }
 
     public boolean isOwner(UUID uuid) {

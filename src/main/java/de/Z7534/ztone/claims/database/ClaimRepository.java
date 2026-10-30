@@ -46,6 +46,9 @@ public final class ClaimRepository {
                         try {
                             claim.setAllyTrustEnabled(rs.getInt("ally_trust_enabled") == 1);
                         } catch (Exception ignored) {}
+                        try {
+                            claim.setBanAll(rs.getInt("ban_all") == 1);
+                        } catch (Exception ignored) {}
                         claims.put(id, claim);
                     }
                 }
@@ -98,7 +101,7 @@ public final class ClaimRepository {
      * weil die generierte ID sofort gebraucht wird. Liefert -1 bei einem Fehler.
      */
     public long insertClaim(Claim claim) {
-        String sql = "INSERT INTO claims_claims (owner_uuid, name, world, visitor_perm_mask, created_at) VALUES (?, ?, ?, ?, ?)";
+        String sql = "INSERT INTO claims_claims (owner_uuid, name, world, visitor_perm_mask, created_at, clan_trust_enabled, ally_trust_enabled, ban_all) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
         synchronized (db) {
             long[] result = {-1};
             try {
@@ -110,6 +113,9 @@ public final class ClaimRepository {
                         ps.setString(3, claim.world());
                         ps.setInt(4, claim.visitorPermissionMask());
                         ps.setLong(5, claim.createdAt());
+                        ps.setInt(6, claim.isClanTrustEnabled() ? 1 : 0);
+                        ps.setInt(7, claim.isAllyTrustEnabled() ? 1 : 0);
+                        ps.setInt(8, claim.isBanAll() ? 1 : 0);
                         ps.executeUpdate();
                         try (ResultSet keys = ps.getGeneratedKeys()) {
                             if (!keys.next()) {
@@ -295,6 +301,19 @@ public final class ClaimRepository {
                 ps.executeUpdate();
             } catch (SQLException e) {
                 logger.log(Level.SEVERE, "Fehler beim Speichern von Allianz-Trust", e);
+            }
+        }
+    }
+
+    public void setBanAll(long claimId, boolean enabled) {
+        synchronized (db) {
+            Connection c = db.connection();
+            try (PreparedStatement ps = c.prepareStatement("UPDATE claims_claims SET ban_all = ? WHERE id = ?")) {
+                ps.setInt(1, enabled ? 1 : 0);
+                ps.setLong(2, claimId);
+                ps.executeUpdate();
+            } catch (SQLException e) {
+                logger.log(Level.SEVERE, "Fehler beim Speichern von Ban-All", e);
             }
         }
     }

@@ -156,7 +156,10 @@ public class Pvpmanager {
 
     public boolean canPvP(Player player) {
         if (player == null) return false;
-        if (isForcedWarPvP(player)) return true;
+        // Clankrieg wird NICHT hier global behandelt! Kriegs-PvP gilt nur zwischen den Kriegsgegnern
+        // und wird in den Listenern gezielt ueber Ztone#areWarOpponentsWithPvP geprueft.
+        // (Frueher: isForcedWarPvP(player) -> true machte Clan-Mitglieder im Krieg fuer ALLE angreifbar,
+        //  auch ohne /pvp on und sogar in Claims.)
         if (overrideManager != null && overrideManager.isOverriding(player.getUniqueId())) return true;
 
         // Claims-Pruefung: Befindet sich der Spieler in einem Claim?
@@ -186,14 +189,22 @@ public class Pvpmanager {
         boolean effective = personal;
         if (dimensionForced && !exempt) {
             effective = dimensionDefaultEnabled;
+        } else if (plugin.isDragonEggPvpForced(player)) {
+            // DragonEgg-Modul: Wer das gesicherte Drachenei traegt, hat dauerhaft PvP an (in jeder Dimension).
+            // Eine per --force erzwungene Dimension sowie WorldGuard-Regionen (unten) haben Vorrang.
+            // Der gespeicherte /pvp-Status wird dabei NICHT veraendert.
+            effective = true;
         }
 
         if (hookManager != null && hookManager.worldGuard() != null) {
-            if (configManager != null && configManager.config().getBoolean("PvP Toggle.WorldGuard Overrides", false)
-                    && hookManager.worldGuard().isPvpForceAllowed(player.getLocation())) {
+            // WorldGuard nur EINMAL pro Aufruf abfragen (vorher 2x: isPvpForceAllowed + isPvpExplicitlyDenied)
+            de.Z7534.ztone.pvpmanager.hooks.WorldGuardHook.PvpState wgState =
+                    hookManager.worldGuard().queryPvpState(player.getLocation());
+            if (wgState == de.Z7534.ztone.pvpmanager.hooks.WorldGuardHook.PvpState.ALLOW
+                    && configManager != null && configManager.config().getBoolean("PvP Toggle.WorldGuard Overrides", false)) {
                 return true;
             }
-            if (hookManager.worldGuard().isPvpExplicitlyDenied(player.getLocation())) {
+            if (wgState == de.Z7534.ztone.pvpmanager.hooks.WorldGuardHook.PvpState.DENY) {
                 return false;
             }
         }

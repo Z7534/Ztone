@@ -1,0 +1,161 @@
+# ==============================================================================
+#                          STONESIT KONFIGURATION
+# ==============================================================================
+# Hochperformantes Sit-, Pose- (/lay, /legsup) & PlayerSit-Modul (1:1 nach GSit).
+# Ohne Bellyflop, Spin und Toggle-Overhead; mit Admin-Schutz vor Sneak-Abwurf.
+# ==============================================================================
+
+options:
+  # Spieler stehen automatisch auf, wenn sie Schaden erleiden
+  get-up-damage: false
+
+  # Spieler können durch Sneaken (Schleichen) aufstehen
+  get-up-sneak: true
+
+  # Spieler beim Aufstehen an ihre ursprüngliche Position zurücksetzen
+  get-up-return: false
+
+  # Spieler stehen automatisch auf, wenn der Block unter ihnen abgebaut/zerstört wird
+  get-up-break: true
+
+  # Erlaubt das Sitzen/Liegen an unsicheren Positionen (z. B. wenn der Block darüber nicht frei ist)
+  allow-unsafe: false
+
+  # Erlaubt mehreren Spielern gleichzeitig auf demselben Block zu sitzen/liegen
+  same-block-rest: false
+
+  # Zentriert den Spieler beim Sitzen/Liegen auf der Blockmitte
+  center-block: true
+
+  # Zeigt beim Hinsetzen/Hinlegen eine ActionBar-Information an
+  custom-message: true
+
+  # ============================================================================
+  #                           BLOCK-SIT EINSTELLUNGEN
+  # ============================================================================
+  sit:
+    # Materialien oder Block-Tags (#...), auf die man sich per Rechtsklick setzen kann.
+    # Optionaler Höhen-Offset mit ';' trennbar (z.B. "oak_stairs;0.1")
+    sit-materials:
+      - "#stairs"
+      - "#slabs"
+      - "#carpets"
+      - "#wool_carpets"
+      - "moss_carpet"
+      - "pale_moss_carpet"
+      - "shelf_mushroom"
+      - "snow"
+
+    # Sitzen auf Stufen (Slabs) und Treppen (Stairs) nur erlauben, wenn sie unten platziert sind
+    bottom-part-only: true
+
+    # Erfordert eine leere Haupthand, um sich per Rechtsklick hinzusetzen
+    empty-hand-only: true
+
+    # Maximale Distanz zum Block für Rechtsklick-Sitzen (0.0 = unbegrenzt / Standard-Reichweite)
+    max-distance: 0.0
+
+  # ============================================================================
+  #                      POSE EINSTELLUNGEN (/lay & /legsup)
+  # ============================================================================
+  pose:
+    # Erlaubt liegenden Spielern, mit der Welt zu interagieren (Blöcke/Entities schlagen etc.)
+    interact: false
+
+    # Setzt den Phantom-Timer (TIME_SINCE_REST) beim Hinlegen zurück (wie beim Schlafen im Bett)
+    lay-rest: true
+
+    # Spielt Schnarchgeräusche ab, während ein Spieler liegt
+    lay-snoring-sounds: false
+
+    # Schnarchgeräusche nur nachts abspielen
+    lay-snoring-night-only: true
+
+    # Zählt liegende Spieler (/lay & /legsup) als schlafend im Bett zum Überspringen der Nacht/Gewitter,
+    # OHNE dabei jemals den Respawn-Punkt des Spielers zu setzen oder zu verändern!
+    lay-night-skip: true
+
+    # Lässt liegende Spieler morgens nach dem Überspringen der Nacht automatisch aufstehen (wie im Bett)
+    lay-wakeup-morning: true
+
+  # ============================================================================
+  #                         SPIELER-SIT (PLAYERSIT)
+  # ============================================================================
+  player-sit:
+    # Erlaubt Spielern, sich per Rechtsklick auf andere Spieler zu setzen (Stapeln)
+    allow-sit: true
+
+    # Erlaubt Spielern, sich per Rechtsklick auf NPCs zu setzen
+    allow-sit-npc: true
+
+    # Maximale Anzahl an gestapelten Spielern (0 = unbegrenzt)
+    max-stack: 0
+
+    # Wirft auf dem Kopf sitzende Spieler beim Sneaken (Schleichen) ab
+    # HINWEIS: Admins mit der Permission 'stonesit.bypass.sneakeject' (oder 'stonesit.admin')
+    # können durch Sneaken NICHT vom Kopf geworfen werden!
+    sneak-ejects: true
+
+    # Setzt den Spieler beim Absteigen an die Position des untersten Spielers im Stapel
+    bottom-return: false
+
+    # Erfordert eine leere Haupthand, um sich auf andere Spieler zu setzen
+    empty-hand-only: true
+
+    # Maximale Distanz zum Zielspieler für PlayerSit (0.0 = unbegrenzt)
+    max-distance: 0.0
+
+  # ============================================================================
+  #                         WELTEN, REGIONEN & FILTER
+  # ============================================================================
+  # Erlaubt das Sitzen/Liegen auf geclaimten Grundstücken nur für getrustete Spieler (Ztone Claims)
+  trusted-region-only: false
+
+  # Welten, in denen das Sitzen/Liegen deaktiviert ist
+  world-blacklist: []
+
+  # Wenn nicht leer, ist das Sitzen/Liegen NUR in diesen Welten erlaubt
+  world-whitelist: []
+
+  # Materialien oder Block-Tags, auf denen man sich niemals hinsetzen/hinlegen kann
+  material-blacklist: []
+
+  # Befehle, die während des Sitzens/Liegens blockiert sind (ohne Bypass-Permission)
+  command-blacklist:
+    - "skin"
+    - "nick"
+
+# ==============================================================================
+#                                 NACHRICHTEN
+# ==============================================================================
+messages:
+  prefix: "<gradient:#00C9FF:#92FE9D><bold>sᴛᴏɴᴇsɪᴛ</bold></gradient> <dark_gray>»</dark_gray>"
+  no-permission: "<prefix> <red>Du hast keine Berechtigung, diesen Befehl zu verwenden!</red>"
+  only-players: "<prefix> <red>Dieser Befehl kann nur von Spielern ausgeführt werden!</red>"
+  reloaded: "<prefix> <green>Die Konfiguration wurde erfolgreich neu geladen!</green>"
+
+  action-sit-now-error: "<prefix> <red>Du kannst gerade nicht sitzen!</red>"
+  action-sit-world-error: "<prefix> <red>Du kannst in dieser Welt nicht sitzen!</red>"
+  action-sit-location-error: "<prefix> <red>Du kannst hier nicht sitzen!</red>"
+  action-sit-safe-error: "<prefix> <red>Es ist nicht sicher, hier zu sitzen!</red>"
+  action-sit-region-error: "<prefix> <red>Du kannst in dieser Region nicht sitzen!</red>"
+  action-sit-kick-error: "<prefix> <red>Jemand sitzt hier bereits!</red>"
+  action-sit-error: "<prefix> <red>Wegen eines Fehlers kannst du hier nicht sitzen!</red>"
+  action-sit-info: "<gold><lang:key.sneak></gold> <green>zum Aufstehen</green>"
+
+  action-pose-now-error: "<prefix> <red>Du kannst dich gerade nicht hinlegen!</red>"
+  action-pose-world-error: "<prefix> <red>Du kannst dich in dieser Welt nicht hinlegen!</red>"
+  action-pose-location-error: "<prefix> <red>Du kannst dich hier nicht hinlegen!</red>"
+  action-pose-safe-error: "<prefix> <red>Es ist nicht sicher, sich hier hinzulegen!</red>"
+  action-pose-region-error: "<prefix> <red>Du kannst dich in dieser Region nicht hinlegen!</red>"
+  action-pose-kick-error: "<prefix> <red>Hier liegt bereits jemand!</red>"
+  action-pose-error: "<prefix> <red>Wegen eines Fehlers kannst du dich hier nicht hinlegen!</red>"
+  action-pose-info: "<gold><lang:key.sneak></gold> <green>zum Aufstehen</green>"
+
+  action-playersit-info: "<gold><lang:key.sneak></gold> <green>zum Aufstehen</green>"
+  action-playersit-admin-protected: "<prefix> <red>Du kannst diesen Admin nicht durch Schleichen vom Kopf werfen!</red>"
+  action-playersit-banned-claim: "<prefix> <red>Du wurdest vom Kopf geworfen, da du auf diesem Claim gebannt bist!</red>"
+  action-playersit-carrier-banned-claim: "<prefix> <yellow>{player}</yellow> <red>wurde von deinem Kopf geworfen (auf dem Claim gebannt).</red>"
+  action-playersit-target-banned-claim: "<prefix> <red>Du kannst dich hier nicht auf andere Spieler setzen, da du auf diesem Claim gebannt bist!</red>"
+
+  action-blocked-error: "<prefix> <red>Du darfst diesen Befehl im Moment nicht ausführen!</red>"

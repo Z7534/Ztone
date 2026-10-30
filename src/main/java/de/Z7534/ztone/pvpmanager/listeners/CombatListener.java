@@ -42,7 +42,7 @@ public class CombatListener implements Listener {
     public boolean isPvpAllowedAtLocations(Player attacker, Player victim) {
         if (attacker == null || victim == null) return false;
         if (plugin.getOverrideManager().isOverriding(attacker.getUniqueId())) return true;
-        if (plugin.getPlugin().areWarOpponentsWithPvP(attacker.getUniqueId(), victim.getUniqueId())) return true;
+        // Clankrieg ueberschreibt Claims NIEMALS - daher hier keine Kriegs-Ausnahme mehr.
 
         if (plugin.getPlugin().getConfigManager().isClaimsEnabled() && plugin.getPlugin().getClaims() != null) {
             var claimsPlugin = plugin.getPlugin().getClaims();
@@ -71,6 +71,16 @@ public class CombatListener implements Listener {
         }
 
         return true;
+    }
+
+    /**
+     * Clankrieg erzwingt PvP zwischen Kriegsgegnern - aber NIE, wenn einer der beiden in einem Claim steht
+     * (egal welche Clan-Rechte oder Claim-Overrides aktiv sind).
+     */
+    private boolean warForcesPvP(Player attacker, Player victim) {
+        if (!plugin.getPlugin().areWarOpponentsWithPvP(attacker.getUniqueId(), victim.getUniqueId())) return false;
+        return !plugin.getPlugin().isInAnyClaim(attacker.getLocation())
+                && !plugin.getPlugin().isInAnyClaim(victim.getLocation());
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
@@ -177,7 +187,7 @@ public class CombatListener implements Listener {
         }
 
         // Clankrieg: PvP ist zielgerichtet zwischen den Kriegsgegnern aktiv (nicht global gegen unbeteiligte Spieler)
-        boolean atWar = plugin.getPlugin().areWarOpponentsWithPvP(attacker.getUniqueId(), victim.getUniqueId());
+        boolean atWar = warForcesPvP(attacker, victim);
         boolean attackerCanPvP = atWar || plugin.canPvP(attacker);
         boolean victimCanPvP = atWar || plugin.canPvP(victim);
 
@@ -234,8 +244,8 @@ public class CombatListener implements Listener {
     public void onFish(PlayerFishEvent event) {
         if (event.getCaught() instanceof Player victim && !victim.equals(event.getPlayer())) {
             Player fisher = event.getPlayer();
-            boolean atWar = plugin.getPlugin().areWarOpponentsWithPvP(fisher.getUniqueId(), victim.getUniqueId());
-            if (!atWar && (!isPvpAllowedAtLocations(fisher, victim) || !plugin.canPvP(victim) || !plugin.canPvP(fisher))) {
+            boolean atWar = warForcesPvP(fisher, victim);
+            if (!isPvpAllowedAtLocations(fisher, victim) || (!atWar && (!plugin.canPvP(victim) || !plugin.canPvP(fisher)))) {
                 event.setCancelled(true);
                 event.getHook().remove();
                 plugin.getMessageDispatcher().send(fisher, "Attack_Denied_Other", Map.of("player", victim.getName()));
@@ -261,8 +271,8 @@ public class CombatListener implements Listener {
 
         for (LivingEntity entity : event.getAffectedEntities()) {
             if (entity instanceof Player victim && !victim.equals(attacker)) {
-                boolean atWar = plugin.getPlugin().areWarOpponentsWithPvP(attacker.getUniqueId(), victim.getUniqueId());
-                if (!atWar && (!isPvpAllowedAtLocations(attacker, victim) || !plugin.canPvP(victim) || !plugin.canPvP(attacker))) {
+                boolean atWar = warForcesPvP(attacker, victim);
+                if (!isPvpAllowedAtLocations(attacker, victim) || (!atWar && (!plugin.canPvP(victim) || !plugin.canPvP(attacker)))) {
                     event.setIntensity(victim, 0.0);
                 } else {
                     applyTagAndMessages(attacker, victim);
@@ -297,8 +307,8 @@ public class CombatListener implements Listener {
 
         for (LivingEntity entity : new ArrayList<>(event.getAffectedEntities())) {
             if (entity instanceof Player victim && !victim.equals(attacker)) {
-                boolean atWar = plugin.getPlugin().areWarOpponentsWithPvP(attacker.getUniqueId(), victim.getUniqueId());
-                if (!atWar && (!isPvpAllowedAtLocations(attacker, victim) || !plugin.canPvP(victim) || !plugin.canPvP(attacker))) {
+                boolean atWar = warForcesPvP(attacker, victim);
+                if (!isPvpAllowedAtLocations(attacker, victim) || (!atWar && (!plugin.canPvP(victim) || !plugin.canPvP(attacker)))) {
                     event.getAffectedEntities().remove(victim);
                 } else {
                     applyTagAndMessages(attacker, victim);

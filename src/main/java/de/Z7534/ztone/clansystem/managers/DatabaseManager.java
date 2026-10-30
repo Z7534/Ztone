@@ -9,9 +9,18 @@ import de.Z7534.ztone.clansystem.storage.SqlDialect;
 import de.Z7534.ztone.clansystem.storage.SqliteDialect;
 import de.Z7534.ztone.clansystem.storage.StorageType;
 import de.Z7534.ztone.clansystem.utils.ItemSerializer;
+import org.bukkit.Bukkit;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.scheduler.BukkitTask;
 
+import java.io.File;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 import java.sql.*;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.Arrays;
+import java.util.Comparator;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
@@ -27,6 +36,7 @@ public class DatabaseManager {
     private String tablePrefix;
     private SqlDialect dialect;
     private ExecutorService dbExecutor;
+    private BukkitTask backupTask;
 
     public DatabaseManager(Ztone plugin) {
         this.plugin = plugin;
@@ -52,24 +62,22 @@ public class DatabaseManager {
             }
 
             if (dialect.type() == StorageType.SQLITE) {
-                try (Connection conn = dataSource.getConnection();
-                     Statement st = conn.createStatement();
-                     ResultSet rs = st.executeQuery("SELECT name FROM sqlite_master WHERE type='table'")) {
-                    boolean hasClanClans = false;
-                    boolean hasZtoneClans = false;
-                    while (rs.next()) {
-                        String t = rs.getString(1);
-                        if ("clan_clans".equalsIgnoreCase(t)) hasClanClans = true;
-                        if ("ztone_clans".equalsIgnoreCase(t)) hasZtoneClans = true;
-                    }
-                    if (hasClanClans && !hasZtoneClans) {
+                dropAllSqliteViews();
+                try (Connection conn = dataSource.getConnection()) {
+                    int clanCount = getTableRowCount(conn, "clan_clans");
+                    int ztoneCount = getTableRowCount(conn, "ztone_clans");
+                    if (clanCount > ztoneCount && clanCount > 0) {
                         tablePrefix = "clan_";
-                        plugin.getLogger().info("Bestehende Clan-Datenbank mit 'clan_'-Präfix erkannt - verwende 'clan_'.");
+                        plugin.getLogger().info("Bestehende Clan-Datenbank mit 'clan_'-Präfix erkannt (" + clanCount + " Clans) - verwende 'clan_'.");
+                    } else if (ztoneCount > clanCount && ztoneCount > 0) {
+                        tablePrefix = "ztone_";
+                        plugin.getLogger().info("Bestehende Clan-Datenbank mit 'ztone_'-Präfix erkannt (" + ztoneCount + " Clans) - verwende 'ztone_'.");
                     }
                 } catch (SQLException ignored) {}
             }
 
             plugin.getLogger().info("Datenbankverbindung hergestellt! (" + dialect.type() + ")");
+            startBackupTask();
             return true;
 
         } catch (Exception e) {
@@ -97,6 +105,7 @@ public class DatabaseManager {
     }
 
     public void disconnect() {
+        stopBackupTask();
         if (dbExecutor != null && !dbExecutor.isShutdown()) {
             dbExecutor.shutdown();
             try {
@@ -128,6 +137,10 @@ public class DatabaseManager {
 
     public void createTables() {
         try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+
+            if (dialect.type() == StorageType.SQLITE) {
+                dropAllSqliteViews(conn);
+            }
 
             stmt.executeUpdate(
                     "CREATE TABLE IF NOT EXISTS " + tablePrefix + "clans (" +
@@ -287,9 +300,21 @@ public class DatabaseManager {
                             ")"
             );
 
-            stmt.executeUpdate("DROP TABLE IF EXISTS " + tablePrefix + "pvpmanager_players");
+            stmt.executeUpdate(
+                    "CREATE TABLE IF NOT EXISTS " + tablePrefix + "pvpmanager_players (" +
+                            "uuid VARCHAR(36) PRIMARY KEY," +
+                            "pvp_enabled INTEGER NOT NULL DEFAULT 0," +
+                            "teleport_override INTEGER NOT NULL DEFAULT 0" +
+                            ")"
+            );
             if (!tablePrefix.isEmpty()) {
-                stmt.executeUpdate("DROP TABLE IF EXISTS pvpmanager_players");
+                stmt.executeUpdate(
+                        "CREATE TABLE IF NOT EXISTS pvpmanager_players (" +
+                                "uuid VARCHAR(36) PRIMARY KEY," +
+                                "pvp_enabled INTEGER NOT NULL DEFAULT 0," +
+                                "teleport_override INTEGER NOT NULL DEFAULT 0" +
+                                ")"
+                );
             }
 
             ensureColumn(conn, tablePrefix + "clans", "icon", "VARCHAR(64) DEFAULT 'SHIELD'");
@@ -304,33 +329,7 @@ public class DatabaseManager {
             ensureColumn(conn, tablePrefix + "clans", "bonus_warps", "INTEGER DEFAULT 0");
 
             if (dialect.type() == StorageType.SQLITE) {
-                if ("clan_".equals(tablePrefix)) {
-                    createViewIfNotExists(stmt, "ztone_clans", "clan_clans");
-                    createViewIfNotExists(stmt, "ztone_members", "clan_members");
-                    createViewIfNotExists(stmt, "ztone_ranks", "clan_ranks");
-                    createViewIfNotExists(stmt, "ztone_homes", "clan_homes");
-                    createViewIfNotExists(stmt, "ztone_warps", "clan_warps");
-                    createViewIfNotExists(stmt, "ztone_chests", "clan_chests");
-                    createViewIfNotExists(stmt, "ztone_chest_logs", "clan_chest_logs");
-                    createViewIfNotExists(stmt, "ztone_alliances", "clan_alliances");
-                    createViewIfNotExists(stmt, "ztone_wars", "clan_wars");
-                    createViewIfNotExists(stmt, "ztone_war_kills", "clan_war_kills");
-                    createViewIfNotExists(stmt, "ztone_cooldowns", "clan_cooldowns");
-                    createViewIfNotExists(stmt, "ztone_bank_transactions", "clan_bank_transactions");
-                } else if ("ztone_".equals(tablePrefix)) {
-                    createViewIfNotExists(stmt, "clan_clans", "ztone_clans");
-                    createViewIfNotExists(stmt, "clan_members", "ztone_members");
-                    createViewIfNotExists(stmt, "clan_ranks", "ztone_ranks");
-                    createViewIfNotExists(stmt, "clan_homes", "ztone_homes");
-                    createViewIfNotExists(stmt, "clan_warps", "ztone_warps");
-                    createViewIfNotExists(stmt, "clan_chests", "ztone_chests");
-                    createViewIfNotExists(stmt, "clan_chest_logs", "ztone_chest_logs");
-                    createViewIfNotExists(stmt, "clan_alliances", "ztone_alliances");
-                    createViewIfNotExists(stmt, "clan_wars", "ztone_wars");
-                    createViewIfNotExists(stmt, "clan_war_kills", "ztone_war_kills");
-                    createViewIfNotExists(stmt, "clan_cooldowns", "ztone_cooldowns");
-                    createViewIfNotExists(stmt, "clan_bank_transactions", "ztone_bank_transactions");
-                }
+                createRealCounterpartTables(conn);
             }
 
             plugin.getLogger().info("Datenbanktabellen erstellt/überprüft.");
@@ -341,10 +340,99 @@ public class DatabaseManager {
         }
     }
 
-    private void createViewIfNotExists(Statement stmt, String viewName, String targetTable) {
+    public void dropAllSqliteViews() {
+        dropAllSqliteViews(null);
+    }
+
+    public void dropAllSqliteViews(Connection connection) {
+        if (dialect == null || dialect.type() != StorageType.SQLITE) return;
         try {
-            stmt.executeUpdate("CREATE VIEW IF NOT EXISTS " + viewName + " AS SELECT * FROM " + targetTable);
+            Connection connToUse = connection != null ? connection : (dataSource != null && !dataSource.isClosed() ? dataSource.getConnection() : null);
+            if (connToUse == null) return;
+            boolean closeConn = (connection == null);
+            try (Statement st = connToUse.createStatement()) {
+                String[] allPossibleViews = new String[]{
+                        "clan_clans", "clan_members", "clan_ranks", "clan_homes", "clan_warps",
+                        "clan_chests", "clan_chest_logs", "clan_alliances", "clan_wars", "clan_war_kills",
+                        "clan_cooldowns", "clan_bank_transactions", "clan_pvpmanager_players",
+                        "ztone_clans", "ztone_members", "ztone_ranks", "ztone_homes", "ztone_warps",
+                        "ztone_chests", "ztone_chest_logs", "ztone_alliances", "ztone_wars", "ztone_war_kills",
+                        "ztone_cooldowns", "ztone_bank_transactions", "ztone_pvpmanager_players",
+                        "players", "claims", "claim_chunks", "claim_trust", "claim_managers", "claim_bans",
+                        "snapshots", "exclusions", "period_state"
+                };
+                for (String viewName : allPossibleViews) {
+                    try {
+                        st.executeUpdate("DROP VIEW IF EXISTS \"" + viewName + "\"");
+                    } catch (SQLException ignored) {}
+                }
+                try (ResultSet rs = st.executeQuery("SELECT name FROM sqlite_master WHERE type='view'")) {
+                    List<String> dynamicViews = new ArrayList<>();
+                    while (rs.next()) {
+                        dynamicViews.add(rs.getString(1));
+                    }
+                    for (String dv : dynamicViews) {
+                        try (Statement dropSt = connToUse.createStatement()) {
+                            dropSt.executeUpdate("DROP VIEW IF EXISTS \"" + dv + "\"");
+                            plugin.getLogger().info("SQLite-View '" + dv + "' erfolgreich entfernt.");
+                        } catch (SQLException ignored) {}
+                    }
+                } catch (SQLException ignored) {}
+            } finally {
+                if (closeConn) {
+                    try { connToUse.close(); } catch (SQLException ignored) {}
+                }
+            }
         } catch (SQLException ignored) {}
+    }
+
+    private void createRealCounterpartTables(Connection conn) {
+        String[] tables = {
+                "clans", "members", "ranks", "homes", "warps", "chests",
+                "chest_logs", "alliances", "wars", "war_kills", "cooldowns", "bank_transactions", "pvpmanager_players"
+        };
+        boolean isClanPrefix = "clan_".equalsIgnoreCase(tablePrefix);
+        String sourcePrefix = isClanPrefix ? "clan_" : "ztone_";
+        String targetPrefix = isClanPrefix ? "ztone_" : "clan_";
+
+        for (String t : tables) {
+            String srcTable = sourcePrefix + t;
+            String dstTable = targetPrefix + t;
+            try (Statement st = conn.createStatement()) {
+                boolean targetExists = false;
+                try (ResultSet rs = st.executeQuery("SELECT name FROM sqlite_master WHERE type='table' AND name='" + dstTable + "'")) {
+                    if (rs.next()) targetExists = true;
+                }
+                if (!targetExists) {
+                    String srcSql = null;
+                    try (ResultSet rs = st.executeQuery("SELECT sql FROM sqlite_master WHERE type='table' AND name='" + srcTable + "'")) {
+                        if (rs.next()) {
+                            srcSql = rs.getString(1);
+                        }
+                    }
+                    if (srcSql != null && !srcSql.isBlank()) {
+                        String createSql = srcSql.replace(srcTable, dstTable);
+                        st.execute(createSql);
+                        st.execute("INSERT OR IGNORE INTO \"" + dstTable + "\" SELECT * FROM \"" + srcTable + "\"");
+                        plugin.getLogger().info("Tabelle '" + dstTable + "' als physische Tabelle synchronisiert.");
+                    }
+                }
+            } catch (SQLException ignored) {}
+        }
+    }
+
+    private int getTableRowCount(Connection conn, String tableName) {
+        try (Statement st = conn.createStatement();
+             ResultSet rs = st.executeQuery("SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='" + tableName + "'")) {
+            if (rs.next() && rs.getInt(1) > 0) {
+                try (ResultSet countRs = st.executeQuery("SELECT COUNT(*) FROM " + tableName)) {
+                    if (countRs.next()) {
+                        return countRs.getInt(1);
+                    }
+                }
+            }
+        } catch (SQLException ignored) {}
+        return 0;
     }
 
     private void ensureColumn(Connection conn, String table, String column, String definition) {
@@ -1292,5 +1380,104 @@ public class DatabaseManager {
 
     public SqlDialect getDialect() {
         return dialect;
+    }
+
+    public void startBackupTask() {
+        stopBackupTask();
+        // 5 Minuten = 300 Sekunden * 20 Ticks = 6000L Ticks
+        backupTask = Bukkit.getScheduler().runTaskTimerAsynchronously(plugin, this::performBackup, 6000L, 6000L);
+        plugin.getLogger().info("Automatischer 5-Minuten Datenbank-Backup-Task gestartet.");
+    }
+
+    public void stopBackupTask() {
+        if (backupTask != null) {
+            backupTask.cancel();
+            backupTask = null;
+        }
+    }
+
+    public void performBackup() {
+        try {
+            File pluginDir = plugin.getDataFolder();
+            File backupsDir = new File(pluginDir, "backups");
+            if (!backupsDir.exists()) {
+                backupsDir.mkdirs();
+            }
+
+            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss");
+            String timestamp = sdf.format(new Date());
+            File runDir = new File(backupsDir, "backup_" + timestamp);
+            if (!runDir.exists()) {
+                runDir.mkdirs();
+            }
+
+            // 1. Clan-Datenbank sichern (Hot-Backup via VACUUM INTO)
+            if (dialect != null && dialect.type() == StorageType.SQLITE && dataSource != null && !dataSource.isClosed()) {
+                try (Connection conn = dataSource.getConnection(); Statement stmt = conn.createStatement()) {
+                    stmt.execute("PRAGMA wal_checkpoint(PASSIVE)");
+                    File clanBackup = new File(runDir, "clans.db");
+                    String escapedPath = clanBackup.getAbsolutePath().replace("\\", "/").replace("'", "''");
+                    stmt.execute("VACUUM INTO '" + escapedPath + "'");
+                } catch (Exception e) {
+                    plugin.getLogger().warning("VACUUM INTO fehlgeschlagen, erstelle Datei-Backup: " + e.getMessage());
+                    copyDbWithWal(new File(pluginDir, "clans.db"), new File(runDir, "clans.db"));
+                    copyDbWithWal(new File(pluginDir, "data/clans.db"), new File(runDir, "clans.db"));
+                    copyDbWithWal(new File(pluginDir, "ztone.db"), new File(runDir, "ztone.db"));
+                }
+            }
+
+            // 2. Claims, Leaderboard und alle weiteren .db Dateien mitsichern
+            copyDbWithWal(new File(pluginDir, "claims.db"), new File(runDir, "claims.db"));
+            copyDbWithWal(new File(pluginDir, "data/claims.db"), new File(runDir, "claims.db"));
+            copyDbWithWal(new File(pluginDir, "leaderboard.db"), new File(runDir, "leaderboard.db"));
+            copyDbWithWal(new File(pluginDir, "data/leaderboard.db"), new File(runDir, "leaderboard.db"));
+            copyDbWithWal(new File(pluginDir, "ztone.db"), new File(runDir, "ztone.db"));
+
+            // 3. Alte Backups bereinigen (maximal 50 Backups aufbewahren)
+            pruneBackups(backupsDir, 50);
+
+            plugin.getLogger().info("Automatisches Datenbank-Backup erstellt: backups/" + runDir.getName());
+        } catch (Throwable t) {
+            plugin.getLogger().warning("Fehler beim automatischen Datenbank-Backup: " + t.getMessage());
+        }
+    }
+
+    private void copyDbWithWal(File source, File target) {
+        if (!source.exists() || source.length() == 0) return;
+        try {
+            if (target.getParentFile() != null) target.getParentFile().mkdirs();
+            Files.copy(source.toPath(), target.toPath(), StandardCopyOption.REPLACE_EXISTING);
+            File wal = new File(source.getAbsolutePath() + "-wal");
+            if (wal.exists()) {
+                Files.copy(wal.toPath(), new File(target.getAbsolutePath() + "-wal").toPath(), StandardCopyOption.REPLACE_EXISTING);
+            }
+            File shm = new File(source.getAbsolutePath() + "-shm");
+            if (shm.exists()) {
+                Files.copy(shm.toPath(), new File(target.getAbsolutePath() + "-shm").toPath(), StandardCopyOption.REPLACE_EXISTING);
+            }
+        } catch (Exception ignored) {}
+    }
+
+    private void pruneBackups(File backupsDir, int maxKeep) {
+        File[] dirs = backupsDir.listFiles(f -> f.isDirectory() && f.getName().startsWith("backup_"));
+        if (dirs != null && dirs.length > maxKeep) {
+            Arrays.sort(dirs, Comparator.comparing(File::getName));
+            int toDelete = dirs.length - maxKeep;
+            for (int i = 0; i < toDelete; i++) {
+                deleteDirRecursively(dirs[i]);
+            }
+        }
+    }
+
+    private void deleteDirRecursively(File file) {
+        if (file.isDirectory()) {
+            File[] files = file.listFiles();
+            if (files != null) {
+                for (File child : files) {
+                    deleteDirRecursively(child);
+                }
+            }
+        }
+        file.delete();
     }
 }

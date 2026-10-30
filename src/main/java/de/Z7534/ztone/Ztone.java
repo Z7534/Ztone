@@ -14,7 +14,10 @@ import de.Z7534.ztone.clansystem.models.Permission;
 import de.Z7534.ztone.clansystem.placeholders.ClanPlaceholders;
 import de.Z7534.ztone.deathchest.Deathchest;
 import de.Z7534.ztone.clearlag.ClearLagModule;
+import de.Z7534.ztone.stonesit.StoneSitModule;
+import de.Z7534.ztone.dragonegg.DragonEggModule;
 import de.Z7534.ztone.commands.ZtoneCommand;
+import de.Z7534.ztone.managers.DatabaseBackupManager;
 import org.bukkit.command.PluginCommand;
 import de.Z7534.ztone.listeners.ModuleCommandFilterListener;
 import de.Z7534.ztone.mapcontrol.MapControl;
@@ -48,6 +51,9 @@ public class Ztone extends JavaPlugin {
     private TeleportManager teleportManager;
     private EconomyManager economyManager;
 
+    // Backup Manager
+    private DatabaseBackupManager databaseBackupManager;
+
     // Module / Unterplugins
     private Pvpmanager pvpManager;
     private Claims claims;
@@ -59,6 +65,8 @@ public class Ztone extends JavaPlugin {
     private PlayReward playReward;
     private Deathchest deathchest;
     private ClearLagModule clearLag;
+    private StoneSitModule stoneSit;
+    private DragonEggModule dragonEgg;
 
     // Command Filter für deaktivierte Module
     private ModuleCommandFilterListener moduleCommandFilterListener;
@@ -82,6 +90,10 @@ public class Ztone extends JavaPlugin {
             getLogger().severe("Konnte keine Verbindung zur zentralen Datenbank herstellen!");
         }
 
+        // Automatisches Datenbank-Backup initialisieren und starten (alle 5 Minuten)
+        this.databaseBackupManager = new DatabaseBackupManager(this);
+        this.databaseBackupManager.start();
+
         boolean clansystemEnabled = configManager.isClansystemEnabled();
         boolean clankasseEnabled = configManager.isClankasseEnabled();
         boolean pvpmanagerEnabled = configManager.isPvpmanagerEnabled();
@@ -94,6 +106,8 @@ public class Ztone extends JavaPlugin {
         boolean playrewardsEnabled = configManager.isPlayrewardsEnabled();
         boolean deathchestEnabled = configManager.isDeathchestEnabled();
         boolean clearlagEnabled = configManager.isClearlagEnabled();
+        boolean stonesitEnabled = configManager.isStonesitEnabled();
+        boolean dragoneggEnabled = configManager.isDragoneggEnabled();
 
         getLogger().info("----------------------------------------");
         getLogger().info("  Unterplugins / Module Status:");
@@ -108,6 +122,8 @@ public class Ztone extends JavaPlugin {
         getLogger().info("  - PlayRewards: " + (playrewardsEnabled ? "§aAktiviert" : "§cDeaktiviert"));
         getLogger().info("  - Deathchest:  " + (deathchestEnabled ? "§aAktiviert" : "§cDeaktiviert"));
         getLogger().info("  - ClearLag:    " + (clearlagEnabled ? "§aAktiviert" : "§cDeaktiviert"));
+        getLogger().info("  - StoneSit:    " + (stonesitEnabled ? "§aAktiviert" : "§cDeaktiviert"));
+        getLogger().info("  - DragonEgg:   " + (dragoneggEnabled ? "§aAktiviert" : "§cDeaktiviert"));
         getLogger().info("----------------------------------------");
 
 
@@ -303,6 +319,28 @@ public class Ztone extends JavaPlugin {
             }
         }
 
+        // 12. StoneSit Modul initialisieren
+        if (stonesitEnabled) {
+            try {
+                this.stoneSit = new StoneSitModule(this);
+                this.stoneSit.onEnable();
+            } catch (Throwable t) {
+                handleModuleInitError("StoneSit", t);
+                this.stoneSit = null;
+            }
+        }
+
+        // 13. DragonEgg Modul initialisieren
+        if (dragoneggEnabled) {
+            try {
+                this.dragonEgg = new DragonEggModule(this);
+                this.dragonEgg.onEnable();
+            } catch (Throwable t) {
+                handleModuleInitError("DragonEgg", t);
+                this.dragonEgg = null;
+            }
+        }
+
         // Hauptbefehl /ztone registrieren
         PluginCommand ztoneCmd = getCommand("ztone");
         if (ztoneCmd != null) {
@@ -345,6 +383,22 @@ public class Ztone extends JavaPlugin {
 
     @Override
     public void onDisable() {
+
+        if (dragonEgg != null) {
+            try {
+                dragonEgg.onDisable();
+            } catch (Throwable t) {
+                getLogger().warning("Fehler beim Deaktivieren von DragonEgg: " + t.getMessage());
+            }
+        }
+
+        if (stoneSit != null) {
+            try {
+                stoneSit.onDisable();
+            } catch (Throwable t) {
+                getLogger().warning("Fehler beim Deaktivieren von StoneSit: " + t.getMessage());
+            }
+        }
 
         if (clearLag != null) {
             try {
@@ -443,6 +497,14 @@ public class Ztone extends JavaPlugin {
             }
         }
 
+        if (databaseBackupManager != null) {
+            try {
+                databaseBackupManager.stop();
+            } catch (Throwable t) {
+                getLogger().warning("Fehler beim Beenden des DatabaseBackupManagers: " + t.getMessage());
+            }
+        }
+
         if (databaseManager != null) {
             try {
                 databaseManager.disconnect();
@@ -458,10 +520,21 @@ public class Ztone extends JavaPlugin {
         reloadConfig();
         configManager.reload();
 
+        if (databaseBackupManager != null) {
+            databaseBackupManager.stop();
+            databaseBackupManager.start();
+        }
+
         if (moduleCommandFilterListener != null) {
             moduleCommandFilterListener.recalculateDisabledCommands();
         }
 
+        if (stoneSit != null && configManager.isStonesitEnabled()) {
+            stoneSit.reload();
+        }
+        if (dragonEgg != null && configManager.isDragoneggEnabled()) {
+            dragonEgg.reload();
+        }
         if (deathchest != null && configManager.isDeathchestEnabled()) {
             deathchest.reload();
         }
@@ -569,13 +642,6 @@ public class Ztone extends JavaPlugin {
     // Externe API-Methoden für abhängige Plugins
     // ==========================================
 
-    /**
-     * Prüft, ob PvP in einer bestimmten Dimension oder Welt standardmäßig aktiviert ist.
-     * Unterstützt Namen wie "minecraft:overworld", "world", "world_nether", "nether", "Shopwelt" etc.
-     *
-     * @param dimension Der Dimensions- oder Weltname
-     * @return true wenn PvP aktiv ist, sonst false
-     */
     public boolean isDimensionPvPEnabled(String dimension) {
         if (pvpManager != null && configManager != null && configManager.isPvpmanagerEnabled()) {
             return pvpManager.isDimensionPvPEnabled(dimension);
@@ -584,12 +650,6 @@ public class Ztone extends JavaPlugin {
         return world != null ? world.getPVP() : true;
     }
 
-    /**
-     * Prüft, ob PvP in der angegebenen Bukkit-Welt standardmäßig aktiviert ist.
-     *
-     * @param world Die Bukkit-Welt
-     * @return true wenn PvP aktiv ist, sonst false
-     */
     public boolean isDimensionPvPEnabled(World world) {
         if (world == null) return true;
         if (pvpManager != null && configManager != null && configManager.isPvpmanagerEnabled()) {
@@ -598,12 +658,6 @@ public class Ztone extends JavaPlugin {
         return world.getPVP();
     }
 
-    /**
-     * Prüft, ob PvP in der Dimension oder Welt forciert ist (nicht von Spielern per Befehl überschreibbar).
-     *
-     * @param dimension Der Dimensions- oder Weltname
-     * @return true wenn forciert, sonst false
-     */
     public boolean isDimensionPvPForced(String dimension) {
         if (pvpManager != null && configManager != null && configManager.isPvpmanagerEnabled()) {
             return pvpManager.isDimensionPvPForced(dimension);
@@ -611,12 +665,6 @@ public class Ztone extends JavaPlugin {
         return false;
     }
 
-    /**
-     * Prüft, ob PvP in der angegebenen Welt forciert ist.
-     *
-     * @param world Die Bukkit-Welt
-     * @return true wenn forciert, sonst false
-     */
     public boolean isDimensionPvPForced(World world) {
         if (world == null) return false;
         if (pvpManager != null && configManager != null && configManager.isPvpmanagerEnabled()) {
@@ -641,23 +689,14 @@ public class Ztone extends JavaPlugin {
         return isDimensionPvPForced(world);
     }
 
-    /**
-     * Alias für isDimensionPvPEnabled(dimension).
-     */
     public boolean getDimensionPvPStatus(String dimension) {
         return isDimensionPvPEnabled(dimension);
     }
 
-    /**
-     * Alias für isDimensionPvPEnabled(world).
-     */
     public boolean getDimensionPvPStatus(World world) {
         return isDimensionPvPEnabled(world);
     }
 
-    /**
-     * Statische API-Methode: Prüft, ob PvP in einer bestimmten Dimension oder Welt aktiviert ist.
-     */
     public static boolean isPvPEnabledInDimension(String dimension) {
         if (instance != null) {
             return instance.isDimensionPvPEnabled(dimension);
@@ -666,9 +705,6 @@ public class Ztone extends JavaPlugin {
         return world != null ? world.getPVP() : true;
     }
 
-    /**
-     * Statische API-Methode: Prüft, ob PvP in einer Bukkit-Welt aktiviert ist.
-     */
     public static boolean isPvPEnabledInDimension(World world) {
         if (instance != null) {
             return instance.isDimensionPvPEnabled(world);
@@ -676,23 +712,14 @@ public class Ztone extends JavaPlugin {
         return world != null ? world.getPVP() : true;
     }
 
-    /**
-     * Statische API-Methode: Alias für isPvPEnabledInDimension(dimension).
-     */
     public static boolean getPvPStatus(String dimension) {
         return isPvPEnabledInDimension(dimension);
     }
 
-    /**
-     * Statische API-Methode: Alias für isPvPEnabledInDimension(world).
-     */
     public static boolean getPvPStatus(World world) {
         return isPvPEnabledInDimension(world);
     }
 
-    /**
-     * Statische API-Methode: Prüft, ob PvP in einer Dimension forciert ist.
-     */
     public static boolean isPvPForcedInDimension(String dimension) {
         if (instance != null) {
             return instance.isDimensionPvPForced(dimension);
@@ -700,9 +727,6 @@ public class Ztone extends JavaPlugin {
         return false;
     }
 
-    /**
-     * Statische API-Methode: Prüft, ob PvP in einer Welt forciert ist.
-     */
     public static boolean isPvPForcedInDimension(World world) {
         if (instance != null) {
             return instance.isDimensionPvPForced(world);
@@ -710,10 +734,6 @@ public class Ztone extends JavaPlugin {
         return false;
     }
 
-    /**
-     * Prüft, ob ein bestimmter Spieler an seinem aktuellen Standort PvP ausführen kann
-     * (unter Berücksichtigung von Welt/Dimension, persönlichem PvP-Status, WorldGuard, Claims und Clankriegen).
-     */
     public boolean canPvP(Player player) {
         if (pvpManager != null && configManager != null && configManager.isPvpmanagerEnabled()) {
             return pvpManager.canPvP(player);
@@ -721,9 +741,6 @@ public class Ztone extends JavaPlugin {
         return player != null && player.getWorld().getPVP();
     }
 
-    /**
-     * Statische Hilfsmethode: Prüft, ob ein bestimmter Spieler aktuell PvP ausführen kann.
-     */
     public static boolean canPlayerPvP(Player player) {
         if (instance != null) {
             return instance.canPvP(player);
@@ -745,6 +762,10 @@ public class Ztone extends JavaPlugin {
 
     public DatabaseManager getDatabaseManager() {
         return databaseManager;
+    }
+
+    public DatabaseBackupManager getDatabaseBackupManager() {
+        return databaseBackupManager;
     }
 
     public LevelManager getLevelManager() {
@@ -778,7 +799,6 @@ public class Ztone extends JavaPlugin {
     public EconomyManager getEconomyManager() {
         return economyManager;
     }
-
 
     public Pvpmanager getPvpManager() {
         return pvpManager;
@@ -820,7 +840,64 @@ public class Ztone extends JavaPlugin {
         return clearLag;
     }
 
+    public StoneSitModule getStoneSit() {
+        return stoneSit;
+    }
+
     public ModuleCommandFilterListener getModuleCommandFilterListener() {
         return moduleCommandFilterListener;
+    }
+
+    public DragonEggModule getDragonEgg() {
+        return dragonEgg;
+    }
+
+    public boolean isDragonEggGlowing(Player player) {
+        return dragonEgg != null && dragonEgg.getManager() != null && dragonEgg.getManager().isGlowing(player);
+    }
+
+    public boolean hasAnyDragonEggGlowing() {
+        return dragonEgg != null && dragonEgg.getManager() != null && dragonEgg.getManager().hasAnyGlowing();
+    }
+
+    public boolean isDragonEggPvpForced(Player player) {
+        return dragonEgg != null && dragonEgg.getManager() != null && dragonEgg.getManager().isPvpForced(player);
+    }
+
+    public boolean isDragonEggBlockingClaim(Player player) {
+        return dragonEgg != null && dragonEgg.getManager() != null && dragonEgg.getManager().isClaimBlocked(player);
+    }
+
+    public boolean isInAnyClaim(org.bukkit.Location loc) {
+        if (loc == null || claims == null || claims.getClaimManager() == null) return false;
+        return claims.getClaimManager().getClaimAt(loc) != null;
+    }
+
+    /**
+     * Befördert einen Spieler sofort per SafeSpotFinder aus einem Claim hinaus,
+     * falls er darin steht und durch Bann, Combat Tag oder Drachenei nicht darin sein darf.
+     */
+    public void evictFromClaimIfRestricted(Player player) {
+        if (player == null || !player.isOnline()) return;
+        if (claims != null && claims.getClaimManager() != null && claims.getBanEnforcer() != null) {
+            var claim = claims.getClaimManager().getClaimAt(player.getLocation());
+            if (claim != null) {
+                var pvpClaimBypass = claims.getPvPClaimBypass();
+                boolean claimHasPvpOverride = pvpClaimBypass != null && pvpClaimBypass.isClaimBypassed(claim.id());
+                boolean playerHasStaffBypass = claims.getBypassManager() != null && claims.getBypassManager().isActive(player);
+                if (playerHasStaffBypass) return;
+
+                boolean banned = claim.isBanned(player.getUniqueId());
+                boolean eggBlocked = isDragonEggBlockingClaim(player);
+                boolean combatBlocked = !claimHasPvpOverride && pvpManager != null
+                        && pvpManager.getCombatManager() != null
+                        && pvpManager.getCombatManager().isTagged(player.getUniqueId())
+                        && (pvpClaimBypass == null || !pvpClaimBypass.isPlayerBypassed(player));
+
+                if (banned || eggBlocked || combatBlocked) {
+                    claims.getBanEnforcer().evict(player, claim);
+                }
+            }
+        }
     }
 }

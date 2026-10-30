@@ -20,6 +20,8 @@
 #  - PlayRewards: plugins/Ztone/playrewards/ (config.yml, rewards/)
 #  - Deathchest:  plugins/Ztone/deathchest/ (config.yml)
 #  - ClearLag:    plugins/Ztone/clearlag/ (config.yml)
+#  - StoneSit:    plugins/Ztone/stonesit/ (config.yml)
+#  - DragonEgg:   plugins/Ztone/dragonegg/ (config.yml)
 # ==============================================================================
 
 # ==============================================================================
@@ -79,6 +81,7 @@ modules:
   playrewards: true
 
   # Deathchest: Todesdoppelkisten bei Spielertod, Anti-Griefing, Hologramm-Timer, Killer-Lock
+  # Befehle: /deathchest
   # Detaillierte Config: plugins/Ztone/deathchest/
   deathchest: true
 
@@ -86,6 +89,16 @@ modules:
   # Befehle: /clearlag
   # Detaillierte Config: plugins/Ztone/clearlag/
   clearlag: true
+
+  # StoneSit: Performantes Sit- & PlayerSit-Modul (Stufen/Treppen/Teppiche & Spieler-Stapeln)
+  # Befehle: /sit, /gsit, /stonesitreload, /gsitreload
+  # Detaillierte Config: plugins/Ztone/stonesit/
+  stonesit: true
+
+  # DragonEgg: Permanentes Glowing, optionales permanentes PvP & Claim-Betretungssperre für das gesicherte Drachenei
+  # Befehle: /dragonegg
+  # Detaillierte Config: plugins/Ztone/dragonegg/
+  dragonegg: true
 
 
 # ==============================================================================
@@ -113,3 +126,14 @@ database:
     use-ssl: false
     # Maximale Anzahl gleichzeitiger Datenbankverbindungen im Pool
     pool-size: 10
+
+# ==============================================================================
+#                      DATENBANK-BACKUPS
+# ==============================================================================
+# Erstellt vollautomatisch alle 5 Minuten asynchrone Sicherungen der aktiven Datenbanken.
+# Verwendet atomares VACUUM INTO für SQLite ohne Server-Lags oder Datenkorruption.
+# Backups werden in plugins/Ztone/backups/ gespeichert.
+database-backup:
+  enabled: true
+  interval-minutes: 5
+  max-backups: 50

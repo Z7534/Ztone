@@ -309,15 +309,10 @@ public final class ProtectionListener implements Listener {
             }
         }
 
-        if (block.getBlockData() instanceof Openable) {
-            if (!allowed(player, block.getLocation(), ClaimPermission.DOORS)) {
-                e.setCancelled(true);
-                deny(player, hand);
-            }
-            return;
-        }
-
-        if (block.getState() instanceof Container
+        // Container ZUERST pruefen: Faesser (Barrel) implementieren ebenfalls Openable
+        // und gehoeren trotzdem zur Container-Berechtigung, nicht zu Tueren/Zaeunen.
+        if (type == Material.BARREL
+                || block.getState() instanceof Container
                 || block.getState() instanceof BlockInventoryHolder
                 || isShelf(type)
                 || isWorkbenchLike(type)) {
@@ -327,6 +322,14 @@ public final class ProtectionListener implements Listener {
                 return;
             }
             if (!allowed(player, block.getLocation(), ClaimPermission.CONTAINERS)) {
+                e.setCancelled(true);
+                deny(player, hand);
+            }
+            return;
+        }
+
+        if (block.getBlockData() instanceof Openable) {
+            if (!allowed(player, block.getLocation(), ClaimPermission.DOORS)) {
                 e.setCancelled(true);
                 deny(player, hand);
             }
@@ -646,7 +649,7 @@ public final class ProtectionListener implements Listener {
         String causeName = cause.name();
         if ("CHORUS_FRUIT".equals(causeName) || "CONSUMABLE_EFFECT".equals(causeName)) {
             Claim to = claimManager.getClaimAt(e.getTo());
-            if (to != null && (to.isBanned(player.getUniqueId())
+            if (to != null && (to.isBanned(player.getUniqueId()) || de.Z7534.ztone.Ztone.getInstance().isDragonEggBlockingClaim(player)
                     || (!allowed(player, e.getTo(), ClaimPermission.ENTITY_INTERACT) && !allowed(player, e.getTo(), ClaimPermission.BUILD)))) {
                 e.setCancelled(true);
                 deny(player);
@@ -772,10 +775,8 @@ public final class ProtectionListener implements Listener {
                 return;
             }
 
-            // Clankrieg: Kriegsgegner duerfen sich immer bekaempfen
-            if (de.Z7534.ztone.Ztone.getInstance().areWarOpponentsWithPvP(attacker.getUniqueId(), victim.getUniqueId())) {
-                return;
-            }
+            // Clankrieg ueberschreibt Claims NIEMALS: Kriegsgegner werden im Claim genauso geschuetzt
+            // wie alle anderen Spieler (keine Sonderbehandlung mehr an dieser Stelle).
 
             Claim victimClaim = claimManager.getClaimAt(victim.getLocation());
             Claim attackerClaim = claimManager.getClaimAt(attacker.getLocation());
@@ -908,8 +909,31 @@ public final class ProtectionListener implements Listener {
         Claim toClaim = claimManager.getClaimAt(to);
         if (toClaim == null) return;
 
-        // Combat-Pruefung fuer Insassen
         var ztone = de.Z7534.ztone.Ztone.getInstance();
+
+        // Ban- und DragonEgg-Pruefung fuer Insassen
+        for (Entity passenger : vehicle.getPassengers()) {
+            if (passenger instanceof Player p) {
+                if (!bypass.isActive(p) && (toClaim.isBanned(p.getUniqueId()) || (ztone != null && ztone.isDragonEggBlockingClaim(p)))) {
+                    List<Entity> passengers = new ArrayList<>(vehicle.getPassengers());
+                    vehicle.eject();
+                    vehicle.teleport(from);
+                    for (Entity pass : passengers) {
+                        pass.teleport(from);
+                        if (pass instanceof Player pl) {
+                            if (toClaim.isBanned(pl.getUniqueId())) {
+                                pl.sendMessage(Text.line(config.prefix() + config.message("cannot-enter-banned")));
+                            } else {
+                                pl.sendMessage(Text.line(config.prefix() + "<red>Du trägst das Drachenei und darfst keine Claims betreten!</red>"));
+                            }
+                        }
+                    }
+                    return;
+                }
+            }
+        }
+
+        // Combat-Pruefung fuer Insassen
         if (ztone != null && ztone.getPvpManager() != null) {
             var pvpMgr = ztone.getPvpManager();
             boolean passengerInCombat = false;

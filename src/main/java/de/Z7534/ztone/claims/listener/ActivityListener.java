@@ -15,18 +15,20 @@ import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.*;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 
 public final class ActivityListener implements Listener {
 
-    /** Mindestabstand zwischen zwei "Du bist gebannt"- bzw. Kampf-Nachrichten pro Spieler. */
-    private static final long BAN_MESSAGE_COOLDOWN_MS = 2000L;
+    /** Mindestabstand zwischen zwei Hinweisen pro Spieler. */
+    private static final long MESSAGE_COOLDOWN_MS = 2000L;
 
     private final JavaPlugin plugin;
     private final ActivityManager activityManager;
@@ -41,6 +43,7 @@ public final class ActivityListener implements Listener {
 
     private final Map<UUID, Long> lastBanMessage = new HashMap<>();
     private final Map<UUID, Long> lastCombatMessage = new HashMap<>();
+    private final Map<UUID, Long> lastEggMessage = new HashMap<>();
 
     public ActivityListener(JavaPlugin plugin, ActivityManager activityManager, ClaimManager claimManager,
                              SelectionManager selectionManager, ChatInputManager chatInputManager,
@@ -61,8 +64,6 @@ public final class ActivityListener implements Listener {
     @EventHandler
     public void onJoin(PlayerJoinEvent e) {
         Player player = e.getPlayer();
-        // Der Bypass gilt nie ueber eine Session hinaus: bei jedem Beitritt ist er deaktiviert,
-        // ausser der Spieler besitzt die Auto-Bypass-on-Join-Permission.
         bypass.reset(player.getUniqueId());
         if (player.hasPermission(BypassManager.PERMISSION_AUTO_JOIN)) {
             bypass.setActive(player.getUniqueId(), true);
@@ -70,8 +71,19 @@ public final class ActivityListener implements Listener {
         claimManager.getOrCreatePlayerData(player.getUniqueId(), player.getName());
         activityManager.recordActivity(player.getUniqueId());
         activityManager.checkEntryHint(player);
-        // Wurde der Spieler gebannt, waehrend er offline war, und steht er noch im Claim, holen wir ihn raus.
-        Bukkit.getScheduler().runTask(plugin, () -> evictIfBanned(player));
+        // Prüfen, ob der Spieler in einem Claim steht, aus dem er gebannt/ausgeschlossen ist
+        Bukkit.getScheduler().runTask(plugin, () -> evictIfRestricted(player));
+    }
+
+    @EventHandler
+    public void onRespawn(PlayerRespawnEvent e) {
+        // Nach dem Respawn direkt prüfen (1 Tick später)
+        Player player = e.getPlayer();
+        Bukkit.getScheduler().runTask(plugin, () -> {
+            if (player.isOnline()) {
+                evictIfRestricted(player);
+            }
+        });
     }
 
     @EventHandler
@@ -81,6 +93,7 @@ public final class ActivityListener implements Listener {
         bypass.reset(uuid);
         lastBanMessage.remove(uuid);
         lastCombatMessage.remove(uuid);
+        lastEggMessage.remove(uuid);
         activityManager.forgetPlayer(uuid);
         if (claimMapManager != null) {
             claimMapManager.restoreOffHand(player);
@@ -109,10 +122,12 @@ public final class ActivityListener implements Listener {
                 || from.getBlockZ() != to.getBlockZ()) {
             activityManager.recordActivity(e.getPlayer().getUniqueId());
             if (enforceBan(e)) {
-                // Bewegung wurde abgebrochen: keinen Eintrittshinweis fuer den Claim zeigen, den er nicht betritt.
                 return;
             }
             if (enforceCombat(e)) {
+                return;
+            }
+            if (enforceDragonEgg(e)) {
                 return;
             }
         }
@@ -123,40 +138,56 @@ public final class ActivityListener implements Listener {
         }
     }
 
-    @EventHandler
+    /**
+     * Fängt jeden Teleport ab (Befehle, Homes, Warps, Enderperlen, Chorus-Früchte etc.).
+     * Wenn das Ziel in einem für den Spieler blockierten Claim liegt (Bann, Combat Tag, Drachenei),
+     * wird der Teleport nicht stur abgebrochen oder der Spieler im Claim gelassen,
+     * sondern direkt auf einen sicheren Platz per SafeSpotFinder umgeleitet.
+     */
+    @EventHandler(priority = EventPriority.LOW)
     public void onTeleport(PlayerTeleportEvent e) {
         Player player = e.getPlayer();
-        if (e.getTo() == null) return;
-        if (!bypass.isActive(player)) {
-            Claim claim = claimManager.getClaimAt(e.getTo());
-            if (claim != null && claim.isBanned(player.getUniqueId())) {
-                e.setCancelled(true);
-                sendBanMessage(player);
-                return;
+        Location to = e.getTo();
+        if (to == null) return;
+
+        if (bypass.isActive(player)) {
+            activityManager.checkEntryHint(player, to);
+            return;
+        }
+
+        Claim claim = claimManager.getClaimAt(to);
+        if (claim == null) {
+            activityManager.checkEntryHint(player, to);
+            return;
+        }
+
+        boolean banned = claim.isBanned(player.getUniqueId());
+        boolean combatBlocked = isCombatBlocked(player, claim);
+        boolean eggBlocked = isDragonEggBlocked(player);
+
+        if (banned || combatBlocked || eggBlocked) {
+            // Umleiten an einen sicheren Platz außerhalb des Ziel-Claims
+            Optional<Location> safeSpot = banEnforcer.findSafeSpotOutside(to, claim);
+            if (safeSpot.isPresent()) {
+                e.setTo(safeSpot.get());
+            } else {
+                e.setTo(to.getWorld().getSpawnLocation());
             }
 
-            de.Z7534.ztone.Ztone ztone = de.Z7534.ztone.Ztone.getInstance();
-            if (ztone != null && ztone.getPvpManager() != null) {
-                var pvpMgr = ztone.getPvpManager();
-                if (!pvpMgr.getOverrideManager().isOverriding(player.getUniqueId())
-                        && (pvpClaimBypass == null || !pvpClaimBypass.isPlayerBypassed(player))) {
-                    if (pvpMgr.getCombatManager().isTagged(player.getUniqueId())) {
-                        if (claim != null && (pvpClaimBypass == null || !pvpClaimBypass.isClaimBypassed(claim.id()))) {
-                            e.setCancelled(true);
-                            sendCombatMessage(player);
-                            return;
-                        }
-                    }
-                }
+            if (banned) {
+                sendBanMessage(player);
+                player.sendMessage(Text.line(config.prefix() + config.message("banned-teleported")));
+            } else if (combatBlocked) {
+                sendCombatMessage(player);
+            } else {
+                sendEggMessage(player);
             }
+            return;
         }
 
         activityManager.checkEntryHint(player, e.getTo());
     }
 
-    /**
-     * @return true, wenn die Bewegung abgebrochen wurde
-     */
     private boolean enforceBan(PlayerMoveEvent e) {
         Player player = e.getPlayer();
         Claim target = claimManager.getClaimAt(e.getTo());
@@ -165,9 +196,7 @@ public final class ActivityListener implements Listener {
 
         Claim origin = claimManager.getClaimAt(e.getFrom());
         if (origin == target) {
-            // Der Spieler steht bereits im Claim (z.B. nachtraeglich gebannt). Wuerden wir jede Bewegung
-            // abbrechen, kaeme er nie wieder heraus - stattdessen wird er hinausbefoerdert.
-            Bukkit.getScheduler().runTask(plugin, () -> evictIfBanned(player));
+            Bukkit.getScheduler().runTask(plugin, () -> evictIfRestricted(player));
             return false;
         }
 
@@ -176,34 +205,15 @@ public final class ActivityListener implements Listener {
         return true;
     }
 
-    /**
-     * Verhindert das Betreten von geschuetzten Claims waehrend des Kampfes (wie ein temporaerer Claim-Bann).
-     * @return true, wenn die Bewegung abgebrochen wurde
-     */
     private boolean enforceCombat(PlayerMoveEvent e) {
         Player player = e.getPlayer();
         if (bypass.isActive(player)) return false;
 
-        de.Z7534.ztone.Ztone ztone = de.Z7534.ztone.Ztone.getInstance();
-        if (ztone == null) return false;
-        var pvpMgr = ztone.getPvpManager();
-        if (pvpMgr == null) return false;
-
-        if (pvpMgr.getOverrideManager().isOverriding(player.getUniqueId())) return false;
-        if (pvpClaimBypass != null && pvpClaimBypass.isPlayerBypassed(player)) return false;
-
-        if (!pvpMgr.getCombatManager().isTagged(player.getUniqueId())) return false;
-
         Claim target = claimManager.getClaimAt(e.getTo());
-        if (target == null) return false;
-
-        // Wenn der Ziel-Claim von Admins fuer PvP freigegeben wurde (/claimspvpoverride),
-        // verhaelt er sich wie Unclaimed Terrain und darf betreten werden.
-        if (pvpClaimBypass != null && pvpClaimBypass.isClaimBypassed(target.id())) return false;
+        if (target == null || !isCombatBlocked(player, target)) return false;
 
         Claim origin = claimManager.getClaimAt(e.getFrom());
         if (origin == target) {
-            // Bereits innerhalb des Claims (z.B. Kampf innerhalb begonnen)
             return false;
         }
 
@@ -212,18 +222,58 @@ public final class ActivityListener implements Listener {
         return true;
     }
 
-    private void evictIfBanned(Player player) {
+    private boolean enforceDragonEgg(PlayerMoveEvent e) {
+        Player player = e.getPlayer();
+        if (bypass.isActive(player)) return false;
+        if (!isDragonEggBlocked(player)) return false;
+
+        Claim target = claimManager.getClaimAt(e.getTo());
+        if (target == null) return false;
+
+        Claim origin = claimManager.getClaimAt(e.getFrom());
+        if (origin == target) {
+            Bukkit.getScheduler().runTask(plugin, () -> evictIfRestricted(player));
+            return false;
+        }
+
+        e.setCancelled(true);
+        sendEggMessage(player);
+        return true;
+    }
+
+    private boolean isCombatBlocked(Player player, Claim claim) {
+        de.Z7534.ztone.Ztone ztone = de.Z7534.ztone.Ztone.getInstance();
+        if (ztone == null || ztone.getPvpManager() == null) return false;
+        var pvpMgr = ztone.getPvpManager();
+        if (pvpMgr.getOverrideManager().isOverriding(player.getUniqueId())) return false;
+        if (pvpClaimBypass != null && pvpClaimBypass.isPlayerBypassed(player)) return false;
+        if (!pvpMgr.getCombatManager().isTagged(player.getUniqueId())) return false;
+        return (pvpClaimBypass == null || !pvpClaimBypass.isClaimBypassed(claim.id()));
+    }
+
+    private boolean isDragonEggBlocked(Player player) {
+        de.Z7534.ztone.Ztone ztone = de.Z7534.ztone.Ztone.getInstance();
+        if (ztone == null) return false;
+        return ztone.isDragonEggBlockingClaim(player);
+    }
+
+    public void evictIfRestricted(Player player) {
         if (!player.isOnline() || bypass.isActive(player)) return;
         Claim claim = claimManager.getClaimAt(player.getLocation());
-        if (claim != null && claim.isBanned(player.getUniqueId())) {
+        if (claim == null) return;
+
+        if (claim.isBanned(player.getUniqueId())) {
             banEnforcer.evict(player, claim);
+        } else if (isDragonEggBlocked(player)) {
+            banEnforcer.evict(player, claim);
+            sendEggMessage(player);
         }
     }
 
     private void sendBanMessage(Player player) {
         long now = System.currentTimeMillis();
         Long last = lastBanMessage.get(player.getUniqueId());
-        if (last != null && now - last < BAN_MESSAGE_COOLDOWN_MS) return;
+        if (last != null && now - last < MESSAGE_COOLDOWN_MS) return;
         lastBanMessage.put(player.getUniqueId(), now);
         player.sendMessage(Text.line(config.prefix() + config.message("cannot-enter-banned")));
     }
@@ -231,12 +281,20 @@ public final class ActivityListener implements Listener {
     private void sendCombatMessage(Player player) {
         long now = System.currentTimeMillis();
         Long last = lastCombatMessage.get(player.getUniqueId());
-        if (last != null && now - last < BAN_MESSAGE_COOLDOWN_MS) return;
+        if (last != null && now - last < MESSAGE_COOLDOWN_MS) return;
         lastCombatMessage.put(player.getUniqueId(), now);
         String msg = config.message("cannot-enter-combat");
         if (msg == null || msg.isBlank() || msg.equals("cannot-enter-combat")) {
-            msg = "<red>\u1d05\u1d1c \u0299\u026a\ua731\u1d1b \u026a\u1d0d \u1d0b\u1d00\u1d0d\u1d18\ua730! \u1d05\u1d1c \u1d0b\u1d00\u0274\u0274\ua731\u1d1b \u1d0b\u1d07\u026a\u0274\u1d07 \u1d04\u029f\u1d00\u026a\u1d0d\ua731 \u0299\u1d07\u1d1b\u0280\u1d07\u1d1b\u1d07\u0274.";
+            msg = "<red>Du bist im Kampf! Du kannst keine Claims betreten.</red>";
         }
         player.sendMessage(Text.line(config.prefix() + msg));
+    }
+
+    private void sendEggMessage(Player player) {
+        long now = System.currentTimeMillis();
+        Long last = lastEggMessage.get(player.getUniqueId());
+        if (last != null && now - last < MESSAGE_COOLDOWN_MS) return;
+        lastEggMessage.put(player.getUniqueId(), now);
+        player.sendMessage(Text.line(config.prefix() + "<red>Du trägst das gesicherte Drachenei und darfst keine Claims betreten!</red>"));
     }
 }

@@ -19,6 +19,7 @@ public final class BanGui extends Gui {
 
     public static final int SLOT_BACK = 27;
     public static final int SLOT_ADD = 31;
+    public static final int SLOT_BAN_ALL = 32;
     private static final int SLOT_PREV = 29;
     private static final int SLOT_NEXT = 33;
     private static final int PER_PAGE = 27;
@@ -72,9 +73,22 @@ public final class BanGui extends Gui {
         }
 
         inventory.setItem(SLOT_ADD, ItemBuilder.of(Material.RED_DYE)
-                .name(Text.line("<red>Spieler bannen"))
-                .lore(Text.line("<gray>Verbanne einen Spieler von diesem Claim."), Text.line("<gray>Linksklick, öffnen."))
+                .name(Text.line("<red>Einzelnen Spieler bannen"))
+                .lore(Text.line("<gray>Verbanne einen Spieler von diesem Claim."), Text.line("<gray>Linksklick: Spielerliste öffnen."))
                 .model(ctx.config().itemModel("ban-add-player"))
+                .build());
+
+        // Button: Alle Fremden bannen / entbannen (Ban-All Toggle)
+        boolean banAll = claim.isBanAll();
+        inventory.setItem(SLOT_BAN_ALL, ItemBuilder.of(banAll ? Material.BARRIER : Material.SHIELD)
+                .name(Text.line(banAll ? "<red><bold>Alle Fremden gebannt (Aktiv)" : "<yellow><bold>Alle Fremden bannen"))
+                .lore(
+                        Text.line("<gray>Sperrt diesen Claim für alle fremden Spieler."),
+                        Text.line("<gray>Besitzer, Manager und getrustete Spieler dürfen weiter rein."),
+                        Text.line(""),
+                        Text.line(banAll ? "<green>Linksklick: <gray>Alle Fremden wieder entbannen" : "<red>Linksklick: <gray>Alle Fremden von DIESEM Claim bannen"),
+                        Text.line("<yellow>Shift-Klick: <gray>Auf ALLEN deinen Claims umschalten")
+                )
                 .build());
     }
 
@@ -91,6 +105,31 @@ public final class BanGui extends Gui {
         }
         if (slot == SLOT_ADD) {
             new AddPlayerGui(ctx, current, AddPlayerGui.Mode.BAN).open(player);
+            return;
+        }
+        if (slot == SLOT_BAN_ALL) {
+            boolean newState = !current.isBanAll();
+            if (clickType.isShiftClick()) {
+                List<Claim> owned = ctx.claims().claimsOf(player.getUniqueId());
+                for (Claim c : owned) {
+                    ctx.claims().setBanAll(c, newState);
+                    if (newState) {
+                        ctx.banEnforcer().handleBanAll(c, player.getName());
+                    }
+                }
+                player.sendMessage(Text.line(ctx.config().prefix() + (newState
+                        ? "<green>Alle fremden Spieler wurden auf <gold>allen deinen Claims (" + owned.size() + ") <green>gebannt!"
+                        : "<yellow>Der Alle-Fremden-Bann wurde auf <gold>allen deinen Claims (" + owned.size() + ") <yellow>aufgehoben.")));
+            } else {
+                ctx.claims().setBanAll(current, newState);
+                if (newState) {
+                    ctx.banEnforcer().handleBanAll(current, player.getName());
+                }
+                player.sendMessage(Text.line(ctx.config().prefix() + (newState
+                        ? "<green>Alle fremden Spieler wurden auf Claim '<yellow>" + current.name() + "<green>' gebannt!"
+                        : "<yellow>Der Alle-Fremden-Bann auf Claim '<yellow>" + current.name() + "<yellow>' wurde aufgehoben.")));
+            }
+            new BanGui(ctx, current, page).open(player);
             return;
         }
         if (slot == SLOT_PREV && page > 0) {

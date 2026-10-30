@@ -127,6 +127,9 @@ public class GlowManager {
         if (player.hasPotionEffect(PotionEffectType.GLOWING)) {
             return true;
         }
+        if (plugin.isDragonEggGlowing(player)) {
+            return true;
+        }
         try {
             if (plugin.getPvpManager() != null && plugin.getPvpManager().getGlowManager() != null) {
                 if (plugin.getPvpManager().getGlowManager().isGlowing(player.getUniqueId())) {

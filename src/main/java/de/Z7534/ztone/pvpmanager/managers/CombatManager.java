@@ -89,6 +89,13 @@ public class CombatManager {
         if (remaining > 0) {
             plugin.getDisplayManager().updateCombatDisplay(player, remaining);
         }
+
+        // Wenn der Spieler waehrend des Tagging in einem Claim steht, der nicht freigegeben ist:
+        // sofort sicher herausbefoerdern (Eviction)
+        if (!wasTagged && plugin.getPlugin() != null) {
+            plugin.getPlugin().evictFromClaimIfRestricted(player);
+        }
+
         return !wasTagged;
     }
 

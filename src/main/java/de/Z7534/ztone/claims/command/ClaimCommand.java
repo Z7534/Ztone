@@ -1,13 +1,13 @@
 package de.Z7534.ztone.claims.command;
 
 import de.Z7534.ztone.claims.ClaimsContext;
+import de.Z7534.ztone.claims.model.PlayerData;
 import de.Z7534.ztone.claims.gui.ClaimConfirmGui;
 import de.Z7534.ztone.claims.gui.MainMenuGui;
 import de.Z7534.ztone.claims.manager.ClaimManager;
 import de.Z7534.ztone.claims.manager.PlayerLookupService;
-import de.Z7534.ztone.claims.model.Claim;
-import de.Z7534.ztone.claims.model.PlayerData;
 import de.Z7534.ztone.claims.model.SelectionSession;
+import de.Z7534.ztone.claims.model.Claim;
 import de.Z7534.ztone.claims.util.Text;
 import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
@@ -17,12 +17,7 @@ import org.bukkit.command.TabCompleter;
 import org.bukkit.entity.Player;
 import org.bukkit.util.StringUtil;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 
 public final class ClaimCommand implements CommandExecutor, TabCompleter {
 
@@ -30,9 +25,7 @@ public final class ClaimCommand implements CommandExecutor, TabCompleter {
 
     /**
      * Offene Pay-Bestätigungen: Spieler muss /claim pay <spieler> <anzahl> mit
-     * denselben Angaben innerhalb von confirm-seconds erneut ausführen, damit die
-     * Zahlung tatsächlich durchgeführt wird. Lebt nur im Arbeitsspeicher (kein
-     * Server-Neustart-Schutz nötig, es ist ja noch nichts passiert).
+     * denselben Angaben innerhalb von confirm-seconds erneut ausführen.
      */
     private final Map<UUID, PendingPayment> pendingPayments = new HashMap<>();
 
@@ -73,30 +66,78 @@ public final class ClaimCommand implements CommandExecutor, TabCompleter {
         return true;
     }
 
+    /**
+     * Neuer, übersichtlicher Ban/Unban-Befehl:
+     * <ul>
+     *     <li>{@code /claim ban <spieler|*|alle> [hier|alle|#nr|<claimname>]}</li>
+     *     <li>{@code /claim unban <spieler|*|alle> [hier|alle|#nr|<claimname>]}</li>
+     * </ul>
+     */
     private void handleBanUnban(Player player, String[] args) {
-        String action = args[0].toLowerCase();
+        String action = args[0].toLowerCase(Locale.ROOT);
         if (args.length < 2) {
-            player.sendMessage(Text.line(ctx.config().prefix() + "<red>Verwendung: /claim " + action + " <spieler> [all]"));
+            player.sendMessage(Text.line(ctx.config().prefix() + "<red>Verwendung: /claim " + action + " <spieler|*|alle> [hier|alle|#nr|<claimname>]"));
             return;
         }
 
-        String targetName = args[1];
-        boolean bulk = args.length >= 3 && (args[2].equalsIgnoreCase("all") || args[2].equals("*"));
+        String targetInput = args[1];
+        boolean isAllStrangers = targetInput.equals("*") || targetInput.equalsIgnoreCase("alle") || targetInput.equalsIgnoreCase("all");
 
-        Claim standingClaim = null;
-        if (!bulk) {
-            standingClaim = ctx.claims().getClaimAt(player.getLocation());
-            if (standingClaim == null || !standingClaim.isOwnerOrManager(player.getUniqueId())) {
-                player.sendMessage(Text.line(ctx.config().prefix() + "<red>Du befindest dich auf keinem Claim, den du verwaltest! Nutze '/claim " + action + " " + targetName + " all' für alle deine Claims."));
+        String scope = args.length >= 3 ? args[2] : "hier";
+        boolean bulkAllClaims = scope.equalsIgnoreCase("alle") || scope.equalsIgnoreCase("all") || scope.equals("*");
+
+        List<Claim> targets = new ArrayList<>();
+        if (bulkAllClaims) {
+            targets.addAll(ctx.claims().claimsOf(player.getUniqueId()));
+            if (targets.isEmpty()) {
+                player.sendMessage(Text.line(ctx.config().prefix() + "<red>Du besitzt noch keine Claims!"));
                 return;
             }
+        } else if (scope.equalsIgnoreCase("hier") || scope.equalsIgnoreCase("here")) {
+            Claim current = ctx.claims().getClaimAt(player.getLocation());
+            if (current == null || !current.isOwnerOrManager(player.getUniqueId())) {
+                player.sendMessage(Text.line(ctx.config().prefix() + "<red>Du stehst auf keinem Claim, den du verwaltest! " +
+                        "<gray>Nutze <yellow>/claim " + action + " " + targetInput + " alle</yellow> für alle deine Claims oder gib einen Claim-Namen/Nummer an."));
+                return;
+            }
+            targets.add(current);
+        } else {
+            // Spezifischer Claim (#nr oder Name)
+            Claim resolvedClaim = resolveClaim(player, scope);
+            if (resolvedClaim == null) {
+                player.sendMessage(Text.line(ctx.config().prefix() + "<red>Claim '" + scope + "' nicht gefunden oder du hast dort keine Rechte!"));
+                return;
+            }
+            targets.add(resolvedClaim);
         }
 
-        final Claim targetClaim = standingClaim;
-        ctx.lookup().resolve(targetName).thenAccept(resultOpt -> Bukkit.getScheduler().runTask(ctx.plugin(), () -> {
+        // Fall A: Alle Fremden bannen / entbannen
+        if (isAllStrangers) {
+            boolean banState = action.equals("ban");
+            for (Claim c : targets) {
+                ctx.claims().setBanAll(c, banState);
+                if (banState) {
+                    ctx.banEnforcer().handleBanAll(c, player.getName());
+                }
+            }
+            if (bulkAllClaims) {
+                player.sendMessage(Text.line(ctx.config().prefix() + (banState
+                        ? "<green>Alle fremden Spieler wurden auf <gold>allen deinen Claims (" + targets.size() + ") <green>gebannt!"
+                        : "<yellow>Der Alle-Fremden-Bann wurde auf <gold>allen deinen Claims (" + targets.size() + ") <yellow>aufgehoben.")));
+            } else {
+                Claim c = targets.get(0);
+                player.sendMessage(Text.line(ctx.config().prefix() + (banState
+                        ? "<green>Alle fremden Spieler wurden auf Claim '<yellow>" + c.name() + "<green>' gebannt!"
+                        : "<yellow>Der Alle-Fremden-Bann auf Claim '<yellow>" + c.name() + "<yellow>' wurde aufgehoben.")));
+            }
+            return;
+        }
+
+        // Fall B: Einzelnen Spieler bannen / entbannen
+        ctx.lookup().resolve(targetInput).thenAccept(resultOpt -> Bukkit.getScheduler().runTask(ctx.plugin(), () -> {
             if (!player.isOnline()) return;
             if (resultOpt.isEmpty()) {
-                player.sendMessage(Text.line(ctx.config().prefix() + "<red>Spieler '" + targetName + "' nicht gefunden."));
+                player.sendMessage(Text.line(ctx.config().prefix() + "<red>Spieler '" + targetInput + "' wurde nicht gefunden."));
                 return;
             }
 
@@ -105,39 +146,60 @@ public final class ClaimCommand implements CommandExecutor, TabCompleter {
                 player.sendMessage(Text.line(ctx.config().prefix() + ctx.config().message("cannot-ban-owner")));
                 return;
             }
-            if (targetClaim != null && targetClaim.isOwner(resolved.uuid())) {
-                player.sendMessage(Text.line(ctx.config().prefix() + ctx.config().message("cannot-ban-owner")));
-                return;
-            }
 
             ctx.claims().ensurePlayerData(resolved.uuid(), resolved.name());
 
             if (action.equals("ban")) {
-                if (bulk) {
-                    List<Claim> owned = ctx.claims().claimsOf(player.getUniqueId());
-                    for (Claim c : owned) {
-                        ctx.claims().setBan(c, resolved.uuid());
-                        ctx.banEnforcer().handleBan(c, resolved.uuid(), player.getName());
-                    }
-                    player.sendMessage(Text.line(ctx.config().prefix() + "<green>Spieler <gold>" + resolved.name() + " <green>wurde auf allen deinen Claims (" + owned.size() + ") gebannt!"));
+                for (Claim c : targets) {
+                    if (c.isOwner(resolved.uuid())) continue;
+                    ctx.claims().setBan(c, resolved.uuid());
+                    ctx.banEnforcer().handleBan(c, resolved.uuid(), player.getName());
+                }
+                if (bulkAllClaims) {
+                    player.sendMessage(Text.line(ctx.config().prefix() + "<green>Spieler <gold>" + resolved.name()
+                            + " <green>wurde auf allen deinen Claims (" + targets.size() + ") gebannt!"));
                 } else {
-                    ctx.claims().setBan(targetClaim, resolved.uuid());
-                    ctx.banEnforcer().handleBan(targetClaim, resolved.uuid(), player.getName());
-                    player.sendMessage(Text.line(ctx.config().prefix() + "<green>Spieler <gold>" + resolved.name() + " <green>wurde auf Claim '<yellow>" + targetClaim.name() + "<green>' gebannt!"));
+                    player.sendMessage(Text.line(ctx.config().prefix() + "<green>Spieler <gold>" + resolved.name()
+                            + " <green>wurde auf Claim '<yellow>" + targets.get(0).name() + "<green>' gebannt!"));
                 }
             } else {
-                if (bulk) {
-                    List<Claim> owned = ctx.claims().claimsOf(player.getUniqueId());
-                    for (Claim c : owned) {
-                        ctx.claims().removeBan(c, resolved.uuid());
-                    }
-                    player.sendMessage(Text.line(ctx.config().prefix() + "<green>Spieler <gold>" + resolved.name() + " <green>wurde auf allen deinen Claims (" + owned.size() + ") entbannt!"));
+                for (Claim c : targets) {
+                    ctx.claims().removeBan(c, resolved.uuid());
+                }
+                if (bulkAllClaims) {
+                    player.sendMessage(Text.line(ctx.config().prefix() + "<green>Spieler <gold>" + resolved.name()
+                            + " <green>wurde auf allen deinen Claims (" + targets.size() + ") entbannt!"));
                 } else {
-                    ctx.claims().removeBan(targetClaim, resolved.uuid());
-                    player.sendMessage(Text.line(ctx.config().prefix() + "<green>Spieler <gold>" + resolved.name() + " <green>wurde auf Claim '<yellow>" + targetClaim.name() + "<green>' entbannt!"));
+                    player.sendMessage(Text.line(ctx.config().prefix() + "<green>Spieler <gold>" + resolved.name()
+                            + " <green>wurde auf Claim '<yellow>" + targets.get(0).name() + "<green>' entbannt!"));
                 }
             }
         }));
+    }
+
+    private Claim resolveClaim(Player player, String input) {
+        List<Claim> owned = ctx.claims().claimsOf(player.getUniqueId());
+        // 1. Per Index "#1", "#2" oder "1", "2"
+        String numStr = input.startsWith("#") ? input.substring(1) : input;
+        try {
+            int idx = Integer.parseInt(numStr);
+            if (idx >= 1 && idx <= owned.size()) {
+                return owned.get(idx - 1);
+            }
+        } catch (NumberFormatException ignored) {}
+
+        // 2. Per Exakter Name oder Teilname
+        for (Claim c : owned) {
+            if (c.name().equalsIgnoreCase(input)) {
+                return c;
+            }
+        }
+        for (Claim c : owned) {
+            if (c.name().toLowerCase(Locale.ROOT).startsWith(input.toLowerCase(Locale.ROOT))) {
+                return c;
+            }
+        }
+        return null;
     }
 
     private void handlePay(Player player, String[] args) {
@@ -170,8 +232,6 @@ public final class ClaimCommand implements CommandExecutor, TabCompleter {
             return;
         }
 
-        // Schneller Vorab-Check per Name, damit man sich nicht selbst tippen muss,
-        // um die offensichtliche Selbst-Zahlung zu erkennen (spart den Lookup-Roundtrip).
         if (targetName.equalsIgnoreCase(player.getName())) {
             player.sendMessage(Text.line(ctx.config().prefix() + ctx.config().message("pay-self")));
             pendingPayments.remove(player.getUniqueId());
@@ -192,10 +252,6 @@ public final class ClaimCommand implements CommandExecutor, TabCompleter {
 
             PlayerLookupService.Resolved resolved = resultOpt.get();
 
-            // Fallback: Alles wird gegen den AKTUELLEN Stand geprüft - sowohl beim
-            // ersten Aufruf (Bestätigungsanfrage) als auch beim zweiten Aufruf
-            // (Bestätigung), damit sich zwischenzeitliche Änderungen (z.B. neue
-            // Claims gesetzt, bereits an jemand anderen gezahlt) nicht umgehen lassen.
             ClaimManager.PayResult result = ctx.claims().validatePay(player, resolved.uuid(), finalAmount);
             if (result != ClaimManager.PayResult.OK) {
                 sendPayError(player, result, finalAmount);
@@ -254,8 +310,7 @@ public final class ClaimCommand implements CommandExecutor, TabCompleter {
                 player.sendMessage(Text.line(ctx.config().prefix() + ctx.config().message("pay-not-enough-own"),
                         Map.of("verfuegbar", String.valueOf(own), "anzahl", String.valueOf(amount))));
             }
-            default -> {
-            }
+            default -> {}
         }
     }
 
@@ -277,7 +332,7 @@ public final class ClaimCommand implements CommandExecutor, TabCompleter {
             return out;
         }
 
-        if (args.length == 2 && (args[0].equalsIgnoreCase("pay") || args[0].equalsIgnoreCase("ban") || args[0].equalsIgnoreCase("unban"))) {
+        if (args.length == 2 && args[0].equalsIgnoreCase("pay")) {
             List<String> names = new ArrayList<>();
             for (Player online : Bukkit.getOnlinePlayers()) {
                 if (!online.getUniqueId().equals(player.getUniqueId())) {
@@ -289,8 +344,54 @@ public final class ClaimCommand implements CommandExecutor, TabCompleter {
             return out;
         }
 
+        if (args.length == 2 && args[0].equalsIgnoreCase("ban")) {
+            List<String> suggestions = new ArrayList<>();
+            suggestions.add("*");
+            suggestions.add("alle");
+            for (Player online : Bukkit.getOnlinePlayers()) {
+                if (!online.getUniqueId().equals(player.getUniqueId())) {
+                    suggestions.add(online.getName());
+                }
+            }
+            StringUtil.copyPartialMatches(args[1], suggestions, out);
+            return out;
+        }
+
+        if (args.length == 2 && args[0].equalsIgnoreCase("unban")) {
+            Set<String> bannedNames = new LinkedHashSet<>();
+            bannedNames.add("*");
+            bannedNames.add("alle");
+            // Gespeicherte Namen von gebannten Spielern vorschlagen
+            Claim here = ctx.claims().getClaimAt(player.getLocation());
+            Set<UUID> checkUuids = new HashSet<>();
+            if (here != null && here.isOwnerOrManager(player.getUniqueId())) {
+                checkUuids.addAll(here.banned());
+            } else {
+                for (Claim c : ctx.claims().claimsOf(player.getUniqueId())) {
+                    checkUuids.addAll(c.banned());
+                }
+            }
+            for (UUID u : checkUuids) {
+                String n = Bukkit.getOfflinePlayer(u).getName();
+                if (n != null) bannedNames.add(n);
+            }
+            StringUtil.copyPartialMatches(args[1], bannedNames, out);
+            return out;
+        }
+
         if (args.length == 3 && (args[0].equalsIgnoreCase("ban") || args[0].equalsIgnoreCase("unban"))) {
-            StringUtil.copyPartialMatches(args[2], List.of("all"), out);
+            List<String> scopes = new ArrayList<>();
+            scopes.add("hier");
+            scopes.add("alle");
+            List<Claim> owned = ctx.claims().claimsOf(player.getUniqueId());
+            for (int i = 0; i < owned.size(); i++) {
+                scopes.add("#" + (i + 1));
+                String name = owned.get(i).name();
+                if (!name.contains(" ")) {
+                    scopes.add(name);
+                }
+            }
+            StringUtil.copyPartialMatches(args[2], scopes, out);
             return out;
         }
 

@@ -1,0 +1,55 @@
+# ==============================================================================
+#                      ZTONE - DRAGONEGG CONFIGURATION
+# ==============================================================================
+# Neues Modul fuer das gesicherte Enderdrachen-Ei.
+# Gilt standardmaessig NUR fuer das spezifizierte Drachenei (egg.secured)!
+
+# Wenn true, gilt das System fuer JEDES Drachenei (auch normale Vanilla-Dracheneier ohne Name/Lore).
+# Wenn false (Standard), gilt es nur fuer das unten definierte gesicherte Drachenei (egg.secured).
+match-any-egg: false
+
+# Erzwingt permanent PvP fuer den Spieler, der das Ei im Inventar hat (in allen Dimensionen).
+# Ausnahme: Dimensionen mit erzwungenem Status (--force) sowie WorldGuard-Regionen
+# (pvp: deny / pvp: allow) ueberschreiben diesen Status. Beim Verlassen der Region/Dimension
+# oder beim Verlust des Eis wird der urspruengliche, in der Datenbank gespeicherte /pvp-Status
+# automatisch wieder aktiv, ohne den gespeicherten Wert zu veraendern!
+permanent-pvp: true
+
+# Ob Spieler mit dem gesicherten Drachenei Claims betreten duerfen (Standard: false).
+# Wenn false, wird das Betreten zu Fuss/per Fahrzeug blockiert und jeder Teleport in einen Claim
+# (oder das Aufheben/Erhalten des Eis innerhalb eines Claims) befoerdert den Spieler
+# sofort per SafeSpotFinder sicher aus dem Claim heraus.
+allow-claim-entry: false
+
+# Definition des gesicherten Dracheneis (nur dieses spezifische Item aktiviert das Modul!)
+egg:
+  secured:
+    # Name des gesicherten Dracheneis (MiniMessage). Platzhalter: <player>, <date>
+    name: "<light_purple><bold>Drachenei</bold></light_purple>"
+    lore:
+      - "<gray>Gesichert von <yellow><player></yellow></gray>"
+      - "<gray>Datum: <white><date></white></gray>"
+    # Datumsformat fuer den <date> Platzhalter
+    date-format: "dd.MM.yyyy"
+
+# Nachrichten
+messages:
+  prefix: "<gradient:#DDA0DD:#BA55D3><bold>DRAGONEGG</bold></gradient> <dark_gray>»</dark_gray>"
+  no-permission: "<prefix> <red>Dazu hast du keine Berechtigung!</red>"
+  reloaded: "<prefix> <green>Konfiguration wurde neu geladen.</green>"
+  player-not-found: "<prefix> <red>Spieler <yellow>{player}</yellow> ist nicht online.</red>"
+  given: "<prefix> <green>Gesichertes Drachenei an <yellow>{player}</yellow> gegeben.</green>"
+  received: "<prefix> <light_purple>Du hast das gesicherte Drachenei erhalten!</light_purple>"
+  # Warnungen fuer Ei-Besitzer
+  egg-obtained: "<prefix> <light_purple>Du trägst das gesicherte Drachenei! Du leuchtest permanent und hast dauerhaft PvP an.</light_purple>"
+  egg-lost: "<prefix> <gray>Du trägst das Drachenei nicht mehr. Dein Leuchten und PvP-Status wurden zurückgesetzt.</gray>"
+  pvp-forced-notice: "<prefix> <red>Du trägst das gesicherte Drachenei und kannst PvP nicht deaktivieren!</red>"
+  cannot-enter-claim: "<prefix> <red>Du trägst das Drachenei und darfst keine Claims betreten!</red>"
+  claim-evicted: "<prefix> <red>Du trägst das Drachenei und wurdest aus dem Claim teleportiert!</red>"
+  # Bypass-Nachrichten (/dragonegg bypass [on|off] [spieler])
+  bypass-usage: "<prefix> <gray>Verwendung: <yellow>/dragonegg bypass [on|off] [spieler]</yellow></gray>"
+  bypass-enabled: "<prefix> <green>DragonEgg-Bypass aktiviert (kein Glowing, normales PvP, freier Claim-Zutritt).</green>"
+  bypass-disabled: "<prefix> <red>DragonEgg-Bypass deaktiviert.</red>"
+  bypass-enabled-other: "<prefix> <green>DragonEgg-Bypass für <yellow>{player}</yellow> aktiviert.</green>"
+  bypass-disabled-other: "<prefix> <red>DragonEgg-Bypass für <yellow>{player}</yellow> deaktiviert.</red>"
+  bypass-auto-join: "<prefix> <gray>Dein DragonEgg-Bypass wurde beim Beitritt automatisch <green>aktiviert</green>.</gray>"

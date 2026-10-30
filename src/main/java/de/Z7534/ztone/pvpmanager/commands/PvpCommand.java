@@ -76,6 +76,13 @@ public class PvpCommand extends AbstractCommand {
 
         boolean newState = args.length >= 1 ? args[0].equalsIgnoreCase("on")
                 : !plugin.getPvpToggleManager().isPvpEnabled(player.getUniqueId());
+
+        // Wenn das Drachenei dauerhaft PvP erzwingt und der Spieler /pvp off machen will -> blockieren
+        if (!newState && plugin.getPlugin().isDragonEggPvpForced(player)) {
+            player.sendMessage(ColorUtils.colorize("&cDu trägst das gesicherte Drachenei und kannst PvP nicht ausschalten!"));
+            return true;
+        }
+
         plugin.getPvpToggleManager().requestToggle(player, newState);
         return true;
     }

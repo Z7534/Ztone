@@ -1,6 +1,6 @@
 # 🛡️ Ztone – All-in-One Server-System
 
-Willkommen in der offiziellen Dokumentation für **Ztone** (Version 1.0.5).  
+Willkommen in der offiziellen Dokumentation für **Ztone** (Version 1.1.0).  
 Ztone ist eine hochgradig optimierte, modulare All-in-One-Lösung für Minecraft Paper-, Purpur- und Leaf-Server (kompatibel mit Java 21 & Java 25).
 
 ---
@@ -18,9 +18,10 @@ Ztone ist eine hochgradig optimierte, modulare All-in-One-Lösung für Minecraft
 10. [Stonemute (LiteBans VoiceChat-Sync)](#9-stonemute-litebans-voicechat-sync)
 11. [MapControl (Minimap- & Radar-Steuerung)](#10-mapcontrol-minimap--radar-steuerung)
 12. [Stonelog & Hauptverwaltung](#11-stonelog--hauptverwaltung)
-13. [Globale Konfiguration, Auto-Updater & Datenbank](#12-globale-konfiguration-auto-updater--datenbank)
-14. [PlaceholderAPI Gesamtübersicht](#13-placeholderapi-gesamtübersicht)
-15. [Kompilierung & Entwicklung](#14-kompilierung--entwicklung)
+13. [StoneSit (Sitzen, Hinlegen & Spielerstapeln)](#12-stonesit-sitzen-hinlegen--spielerstapeln)
+14. [Globale Konfiguration, Auto-Updater & Datenbank](#13-globale-konfiguration-auto-updater--datenbank)
+15. [PlaceholderAPI Gesamtübersicht](#14-placeholderapi-gesamtübersicht)
+16. [Kompilierung & Entwicklung](#15-kompilierung--entwicklung)
 
 ---
 
@@ -29,7 +30,7 @@ Ztone ist eine hochgradig optimierte, modulare All-in-One-Lösung für Minecraft
 Ztone bündelt alle wichtigen Core-Features für moderne Survival- und SMP-Netzwerke in einem einzigen Plugin:
 * **Clansystem:** Eigene Clans, Ränge mit detaillierten Rechten, Clankasse mit Zinsen/Schulden, Clan-Homes, Clan-Warps, Clankriege und Allianzen. Volle Leader-Rechte über alle Clan-Ränge (inkl. Co-Owner-Beförderung).
 * **Claims:** Chunk-basiertes Claiming mit interaktiver Karten-GUI, granularen Schutzflags, Subclaims, Trusted- und Ban-System sowie Anti-Combat-Fluchtsperre.
-* **PvPManager:** Umfassender Combat-Tag, Spawn-/Respawn-Schutz, Anti-CombatLog, Anti-Kill-Abuse und strenge PvP-Hierarchie (Wildnis: Dimensions- & Spielerstatus; Claims: standardmäßig deaktiviert, außer bei Clankrieg oder Admin-Override). Session-basiertes In-Memory-System ohne Datenbank-Leichen.
+* **PvPManager:** Umfassender Combat-Tag, Spawn-/Respawn-Schutz, Anti-CombatLog, Anti-Kill-Abuse und strenge PvP-Hierarchie (Wildnis: Dimensions- & Spielerstatus; Claims: standardmäßig deaktiviert, außer bei Clankrieg oder Admin-Override).
 * **StoneAttack:** Holographische Leaderboards mit transparentem Display-Design, dynamisches PlayerLimit und TPS/MSPT-Serverüberwachung.
 * **DeathChest:** Sichere Todeskisten mit Despawn-Timer, Dupe-Schutz und Hologrammen.
 * **ClearLag:** Intelligente Boden-Item-Bereinigung mit Countdown-Warnungen und Actionbar.
@@ -37,6 +38,7 @@ Ztone bündelt alle wichtigen Core-Features für moderne Survival- und SMP-Netzw
 * **StoneVoice & Stonemute:** SimpleVoiceChat-Gruppenüberwachung für Admins sowie automatischer Mute-Sync über LiteBans.
 * **MapControl:** Erzwingen von Fairplay-Regeln für Client-Minimaps (Xaero, JourneyMap, VoxelMap).
 * **Stonelog:** Hochperformantes Discord-Audit-Logging mit automatischem Multi-Embed-Batching (bis zu 10 Embeds/Request) und parallelen URL-Queues.
+* **StoneSit:** Hochperformantes Sit-, Lay-, LegsUp- & PlayerSit-System (1:1 nach GSit optimiert, ohne Bellyflop/Spin/Toggle-Overhead, mit Bett-Schlaf-Logik ohne Respawn-Punkt und Admin-Schutz vor Sneak-Abwurf vom Kopf).
 * **Auto-Config-Sync:** Automatisches Ergänzen neuer Funktionen und Konfigurationsoptionen bei Versionsupdates direkt in bestehende `.yml`-Dateien.
 
 ---
@@ -184,7 +186,8 @@ Jeder Claim-Besitzer kann pro Spieler oder global folgende Rechte vergeben:
 | `/pvpinfo [Spieler]` | - | Zeigt detaillierte PvP- und Combat-Informationen an | `pvpmanager.command.pvpinfo` |
 | `/pvpstatus [Spieler]` | - | Zeigt den aktuellen PvP-Status eines Spielers | `pvpmanager.command.pvpstatus` |
 | `/pvplist` | `/listpvp` | Listet den PvP-Status aller Online-Spieler auf | `pvpmanager.command.pvplist` |
-| `/pvptag [Spieler] [Zeit]` | `/combattag`, `/tag` | Zeigt verbleibende Tag-Zeit oder taggt manuell | `pvpmanager.command.tag` |\n| `/untag [Spieler\|*]` | - | Entfernt den Combat-Tag von einem oder allen Spielern | `pvpmanager.command.untag` |
+| `/pvptag [Spieler] [Zeit]` | `/combattag`, `/tag` | Zeigt verbleibende Tag-Zeit oder taggt manuell | `pvpmanager.command.tag` |
+| `/untag [Spieler\|*]` | - | Entfernt den Combat-Tag von einem oder allen Spielern | `pvpmanager.command.untag` |
 | `/teleportoverride [Spieler]`| - | Erlaubt Teleportation trotz Combat-Tag | `pvpmanager.command.teleportoverride` |
 | `/pvpdimensiontoggle <Dim> <on\|off> [--force]` | - | Schaltet PvP für eine Dimension permanent ein/aus | `pvpmanager.command.pvpdimensiontoggle` |
 | `/announce <Nachricht>` | - | Sendet einen serverweiten Broadcast | `pvpmanager.command.announce` |
@@ -207,11 +210,6 @@ Jeder Claim-Besitzer kann pro Spieler oder global folgende Rechte vergeben:
 >    * Ausnahme C: Ein Admin besitzt `/pvpoverride` oder den individuellen Admin-Bypass.  
 > 3. **Selbstinteraktion & Movement:**  
 >    * Wind Charges und Enderperlen auf sich selbst (z. B. Boost-Sprünge) triggern niemals irrtümlich eine PvP-Schadensverweigerung.
-
-> [!NOTE]
-> **Temporäre Session-Daten & In-Memory-Verwaltung:**  
-> Der persönliche Status eines Spielers (`/pvp on/off`) wird rein im Arbeitsspeicher (Session) gehalten. Temporäre Spielerdaten werden nicht in der Datenbank abgelegt, wodurch nach Server-Neustarts oder Reconnects keine veralteten Zustände verbleiben.  
-> **Dimensions-Einstellungen** (`DimensionSettings`) in der `config.yml` bleiben dauerhaft gespeichert. Dimensions-Defaults überschreiben den Status des Spielers niemals ungefragt beim Betreten einer Welt oder beim Joinen.
 
 * **Combat-Tag:** Bei Schaden oder aggressiven Aktionen (auch feindliche Wind Charges/Enderperlen) wird der Combat-Tag aktiviert. Befehle, Fliegen, Gamemode und Elytren werden temporär blockiert.
 * **Anti-CombatLog:** Verlässt ein Spieler den Server im Kampf, wird er getötet, sein Loot gedroppt und Blitze schlagen an seiner Position ein.
@@ -269,7 +267,7 @@ Intelligente Boden-Item-Bereinigung zur Erhaltung hoher TPS:
 ## 8. StoneVoice (VoiceChat-Admin-Tools)
 
 Ermöglicht Moderatoren und Admins die diskrete Überwachung von Simple Voice Chat Gruppenräumen:
-* `/adminjoinvoice <Gruppe>` (Berechtigung: `stonevoice.admin`): Tritt einem Sprachkanal bei.
+* `/adminjoinvoice <Gruppe>` (Berechtigung: `adminjoinvoice.use`): Tritt einem Sprachkanal bei.
 * Modus-Optionen:
   * `[listen]`: Kann nur zuhören, Mikrofon stumm.
   * `[speak]`: Kann sprechen und hören.
@@ -302,6 +300,7 @@ Sendet standardisierte Plugin-Nachrichten an VoxelMap, Xaero's Minimap und Journ
 ### 🔹 Hauptbefehl (`/ztone`)
 *Berechtigung:* `ztone.admin`
 * `/ztone reload`: Führt einen vollständigen Reload aller Submodule und Konfigurationen durch.
+* `/ztone backup`: Erstellt sofort ein manuelles Hot-Backup aller aktiven Datenbanken.
 
 ### 🔹 Logging (`/stonelog`)
 *Berechtigung:* `stonelog.admin`
@@ -313,14 +312,62 @@ Sendet standardisierte Plugin-Nachrichten an VoxelMap, Xaero's Minimap und Journ
 
 ---
 
-## 12. Globale Konfiguration, Auto-Updater & Datenbank
+## 12. StoneSit (Sitzen, Hinlegen & Spielerstapeln)
+
+Hochperformantes Sit-, Pose- (`/lay` & `/legsup`) und PlayerSit-Modul (1:1 nach GSit für Paper 26.2 optimiert, ohne Bellyflop-, Spin- oder Toggle-Datenbank-Overhead).
+
+### 🔹 Befehle
+| Befehl | Aliase | Beschreibung | Berechtigung |
+| :--- | :--- | :--- | :--- |
+| `/sit` | `/gsit`, `/stonesit` | Setzt dich auf den aktuellen Block (oder steht wieder auf) | `stonesit.sit` |
+| `/lay` | `/glay`, `/layback`, `/glayback` | Legt dich auf den aktuellen Block (zählt als Schlafen im Bett, setzt aber **keinen** Respawn-Punkt) | `stonesit.lay` |
+| `/legsup` | `/glegsup` | Legt dich mit hochgestreckten Beinen auf den aktuellen Block (zählt ebenfalls als Schlafen ohne Respawn-Punkt) | `stonesit.legsup` |
+| `/stonesitreload` | `/gsitreload`, `/gsitrl`, `/stonesitrl`, `/sit reload` | Lädt `plugins/Ztone/stonesit/config.yml` im laufenden Betrieb neu | `stonesit.reload` |
+
+### 🔹 Besondere Features
+* **Rechtsklick-Sitzen auf Blöcken:** Mit leerer Haupthand per Rechtsklick auf Treppen (`#stairs`), Stufen (`#slabs`), Teppiche (`#carpets`), Moosteppiche und Schnee setzen (automatisch ausgerichtet nach Treppenform).
+* **Schlafen im Bett ohne Respawn-Punkt (`/lay` & `/legsup`):**
+  * Setzt den Phantom-Timer (`TIME_SINCE_REST`) auf `0`.
+  * Zählt für das Überspringen der Nacht und von Gewittern (gemäß Gamerule `playersSleepingPercentage`) nach 5 Sekunden (`100` Ticks) – sowohl alleine als auch kombiniert mit Spielern in echten Betten –, **ohne** jemals den Respawn-Punkt des Spielers zu verändern.
+* **Spieler-Stapeln (PlayerSit) & Admin-Kopfsitz-Schutz:**
+  * Spieler können sich per Rechtsklick mit leerer Hand auf den Kopf anderer Spieler setzen.
+  * **Admin-Schutz (`stonesit.bypass.sneakeject`):** Sitzt ein Admin mit dieser Permission auf dem Kopf eines Spielers (oder weiter oben im Stapel), kann der untere Spieler ihn **nicht** durch Sneaken (Schleichen) vom Kopf werfen!
+
+### 🔹 Alle StoneSit-Permissions im Überblick
+| Permission | Standard | Beschreibung |
+| :--- | :---: | :--- |
+| `stonesit.*` | `op` | Vollzugriff auf alle StoneSit-Funktionen, Bypasses und Admin-Rechte |
+| `stonesit.admin` | `op` | Admin-Paket: beinhaltet `stonesit.bypass.sneakeject` und `stonesit.reload` |
+| `stonesit.sit.*` | `true` | Beinhaltet `stonesit.sit` und `stonesit.sitclick` |
+| `stonesit.sit` | `true` | Erlaubt den Befehl `/sit` (`/gsit`, `/stonesit`) |
+| `stonesit.sitclick` | `true` | Erlaubt das Hinsetzen per Rechtsklick auf Stufen, Treppen, Teppiche etc. |
+| `stonesit.pose.*` | `true` | Beinhaltet `stonesit.lay` und `stonesit.legsup` |
+| `stonesit.lay` | `true` | Erlaubt den Befehl `/lay` (`/glay`, `/layback`, `/glayback`) |
+| `stonesit.legsup` | `true` | Erlaubt den Befehl `/legsup` (`/glegsup`) |
+| `stonesit.playersit.*` | `true` | Beinhaltet `stonesit.playersit` |
+| `stonesit.playersit` | `true` | Erlaubt das Draufsetzen auf andere Spieler per Rechtsklick (PlayerSit) |
+| `stonesit.bypass.sneakeject` | `op` | **Admin-Kopfsitz-Schutz:** Verhindert, dass man durch Sneaken (Schleichen) vom Kopf eines anderen Spielers geworfen werden kann |
+| `stonesit.bypass.*` | `op` | Beinhaltet alle Bypass-Permissions (`sneakeject`, `command`, `world`, `region`) |
+| `stonesit.bypass.command` | `op` | Umgeht die Command-Blacklist während des Sitzens/Liegens |
+| `stonesit.bypass.world` | `op` | Umgeht die World-Blacklist und World-Whitelist |
+| `stonesit.bypass.region` | `op` | Umgeht Claim-/Regions-Einschränkungen (`trusted-region-only`) |
+| `stonesit.kick.*` | `op` | Beinhaltet `stonesit.kick.sit` und `stonesit.kick.pose` |
+| `stonesit.kick.sit` | `op` | Erlaubt das Verdrängen eines bereits sitzenden Spielers vom selben Block (wenn `same-block-rest: false`) |
+| `stonesit.kick.pose` | `op` | Erlaubt das Verdrängen eines bereits liegenden Spielers vom selben Block (wenn `same-block-rest: false`) |
+| `stonesit.reload` | `op` | Erlaubt das Neuladen der StoneSit-Konfiguration (`/stonesitreload`, `/sit reload`) |
+
+*(Hinweis: Zur Abwärtskompatibilität werden auch die originalen `GSit.*`-Permissions wie `GSit.Sit`, `GSit.Lay`, `GSit.LegsUp`, `GSit.PlayerSit` automatisch erkannt.)*
+
+---
+
+## 13. Globale Konfiguration, Auto-Updater & Datenbank
 
 ### 🔄 Automatischer Konfigurations-Updater (Auto-Sync)
 Ztone verfügt über ein integriertes **Auto-Sync-System** (`ConfigUtil`):
 * Beim Starten oder Neuladen des Plugins gleicht Ztone alle physischen `.yml`-Dateien auf der Festplatte mit den neuesten Standarddateien aus der JAR ab.
 * **Kein Verlust bestehender Werte:** Bereits vorhandene Benutzereinstellungen, geänderte Texte oder Zahlen werden niemals überschrieben.
 * **Automatische Ergänzung:** Neu hinzugekommene Optionen, Untersektionen und Standard-Kommentare werden automatisch in die Datei auf der Festplatte eingefügt.
-* **Gilt für alle Configs:** Hauptkonfiguration (`config.yml`), Clan-System (`clansystem/`), PvPManager (`pvpmanager/`), Claims (`claims/`), DeathChest (`deathchest/`), ClearLag (`clearlag/`), StoneAttack (`stoneattack/`), StoneLog (`stonelog/`), StoneMute (`stonemute/`), MapControl (`mapcontrol/`) und PlayRewards (`playrewards/`).
+* **Gilt für alle Configs:** Hauptkonfiguration (`config.yml`), Clan-System (`clansystem/`), PvPManager (`pvpmanager/`), Claims (`claims/`), DeathChest (`deathchest/`), ClearLag (`clearlag/`), StoneAttack (`stoneattack/`), StoneLog (`stonelog/`), StoneMute (`stonemute/`), MapControl (`mapcontrol/`), PlayRewards (`playrewards/`) und StoneSit (`stonesit/`).
 
 ### ⚙️ Modul-Aktivierung (`plugins/Ztone/config.yml`)
 In der zentralen Konfigurationsdatei können alle Submodule einzeln de-/aktiviert werden:
@@ -338,6 +385,7 @@ modules:
   playrewards: true
   deathchest: true
   clearlag: true
+  stonesit: true
 
 database:
   type: "sqlite" # oder "mariadb"
@@ -345,13 +393,9 @@ database:
   table-prefix: "ztone_"
 ```
 
-> [!NOTE]
-> **Permanente vs. Temporäre Tabellen:**  
-> Alle Clans (`clans`, `members`, `ranks`, `homes`, `warps`, `chests`, `alliances`, `wars`) und Claims (`claims_zones`, `claims_members`, etc.) werden dauerhaft und sicher in SQLite/MariaDB persistiert. Die temporäre Tabelle `pvpmanager_players` wurde vollständig zurückgesetzt (`DROP TABLE IF EXISTS`), da temporäre Session-Zustände rein im RAM verwaltet werden.
-
 ---
 
-## 13. PlaceholderAPI Gesamtübersicht
+## 14. PlaceholderAPI Gesamtübersicht
 
 Alle Platzhalter erfordern das installierte Plugin **PlaceholderAPI**.
 
@@ -371,9 +415,18 @@ Alle Platzhalter erfordern das installierte Plugin **PlaceholderAPI**.
 | `%clansystem_has_clan%` | `true` oder `false` |
 | `%clansystem_is_leader%` | `true` oder `false` |
 
+### 🪑 StoneSit-Platzhalter (`%stonesit_...%` oder `%gsit_...%`)
+| Placeholder | Rückgabewert |
+| :--- | :--- |
+| `%stonesit_sitting%` / `%gsit_sitting%` | `true` oder `false` (Block-Sit oder PlayerSit) |
+| `%stonesit_blocksitting%` / `%gsit_blocksitting%` | `true` oder `false` (Sitzt auf einem Block) |
+| `%stonesit_playersitting%` / `%gsit_playersitting%` | `true` oder `false` (Sitzt im Spieler-Stapel) |
+| `%stonesit_posing%` / `%gsit_posing%` | `true` oder `false` (Liegt per `/lay` oder `/legsup`) |
+| `%stonesit_pose%` / `%gsit_pose%` | `lay`, `legs_up` oder `none` |
+
 ---
 
-## 14. Kompilierung & Entwicklung
+## 15. Kompilierung & Entwicklung
 
 ```powershell
 # Kompilieren mit Gradle Shadow-Jar

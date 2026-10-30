@@ -141,14 +141,17 @@ public class ClanMainGUI extends AbstractGUI {
                             "&7Guthaben deines Clans.",
                             "&7Verwalte Ein- und Auszahlungen.",
                             "",
-                            "&a▶ &7Klicke für Transaktionen"
+                            "&a▶ &7Linksklick: Transaktionen",
+                            "&6▶ &7Rechtsklick: Clankasse-Top 10"
                     )
                     .glow()
-                    .build(), () -> {
-                if (member != null && (clan.isLeader(player.getUniqueId()) || member.hasPermission(Permission.BANK_VIEW_TRANSACTIONS))) {
-                    new ClanBankTransactionsGUI(plugin, player, clan).open();
-                }
-            });
+                    .build(),
+                    () -> {
+                        if (member != null && (clan.isLeader(player.getUniqueId()) || member.hasPermission(Permission.BANK_VIEW_TRANSACTIONS))) {
+                            new ClanBankTransactionsGUI(plugin, player, clan).open();
+                        }
+                    },
+                    () -> new ClanTopGUI(plugin, player, ClanTopGUI.Mode.BALANCE).open());
         }
 
         setItem(32, new ItemBuilder(Material.GOLDEN_SWORD)
@@ -271,16 +274,32 @@ public class ClanMainGUI extends AbstractGUI {
 
         addCloseButton(49);
 
-        setItem(50, new ItemBuilder(Material.NETHER_STAR)
-                .name("&6&l🏆 Clan-Rangliste (Top 10)")
-                .lore(
-                        "&7Zeige die stärksten Clans",
-                        "&7nach Punkten an.",
-                        "",
-                        "&a▶ &7Klicke zum Öffnen"
-                )
-                .glow()
-                .build(), () -> new ClanTopGUI(plugin, player).open());
+        if (plugin.getConfigManager().isClankasseEnabled()) {
+            setItem(50, new ItemBuilder(Material.NETHER_STAR)
+                    .name("&6&l🏆 Clan-Rangliste (Top 10)")
+                    .lore(
+                            "&7Zeige die Top 10 Clans nach",
+                            "&ePunkten &7oder &6Clankasse &7an.",
+                            "",
+                            "&a▶ &7Linksklick: Punkte-Leaderboard",
+                            "&6▶ &7Rechtsklick: Clankasse-Leaderboard"
+                    )
+                    .glow()
+                    .build(),
+                    () -> new ClanTopGUI(plugin, player, ClanTopGUI.Mode.POINTS).open(),
+                    () -> new ClanTopGUI(plugin, player, ClanTopGUI.Mode.BALANCE).open());
+        } else {
+            setItem(50, new ItemBuilder(Material.NETHER_STAR)
+                    .name("&6&l🏆 Clan-Rangliste (Top 10)")
+                    .lore(
+                            "&7Zeige die stärksten Clans",
+                            "&7nach Punkten an.",
+                            "",
+                            "&a▶ &7Klicke zum Öffnen"
+                    )
+                    .glow()
+                    .build(), () -> new ClanTopGUI(plugin, player, ClanTopGUI.Mode.POINTS).open());
+        }
 
         fillEmpty(Material.BLACK_STAINED_GLASS_PANE);
     }

@@ -480,6 +480,15 @@ public final class ClaimManager {
                 for (int i = 1; i < touched.size(); i++) {
                     Claim victim = touched.get(i);
                     mergeAccessLists(survivor, victim);
+                    if (victim.isBanAll()) {
+                        survivor.setBanAll(true);
+                    }
+                    if (victim.isClanTrustEnabled()) {
+                        survivor.setClanTrustEnabled(true);
+                    }
+                    if (victim.isAllyTrustEnabled()) {
+                        survivor.setAllyTrustEnabled(true);
+                    }
                     unindex(victim);
                     claimsById.remove(victim.id());
                     final long victimId = victim.id();
@@ -584,6 +593,9 @@ public final class ClaimManager {
                 Claim split = new Claim(-1, claim.owner(), generateClaimName(claim.owner()), claim.world());
                 split.chunks().addAll(components.get(i));
                 split.setVisitorPermissionMask(claim.visitorPermissionMask());
+                split.setClanTrustEnabled(claim.isClanTrustEnabled());
+                split.setAllyTrustEnabled(claim.isAllyTrustEnabled());
+                split.setBanAll(claim.isBanAll());
                 claim.trusted().forEach((uuid, tp) -> split.trusted().put(uuid,
                         new de.Z7534.ztone.claims.model.TrustedPlayer(uuid, tp.permissionMask())));
                 split.banned().addAll(claim.banned());
@@ -728,6 +740,11 @@ public final class ClaimManager {
     public void setAllyTrust(Claim claim, boolean enabled) {
         claim.setAllyTrustEnabled(enabled);
         async(() -> claimRepository.setAllyTrust(claim.id(), enabled));
+    }
+
+    public void setBanAll(Claim claim, boolean enabled) {
+        claim.setBanAll(enabled);
+        async(() -> claimRepository.setBanAll(claim.id(), enabled));
     }
 
     public boolean toggleManager(Claim claim, UUID player) {

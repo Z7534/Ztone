@@ -67,6 +67,9 @@ public class GlowManager {
             if (player.hasPotionEffect(PotionEffectType.GLOWING)) {
                 keepGlowing = true;
             }
+            if (plugin.getPlugin().isDragonEggGlowing(player)) {
+                keepGlowing = true;
+            }
             if (!keepGlowing) {
                 if (player.isGlowing()) {
                     player.setGlowing(false);

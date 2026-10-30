@@ -2,6 +2,7 @@ package de.Z7534.ztone.deathchest.listener;
 
 import de.Z7534.ztone.Ztone;
 import de.Z7534.ztone.deathchest.config.DeathChestConfig;
+import de.Z7534.ztone.deathchest.manager.DeathChestBypassManager;
 import de.Z7534.ztone.deathchest.manager.DeathChestManager;
 import de.Z7534.ztone.deathchest.model.DeathChestData;
 import org.bukkit.Bukkit;
@@ -35,6 +36,8 @@ import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.event.inventory.InventoryMoveItemEvent;
 import org.bukkit.event.inventory.InventoryOpenEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.event.player.PlayerJoinEvent;
+import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.world.ChunkLoadEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
@@ -47,11 +50,27 @@ public class DeathChestListener implements Listener {
     private final Ztone plugin;
     private final DeathChestManager deathChestManager;
     private final DeathChestConfig config;
+    private final DeathChestBypassManager bypassManager;
 
-    public DeathChestListener(Ztone plugin, DeathChestManager deathChestManager, DeathChestConfig config) {
+    public DeathChestListener(Ztone plugin, DeathChestManager deathChestManager, DeathChestConfig config,
+                              DeathChestBypassManager bypassManager) {
         this.plugin = plugin;
         this.deathChestManager = deathChestManager;
         this.config = config;
+        this.bypassManager = bypassManager;
+    }
+
+    @EventHandler
+    public void onJoin(PlayerJoinEvent event) {
+        // Bypass gilt nie ueber eine Session hinaus - ausser mit deathchest.bypass.join (Standard: false)
+        if (bypassManager.handleJoin(event.getPlayer())) {
+            event.getPlayer().sendMessage(config.getMessage("bypass-auto-join"));
+        }
+    }
+
+    @EventHandler
+    public void onQuit(PlayerQuitEvent event) {
+        bypassManager.reset(event.getPlayer().getUniqueId());
     }
 
     @EventHandler(priority = EventPriority.HIGHEST)
@@ -176,10 +195,19 @@ public class DeathChestListener implements Listener {
         Player player = event.getPlayer();
 
         if (chest.isKillerLocked()) {
-            if (player.getUniqueId().equals(chest.getKillerUuid())) {
+            boolean isKiller = player.getUniqueId().equals(chest.getKillerUuid());
+            boolean bypassing = !isKiller && bypassManager.isActive(player);
+            if (isKiller || bypassing) {
                 // Killer Claim-Override: Bypasses claim restrictions completely
+                // DeathChest-Bypass (/deathchest bypass): darf trotz Sperre hineinschauen und entnehmen
                 Inventory inv = chest.getInventory();
                 if (inv != null) {
+                    if (bypassing) {
+                        player.sendMessage(config.getMessage("bypass-opened-locked", Map.of(
+                                "killer", chest.getKillerName() != null ? chest.getKillerName() : "Killer",
+                                "victim", chest.getVictimName() != null ? chest.getVictimName() : "?"
+                        )));
+                    }
                     player.openInventory(inv);
                     player.playSound(block.getLocation(), Sound.BLOCK_CHEST_OPEN, 0.5f, 1.0f);
                 }
