@@ -34,16 +34,38 @@ public class ClanBankTransactionsGUI extends AbstractGUI {
         EconomyManager eco = plugin.getEconomyManager();
         String formattedBalance = eco != null ? eco.format(clan.getBalance()) : (clan.getBalance() + " $");
 
-        setItem(4, new ItemBuilder(Material.GOLD_BLOCK)
+        ItemBuilder header = new ItemBuilder(Material.GOLD_BLOCK)
                 .name("&6&l✦ Clankasse ✦")
-                .lore(
-                        "&7Aktuelles Guthaben: &e" + formattedBalance,
-                        "",
-                        "&7Hier siehst du die letzten",
-                        "&7Transaktionen des Clans."
-                )
-                .glow()
-                .build());
+                .addLore("&7Aktuelles Guthaben: &e" + formattedBalance);
+
+        if (plugin.getConfigManager().isTaxesEnabled()) {
+            double estimatedTax = plugin.getConfigManager().calculateTotalTax(clan.getLevel(), clan.getBalance());
+            String formattedTax = eco != null ? eco.format(estimatedTax) : (estimatedTax + " $");
+            boolean inGrace = plugin.getTaxManager() != null && plugin.getTaxManager().isClanInGracePeriod(clan);
+            long nextRun = plugin.getTaxManager() != null ? plugin.getTaxManager().getNextTaxRunTimestamp() : 0L;
+            String nextRunStr = nextRun > 0 ? new java.text.SimpleDateFormat("dd.MM.yyyy HH:mm").format(new java.util.Date(nextRun)) : "Demnächst";
+
+            if (inGrace) {
+                long remainingDays = plugin.getTaxManager() != null ? plugin.getTaxManager().getRemainingGraceDays(clan) : 0L;
+                header.addLore(
+                        "&7Steuer-Status: &aSchonfrist &8(&eNoch " + remainingDays + " Tage befreit&8)",
+                        "&7Voraussichtliche Steuer: &e" + formattedTax,
+                        "&7Nächster Einzug: &7" + nextRunStr
+                );
+            } else {
+                header.addLore(
+                        "&7Nächste Steuer: &c" + formattedTax,
+                        "&7Fälligkeit: &e" + nextRunStr
+                );
+            }
+        }
+
+        header.addLore(
+                "",
+                "&7Hier siehst du die letzten",
+                "&7Transaktionen des Clans."
+        );
+        setItem(4, header.glow().build());
 
         List<ClanBankTransaction> transactions = plugin.getDatabaseManager().loadBankTransactions(clan.getId(), 21);
         if (transactions.isEmpty()) {
@@ -59,16 +81,30 @@ public class ClanBankTransactionsGUI extends AbstractGUI {
                 }
                 if (slot >= 35) break;
 
-                boolean isDeposit = tx.getType() == ClanBankTransaction.Type.DEPOSIT;
-                Material mat = isDeposit ? Material.LIME_DYE : Material.RED_DYE;
-                String sign = isDeposit ? "&a+" : "&c-";
-                String typeName = isDeposit ? "&aEinzahlung" : "&cAuszahlung";
+                Material mat;
+                String sign;
+                String typeName;
+                if (tx.getType() == ClanBankTransaction.Type.DEPOSIT) {
+                    mat = Material.LIME_DYE;
+                    sign = "&a+";
+                    typeName = "&aEinzahlung";
+                } else if (tx.getType() == ClanBankTransaction.Type.TAX) {
+                    mat = Material.ORANGE_DYE;
+                    sign = "&c-";
+                    typeName = "&6Steuern";
+                } else {
+                    mat = Material.RED_DYE;
+                    sign = "&c-";
+                    typeName = "&cAuszahlung";
+                }
+
                 String formattedAmount = eco != null ? eco.format(tx.getAmount()) : (tx.getAmount() + " $");
+                String authorLabel = tx.getType() == ClanBankTransaction.Type.TAX ? "&7Grund: &fSteuerabzug" : "&7Spieler: &f" + tx.getPlayerName();
 
                 setItem(slot, new ItemBuilder(mat)
                         .name(sign + " " + formattedAmount + " &8(" + typeName + "&8)")
                         .lore(
-                                "&7Spieler: &f" + tx.getPlayerName(),
+                                authorLabel,
                                 "&7Datum: &e" + dateFormat.format(new Date(tx.getTimestamp()))
                         )
                         .build());

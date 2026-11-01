@@ -84,8 +84,6 @@ public final class StoneSitPose {
     private static Method LIVING_GET_ATTRIBUTES;
     private static Method ATTRIBUTE_MAP_GET_SYNCABLE;
     private static Method LIVING_GET_ITEM_BY_SLOT;
-    private static Method PLAYER_GET_INVENTORY;
-    private static Method INVENTORY_GET_CONTENTS;
 
     private static Constructor<?> AEC_CTOR;
     private static Method AEC_SET_RADIUS;
@@ -94,11 +92,13 @@ public final class StoneSitPose {
     private static Method AEC_SET_INVULNERABLE;
 
     private static Object POSE_SLEEPING_ENUM;
+    private static Object POSE_SPIN_ATTACK_ENUM;
     private static Object[] EQUIPMENT_SLOT_VALUES;
     private static Object EMPTY_ITEM_STACK;
     private static Method PAIR_OF_METHOD;
 
     private static Object POSE_ACCESSOR;
+    private static Object LIVING_FLAGS_ACCESSOR;
     private static Object SLEEP_BLOCK_POS_ACCESSOR;
     private static Object MAIN_HAND_ACCESSOR;
     private static Object SKIN_ACCESSOR;
@@ -200,9 +200,11 @@ public final class StoneSitPose {
             Class<?> nmsPoseClass = Class.forName("net.minecraft.world.entity.Pose");
             ENTITY_SET_POSE = entityClass.getMethod("setPose", nmsPoseClass);
             for (Object constant : nmsPoseClass.getEnumConstants()) {
-                if (((Enum<?>) constant).name().equals("SLEEPING")) {
+                String name = ((Enum<?>) constant).name();
+                if (name.equals("SLEEPING")) {
                     POSE_SLEEPING_ENUM = constant;
-                    break;
+                } else if (name.equals("SPIN_ATTACK")) {
+                    POSE_SPIN_ATTACK_ENUM = constant;
                 }
             }
 
@@ -229,9 +231,6 @@ public final class StoneSitPose {
             Class<?> nmsItemStackClass = Class.forName("net.minecraft.world.item.ItemStack");
             EMPTY_ITEM_STACK = nmsItemStackClass.getField("EMPTY").get(null);
 
-            PLAYER_GET_INVENTORY = nmsPlayerClass.getMethod("getInventory");
-            Class<?> inventoryClass = Class.forName("net.minecraft.world.entity.player.Inventory");
-            INVENTORY_GET_CONTENTS = inventoryClass.getMethod("getContents");
 
             Class<?> pairClass = Class.forName("com.mojang.datafixers.util.Pair");
             PAIR_OF_METHOD = pairClass.getMethod("of", Object.class, Object.class);
@@ -248,6 +247,7 @@ public final class StoneSitPose {
             Method createAccessor = serializerClass.getMethod("createAccessor", int.class);
 
             POSE_ACCESSOR = createAccessor.invoke(serializersClass.getField("POSE").get(null), 6);
+            LIVING_FLAGS_ACCESSOR = createAccessor.invoke(serializersClass.getField("BYTE").get(null), 8);
             SLEEP_BLOCK_POS_ACCESSOR = createAccessor.invoke(serializersClass.getField("OPTIONAL_BLOCK_POS").get(null), 14);
             MAIN_HAND_ACCESSOR = createAccessor.invoke(serializersClass.getField("HUMANOID_ARM").get(null), 15);
             SKIN_ACCESSOR = createAccessor.invoke(serializersClass.getField("BYTE").get(null), 16);
@@ -371,8 +371,7 @@ public final class StoneSitPose {
     private final Object teleportNpcPacket;
     private Object bundle;
 
-    private List<Object> equipmentSlotCache;
-    private Object mainSlotCache;
+    private List<Object> equipmentCache;
     private float directionCache = Float.NaN;
     private boolean sleepingIgnoredCache;
     private final int renderRangeSquared;
@@ -408,17 +407,29 @@ public final class StoneSitPose {
 
         double height = seatLocation.getY() + SitManager.BASE_OFFSET;
         float scale = (float) LIVING_GET_SCALE.invoke(serverPlayer);
-        double offset = height + (0.1125d * scale);
-        ENTITY_ABS_SNAP_TO.invoke(playerNpc, seatLocation.getX(), offset, seatLocation.getZ(), 0f, 0f);
+        double offset;
+        float pitch;
+        if (poseType == PoseType.SPIN) {
+            offset = height + (0.85d * scale);
+            pitch = -90.0f;
+        } else {
+            offset = height + (0.1125d * scale);
+            pitch = 0f;
+        }
+        ENTITY_ABS_SNAP_TO.invoke(playerNpc, seatLocation.getX(), offset, seatLocation.getZ(), seatLocation.getYaw(), pitch);
 
         this.direction = getCardinalDirection(seatLocation.getYaw());
 
-        // Fake-Bett-BlockState über Bukkit BlockData + CraftBlockData#getState erzeugen
-        Bed fakeBedData = (Bed) Material.WHITE_BED.createBlockData();
-        fakeBedData.setPart(Bed.Part.HEAD);
-        fakeBedData.setFacing(direction.getOppositeFace());
-        Object nmsBedBlockState = CRAFT_BLOCK_DATA_GET_STATE.invoke(fakeBedData);
-        this.setBedPacket = PKT_BLOCK_UPDATE_CTOR.newInstance(bedPos, nmsBedBlockState);
+        // Fake-Bett-BlockState über Bukkit BlockData + CraftBlockData#getState erzeugen (nur für Lay & LegsUp!)
+        if (poseType != PoseType.SPIN) {
+            Bed fakeBedData = (Bed) Material.WHITE_BED.createBlockData();
+            fakeBedData.setPart(Bed.Part.HEAD);
+            fakeBedData.setFacing(direction.getOppositeFace());
+            Object nmsBedBlockState = CRAFT_BLOCK_DATA_GET_STATE.invoke(fakeBedData);
+            this.setBedPacket = PKT_BLOCK_UPDATE_CTOR.newInstance(bedPos, nmsBedBlockState);
+        } else {
+            this.setBedPacket = null;
+        }
 
         this.addNpcInfoPacket = PKT_PLAYER_INFO_UPDATE_CTOR.newInstance(
                 PLAYER_INFO_ACTIONS, Collections.singletonList(playerNpc)
@@ -463,8 +474,19 @@ public final class StoneSitPose {
             Object npcData = ENTITY_GET_ENTITY_DATA.invoke(playerNpc);
             Object playerData = ENTITY_GET_ENTITY_DATA.invoke(serverPlayer);
 
-            SYNCHED_SET.invoke(npcData, POSE_ACCESSOR, POSE_SLEEPING_ENUM);
-            SYNCHED_SET.invoke(npcData, SLEEP_BLOCK_POS_ACCESSOR, Optional.of(bedPos));
+            if (poseType == PoseType.SPIN) {
+                if (POSE_SPIN_ATTACK_ENUM != null) {
+                    ENTITY_SET_POSE.invoke(playerNpc, POSE_SPIN_ATTACK_ENUM);
+                    SYNCHED_SET.invoke(npcData, POSE_ACCESSOR, POSE_SPIN_ATTACK_ENUM);
+                }
+                if (LIVING_FLAGS_ACCESSOR != null) {
+                    SYNCHED_SET.invoke(npcData, LIVING_FLAGS_ACCESSOR, (byte) 0x04);
+                }
+            } else {
+                SYNCHED_SET.invoke(npcData, POSE_ACCESSOR, POSE_SLEEPING_ENUM);
+                SYNCHED_SET.invoke(npcData, SLEEP_BLOCK_POS_ACCESSOR, Optional.of(bedPos));
+            }
+
             SYNCHED_SET.invoke(npcData, MAIN_HAND_ACCESSOR, SYNCHED_GET.invoke(playerData, MAIN_HAND_ACCESSOR));
             SYNCHED_SET.invoke(npcData, SKIN_ACCESSOR, SYNCHED_GET.invoke(playerData, SKIN_ACCESSOR));
             SYNCHED_SET.invoke(npcData, LEFT_SHOULDER_ACCESSOR, SYNCHED_GET.invoke(playerData, LEFT_SHOULDER_ACCESSOR));
@@ -475,13 +497,15 @@ public final class StoneSitPose {
             ENTITY_SET_INVISIBLE.invoke(serverPlayer, true);
             setEquipmentVisibility(false);
 
-            // Lay zählt als Schlafen im Bett (ohne Respawn-Punkt zu setzen!)
-            this.sleepingIgnoredCache = seatPlayer.isSleepingIgnored();
-            if (config.isPoseLayNightSkip() && !sleepingIgnoredCache) {
-                seatPlayer.setSleepingIgnored(true);
-            }
-            if (config.isPoseLayRest()) {
-                seatPlayer.setStatistic(Statistic.TIME_SINCE_REST, 0);
+            if (poseType != PoseType.SPIN) {
+                // Lay zählt als Schlafen im Bett (ohne Respawn-Punkt zu setzen!)
+                this.sleepingIgnoredCache = seatPlayer.isSleepingIgnored();
+                if (config.isPoseLayNightSkip() && !sleepingIgnoredCache) {
+                    seatPlayer.setSleepingIgnored(true);
+                }
+                if (config.isPoseLayRest()) {
+                    seatPlayer.setStatistic(Statistic.TIME_SINCE_REST, 0);
+                }
             }
 
             boolean dirty = (boolean) SYNCHED_IS_DIRTY.invoke(npcData);
@@ -498,6 +522,18 @@ public final class StoneSitPose {
             packets.add(addNpcInfoPacket);
             packets.add(createNpcPacket);
 
+            // NPC direkt beim Spawnen mit der Rüstung und den Hand-Items des Spielers ausstatten!
+            List<Object> npcEquipmentList = new ArrayList<>(EQUIPMENT_SLOT_VALUES.length);
+            this.equipmentCache = new ArrayList<>(EQUIPMENT_SLOT_VALUES.length);
+            for (Object slot : EQUIPMENT_SLOT_VALUES) {
+                Object itemStack = LIVING_GET_ITEM_BY_SLOT.invoke(serverPlayer, slot);
+                Object finalItem = itemStack != null ? itemStack : EMPTY_ITEM_STACK;
+                this.equipmentCache.add(finalItem);
+                npcEquipmentList.add(PAIR_OF_METHOD.invoke(null, slot, finalItem));
+            }
+            Object npcEquipmentPacket = PKT_SET_EQUIPMENT_CTOR.newInstance(npcEntityId, npcEquipmentList);
+            packets.add(npcEquipmentPacket);
+
             if (poseType == PoseType.LEGS_UP && vehicleEntity != null) {
                 ENTITY_START_RIDING.invoke(playerNpc, vehicleEntity, true, false);
                 ENTITY_SET_POSE.invoke(playerNpc, POSE_SLEEPING_ENUM);
@@ -508,7 +544,9 @@ public final class StoneSitPose {
                 packets.add(PKT_SET_PASSENGERS_CTOR.newInstance(vehicleEntity));
             }
 
-            packets.add(setBedPacket);
+            if (setBedPacket != null) {
+                packets.add(setBedPacket);
+            }
             packets.add(metaNpcPacket);
             packets.add(attributeNpcPacket);
 
@@ -536,11 +574,13 @@ public final class StoneSitPose {
             if (!seatPlayer.isValid() || !seatPlayer.isOnline()) {
                 return;
             }
-            this.layTicks++;
+            if (poseType != PoseType.SPIN) {
+                this.layTicks++;
 
-            // Phantome fernhalten, solange der Spieler liegt
-            if (config.isPoseLayRest() && layTicks % 100 == 0) {
-                seatPlayer.setStatistic(Statistic.TIME_SINCE_REST, 0);
+                // Phantome fernhalten, solange der Spieler liegt
+                if (config.isPoseLayRest() && layTicks % 100 == 0) {
+                    seatPlayer.setStatistic(Statistic.TIME_SINCE_REST, 0);
+                }
             }
 
             Set<Player> currentNearbyPlayers = getNearbyPlayers();
@@ -566,7 +606,7 @@ public final class StoneSitPose {
             setEquipmentVisibility(false);
             updateSkin();
 
-            if (config.isPoseLaySnoringSounds()) {
+            if (poseType != PoseType.SPIN && config.isPoseLaySnoringSounds()) {
                 long time = seatPlayer.getPlayerTime() % 24000L;
                 if ((!config.isPoseLaySnoringNightOnly() || (time >= 12500L && time <= 23500L))
                         && (seatPlayer.getPlayerTime() % 90L == 0L)) {
@@ -582,6 +622,14 @@ public final class StoneSitPose {
 
     private void addViewerPlayer(Player viewer) {
         sendPacket(viewer, bundle);
+        try {
+            int realPlayerId = (int) ENTITY_GET_ID.invoke(serverPlayer);
+            List<Object> emptyEquipment = new ArrayList<>(EQUIPMENT_SLOT_VALUES.length);
+            for (Object slot : EQUIPMENT_SLOT_VALUES) {
+                emptyEquipment.add(PAIR_OF_METHOD.invoke(null, slot, EMPTY_ITEM_STACK));
+            }
+            sendPacket(viewer, PKT_SET_EQUIPMENT_CTOR.newInstance(realPlayerId, emptyEquipment));
+        } catch (Throwable ignored) {}
         if (!plugin.isEnabled()) {
             return;
         }
@@ -599,6 +647,11 @@ public final class StoneSitPose {
 
     public void remove() {
         try {
+            // 1. Zuerst das Equipment des echten Spielers für alle Zuschauer & den Spieler selbst wiederherstellen!
+            setEquipmentVisibility(true);
+            seatPlayer.updateInventory();
+
+            // 2. Dann die Zuschauer über das Entfernen des NPCs informieren
             for (Player viewer : nearbyPlayers) {
                 removeViewerPlayer(viewer);
             }
@@ -610,15 +663,13 @@ public final class StoneSitPose {
                 sendPacketToNms(serverPlayer, PKT_REMOVE_ENTITIES_CTOR.newInstance((Object) new int[]{hideNameEntityId}));
             }
 
-            if (config.isPoseLayNightSkip() && !sleepingIgnoredCache) {
+            if (poseType != PoseType.SPIN && config.isPoseLayNightSkip() && !sleepingIgnoredCache) {
                 seatPlayer.setSleepingIgnored(false);
             }
 
             if (!seatPlayer.hasPotionEffect(PotionEffectType.INVISIBILITY)) {
                 ENTITY_SET_INVISIBLE.invoke(serverPlayer, false);
             }
-
-            setEquipmentVisibility(true);
 
             Object npcData = ENTITY_GET_ENTITY_DATA.invoke(playerNpc);
             Object playerData = ENTITY_GET_ENTITY_DATA.invoke(serverPlayer);
@@ -639,7 +690,9 @@ public final class StoneSitPose {
             Object handle = CRAFT_PLAYER_GET_HANDLE.invoke(viewer);
             sendPacketToNms(handle, removeNpcInfoPacket);
             sendPacketToNms(handle, removeNpcPacket);
-            viewer.sendBlockChange(blockLocation, bedBlock.getBlockData());
+            if (setBedPacket != null) {
+                viewer.sendBlockChange(blockLocation, bedBlock.getBlockData());
+            }
         } catch (Throwable ignored) {
         }
     }
@@ -662,6 +715,15 @@ public final class StoneSitPose {
         }
         directionCache = playerYaw;
 
+        if (poseType == PoseType.SPIN) {
+            byte fixedRotation = getFixedRotation(playerYaw);
+            Object rotateHeadPacket = PKT_ROTATE_HEAD_CTOR.newInstance(playerNpc, fixedRotation);
+            for (Player viewer : nearbyPlayers) {
+                sendPacket(viewer, rotateHeadPacket);
+            }
+            return;
+        }
+
         if (direction == BlockFace.WEST) playerYaw -= 90f;
         if (direction == BlockFace.EAST) playerYaw += 90f;
         if (direction == BlockFace.NORTH) playerYaw -= 180f;
@@ -683,6 +745,14 @@ public final class StoneSitPose {
         Object playerData = ENTITY_GET_ENTITY_DATA.invoke(serverPlayer);
         SYNCHED_SET.invoke(npcData, MAIN_HAND_ACCESSOR, SYNCHED_GET.invoke(playerData, MAIN_HAND_ACCESSOR));
         SYNCHED_SET.invoke(npcData, SKIN_ACCESSOR, SYNCHED_GET.invoke(playerData, SKIN_ACCESSOR));
+        if (poseType == PoseType.SPIN) {
+            if (POSE_SPIN_ATTACK_ENUM != null) {
+                SYNCHED_SET.invoke(npcData, POSE_ACCESSOR, POSE_SPIN_ATTACK_ENUM);
+            }
+            if (LIVING_FLAGS_ACCESSOR != null) {
+                SYNCHED_SET.invoke(npcData, LIVING_FLAGS_ACCESSOR, (byte) 0x04);
+            }
+        }
 
         if (!(boolean) SYNCHED_IS_DIRTY.invoke(npcData)) {
             return;
@@ -698,21 +768,22 @@ public final class StoneSitPose {
     }
 
     private void updateEquipment() throws Exception {
-        Object mainItemStack = LIVING_GET_ITEM_BY_SLOT.invoke(serverPlayer, EQUIPMENT_SLOT_VALUES[0]);
-        Object inv = PLAYER_GET_INVENTORY.invoke(serverPlayer);
-        List<?> contents = (List<?>) INVENTORY_GET_CONTENTS.invoke(inv);
-
-        if (equipmentSlotCache != null && equipmentSlotCache.equals(contents) && mainSlotCache == mainItemStack) {
-            return;
+        List<Object> currentItems = new ArrayList<>(EQUIPMENT_SLOT_VALUES.length);
+        for (Object slot : EQUIPMENT_SLOT_VALUES) {
+            Object item = LIVING_GET_ITEM_BY_SLOT.invoke(serverPlayer, slot);
+            currentItems.add(item != null ? item : EMPTY_ITEM_STACK);
         }
 
-        equipmentSlotCache = new ArrayList<>(contents);
-        mainSlotCache = mainItemStack;
+        if (equipmentCache != null && equipmentCache.equals(currentItems)) {
+            return;
+        }
+        equipmentCache = currentItems;
 
         List<Object> equipmentList = new ArrayList<>(EQUIPMENT_SLOT_VALUES.length);
-        for (Object slot : EQUIPMENT_SLOT_VALUES) {
-            Object itemStack = LIVING_GET_ITEM_BY_SLOT.invoke(serverPlayer, slot);
-            equipmentList.add(PAIR_OF_METHOD.invoke(null, slot, itemStack != null ? itemStack : EMPTY_ITEM_STACK));
+        for (int i = 0; i < EQUIPMENT_SLOT_VALUES.length; i++) {
+            Object slot = EQUIPMENT_SLOT_VALUES[i];
+            Object itemStack = currentItems.get(i);
+            equipmentList.add(PAIR_OF_METHOD.invoke(null, slot, itemStack));
         }
 
         Object setEquipmentPacket = PKT_SET_EQUIPMENT_CTOR.newInstance(npcEntityId, equipmentList);
@@ -738,6 +809,7 @@ public final class StoneSitPose {
         for (Player viewer : nearbyPlayers) {
             sendPacket(viewer, setEquipmentPacket);
         }
+        sendPacket(seatPlayer, setEquipmentPacket);
     }
 
     public void playDamageAnimation() {

@@ -5,7 +5,8 @@ import org.bukkit.entity.Pose;
 public enum PoseType {
 
     LAY(Pose.SLEEPING, "lay"),
-    LEGS_UP(Pose.SLEEPING, "legs_up");
+    LEGS_UP(Pose.SLEEPING, "legs_up"),
+    SPIN(Pose.STANDING, "spin");
 
     private final Pose playerPose;
     private final String name;

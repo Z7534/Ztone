@@ -13,6 +13,7 @@ public final class Seat {
     private final Entity seatEntity;
     private final Location returnLocation;
     private final long spawnTimeNano = System.nanoTime();
+    private boolean spinning;
 
     public Seat(Block block, Location location, LivingEntity entity, Entity seatEntity, Location returnLocation) {
         this.block = block;
@@ -52,5 +53,13 @@ public final class Seat {
 
     public long getLifetimeInNanoSeconds() {
         return System.nanoTime() - spawnTimeNano;
+    }
+
+    public boolean isSpinning() {
+        return spinning;
+    }
+
+    public void setSpinning(boolean spinning) {
+        this.spinning = spinning;
     }
 }

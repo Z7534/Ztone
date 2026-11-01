@@ -1,8 +1,9 @@
 name: Ztone
-version: '1.1.2'
+version: '1.1.3'
 main: de.Z7534.ztone.Ztone
 api-version: '26.2'
 authors: [Z7534]
+load: STARTUP
 description: All-in-One Ztone System (Clansystem, Clankasse, PvPManager, Claims, StoneAttack, Stonelog, Stonemute, MapControl, StoneVoice, PlayRewards, Deathchest, ClearLag, StoneSit, DragonEgg)
 softdepend: [Vault, PlaceholderAPI, LuckPerms, ProtocolLib, WorldGuard, GriefPrevention, Towny, Lands, Kingdoms, SimpleClans, HuskTowns, BountyHunters, NotBounties, CMI, Essentials, TAB, LibsDisguises, LiteBans, voicechat, floodgate, Plan, StoneSMPCore]
 
@@ -137,6 +138,10 @@ commands:
     description: Legt dich mit hochgestreckten Beinen auf den aktuellen Block
     usage: /legsup
     aliases: [glegsup]
+  spin:
+    description: Lässt dich auf der Stelle im Kreis drehen (Spin-Animation)
+    usage: /spin
+    aliases: [gspin, stonespin]
   stonesitreload:
     description: Lädt die StoneSit-Konfiguration neu
     usage: /stonesitreload
@@ -568,11 +573,15 @@ permissions:
     children:
       stonesit.lay: true
       stonesit.legsup: true
+      stonesit.spin: true
   stonesit.lay:
     description: Erlaubt die Nutzung von /lay (/glay, /layback, /glayback)
     default: true
   stonesit.legsup:
     description: Erlaubt die Nutzung von /legsup (/glegsup)
+    default: true
+  stonesit.spin:
+    description: Erlaubt die Nutzung von /spin (/gspin, /stonespin)
     default: true
   stonesit.playersit.*:
     description: Alle PlayerSit Berechtigungen

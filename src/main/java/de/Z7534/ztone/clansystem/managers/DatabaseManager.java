@@ -317,6 +317,21 @@ public class DatabaseManager {
                 );
             }
 
+            stmt.executeUpdate(
+                    "CREATE TABLE IF NOT EXISTS " + tablePrefix + "metadata (" +
+                            "meta_key VARCHAR(64) PRIMARY KEY," +
+                            "meta_value TEXT" +
+                            ")"
+            );
+            if (!tablePrefix.isEmpty()) {
+                stmt.executeUpdate(
+                        "CREATE TABLE IF NOT EXISTS metadata (" +
+                                "meta_key VARCHAR(64) PRIMARY KEY," +
+                                "meta_value TEXT" +
+                                ")"
+                );
+            }
+
             ensureColumn(conn, tablePrefix + "clans", "icon", "VARCHAR(64) DEFAULT 'SHIELD'");
             ensureColumn(conn, tablePrefix + "clans", "glow_enabled", "INTEGER DEFAULT 0");
             ensureColumn(conn, tablePrefix + "clans", "glow_color", "VARCHAR(32) DEFAULT 'WHITE'");
@@ -356,10 +371,10 @@ public class DatabaseManager {
                 String[] allPossibleViews = new String[]{
                         "clan_clans", "clan_members", "clan_ranks", "clan_homes", "clan_warps",
                         "clan_chests", "clan_chest_logs", "clan_alliances", "clan_wars", "clan_war_kills",
-                        "clan_cooldowns", "clan_bank_transactions", "clan_pvpmanager_players",
+                        "clan_cooldowns", "clan_bank_transactions", "clan_pvpmanager_players", "clan_metadata",
                         "ztone_clans", "ztone_members", "ztone_ranks", "ztone_homes", "ztone_warps",
                         "ztone_chests", "ztone_chest_logs", "ztone_alliances", "ztone_wars", "ztone_war_kills",
-                        "ztone_cooldowns", "ztone_bank_transactions", "ztone_pvpmanager_players",
+                        "ztone_cooldowns", "ztone_bank_transactions", "ztone_pvpmanager_players", "ztone_metadata",
                         "players", "claims", "claim_chunks", "claim_trust", "claim_managers", "claim_bans",
                         "snapshots", "exclusions", "period_state"
                 };
@@ -391,7 +406,7 @@ public class DatabaseManager {
     private void createRealCounterpartTables(Connection conn) {
         String[] tables = {
                 "clans", "members", "ranks", "homes", "warps", "chests",
-                "chest_logs", "alliances", "wars", "war_kills", "cooldowns", "bank_transactions", "pvpmanager_players"
+                "chest_logs", "alliances", "wars", "war_kills", "cooldowns", "bank_transactions", "pvpmanager_players", "metadata"
         };
         boolean isClanPrefix = "clan_".equalsIgnoreCase(tablePrefix);
         String sourcePrefix = isClanPrefix ? "clan_" : "ztone_";
@@ -1491,5 +1506,53 @@ public class DatabaseManager {
             }
         }
         file.delete();
+    }
+
+    public String getMetadata(String key, String defaultValue) {
+        String sql = "SELECT meta_value FROM " + tablePrefix + "metadata WHERE meta_key = ?";
+        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, key);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getString("meta_value");
+                }
+            }
+        } catch (SQLException e) {
+            plugin.getLogger().warning("Fehler beim Lesen von Metadata '" + key + "': " + e.getMessage());
+        }
+        return defaultValue;
+    }
+
+    public void setMetadata(String key, String value) {
+        java.util.concurrent.CompletableFuture.runAsync(() -> {
+            String sql;
+            if (dialect.type() == StorageType.SQLITE) {
+                sql = "INSERT INTO " + tablePrefix + "metadata (meta_key, meta_value) VALUES (?, ?) " +
+                        "ON CONFLICT(meta_key) DO UPDATE SET meta_value = excluded.meta_value";
+            } else {
+                sql = "INSERT INTO " + tablePrefix + "metadata (meta_key, meta_value) VALUES (?, ?) " +
+                        "ON DUPLICATE KEY UPDATE meta_value = VALUES(meta_value)";
+            }
+            try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+                ps.setString(1, key);
+                ps.setString(2, value);
+                ps.executeUpdate();
+            } catch (SQLException e) {
+                plugin.getLogger().warning("Fehler beim Speichern von Metadata '" + key + "': " + e.getMessage());
+            }
+        });
+    }
+
+    public long getLastTaxRun() {
+        String val = getMetadata("last_tax_run", "0");
+        try {
+            return Long.parseLong(val);
+        } catch (NumberFormatException e) {
+            return 0L;
+        }
+    }
+
+    public void setLastTaxRun(long timestamp) {
+        setMetadata("last_tax_run", String.valueOf(timestamp));
     }
 }

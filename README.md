@@ -1,6 +1,6 @@
 # 🛡️ Ztone – All-in-One Server-System
 
-Willkommen in der offiziellen Dokumentation für **Ztone** (Version 1.1.2).  
+Willkommen in der offiziellen Dokumentation für **Ztone** (Version 1.1.3).  
 Ztone ist eine hochgradig optimierte, modulare All-in-One-Lösung für Minecraft Paper-, Purpur- und Leaf-Server (kompatibel mit Java 21 & Java 25).
 
 ---
@@ -23,14 +23,15 @@ Ztone ist eine hochgradig optimierte, modulare All-in-One-Lösung für Minecraft
 15. [PlaceholderAPI Gesamtübersicht](#14-placeholderapi-gesamtübersicht)
 16. [Kompilierung & Entwicklung](#15-kompilierung--entwicklung)
 17. [Changelog v1.1.2](#16-changelog-v112)
+18. [Changelog v1.1.3](#17-changelog-v113)
 
 ---
 
 ## 🧩 Übersicht & Module
 
 Ztone bündelt alle wichtigen Core-Features für moderne Survival- und SMP-Netzwerke in einem einzigen Plugin:
-* **Clansystem:** Eigene Clans, Ränge mit detaillierten Rechten, Clankasse mit Zinsen/Schulden (Schuldensperre bei Minus), Clan-Homes, Clan-Warps, Clankriege (12h Cooldown, Max. 1 Krieg, Settings-Toggle ab Level 7) und Allianzen. Einheitlicher Prefix und Small-Caps.
-* **Claims:** Chunk-basiertes Claiming mit interaktiver Karten-GUI, automatischem Claim-Merging für aneinandergrenzende Grundstücke, WorldGuard-Regionssperre, granularen Schutzflags, Subclaims, Trusted- und Ban-System sowie Anti-Combat-Fluchtsperre.
+* **Clansystem:** Eigene Clans, Ränge mit detaillierten Rechten, Clankasse mit automatischem Steuersystem (zyklischer Einzug, Kassenstaffeln, 14 Tage Schonfrist) und Zinsen/Schulden (Schuldensperre bei Minus), Clan-Homes, Clan-Warps, Clankriege (12h Cooldown, Max. 1 Krieg, Settings-Toggle ab Level 7) und Allianzen. Einheitlicher Prefix und Small-Caps.
+* **Claims:** Chunk-basiertes Claiming mit interaktiver Karten-GUI, automatischem Claim-Merging für aneinandergrenzende Grundstücke, WorldGuard-Flag-Integration (/rg flag <region> claim allow/deny), granularen Schutzflags, Subclaims, Trusted- und Ban-System sowie Anti-Combat-Fluchtsperre.
 * **PvPManager:** Umfassender Combat-Tag, Spawn-/Respawn-Schutz, Anti-CombatLog, Anti-Kill-Abuse und strenge PvP-Hierarchie (Wildnis: Dimensions- & Spielerstatus; Claims: standardmäßig deaktiviert, außer bei Clankrieg oder Admin-Override).
 * **StoneAttack:** Holographische Leaderboards mit transparentem Display-Design, dynamisches PlayerLimit und TPS/MSPT-Serverüberwachung.
 * **DeathChest:** Sichere Todeskisten mit Restart-Persistenz, Anti-Rollback, automatischer Hologramm-Bereinigung, Killer-Lock-Bypass und Echtzeit-Chatbenachrichtigung beim Plündern.
@@ -39,7 +40,7 @@ Ztone bündelt alle wichtigen Core-Features für moderne Survival- und SMP-Netzw
 * **StoneVoice & Stonemute:** SimpleVoiceChat-Gruppenüberwachung für Admins sowie automatischer Mute-Sync über LiteBans.
 * **MapControl:** Erzwingen von Fairplay-Regeln für Client-Minimaps (Xaero, JourneyMap, VoxelMap).
 * **Stonelog:** Hochperformantes Discord-Audit-Logging mit automatischem Multi-Embed-Batching (bis zu 10 Embeds/Request) und parallelen URL-Queues.
-* **StoneSit:** Hochperformantes Sit-, Lay-, LegsUp- & PlayerSit-System (1:1 nach GSit optimiert, ohne Bellyflop/Spin/Toggle-Overhead, mit Bett-Schlaf-Logik ohne Respawn-Punkt und Admin-Schutz vor Sneak-Abwurf vom Kopf).
+* **StoneSit:** Hochperformantes Sit-, Lay-, LegsUp-, Spin- & PlayerSit-System (1:1 nach GSit für Paper 26.2 optimiert, mit 360° Rotations-Animation, Bett-Schlaf-Logik ohne Respawn-Punkt und Admin-Schutz vor Sneak-Abwurf vom Kopf).
 * **Auto-Config-Sync:** Automatisches Ergänzen neuer Funktionen und Konfigurationsoptionen bei Versionsupdates direkt in bestehende `.yml`-Dateien.
 
 ---
@@ -72,6 +73,7 @@ Ztone bündelt alle wichtigen Core-Features für moderne Survival- und SMP-Netzw
 | `/clan bank deposit <Betrag>` | Zahlt Geld auf das Clankonto ein | `clansystem.bank.deposit` |
 | `/clan bank withdraw <Betrag>`| Hebt Geld vom Clankonto ab | `clansystem.bank.withdraw` |
 | `/clan bank top` | Zeigt die reichsten Clans des Servers | `clansystem.bank.top` |
+| `/clan taxes` | Zeigt anstehende Steuern, Schonfrist und nächste Fälligkeit *(Aliase: `/clan bank taxes`, `/clan steuern`)* | `clansystem.bank` |
 | `/clan info [Clan]` | Zeigt Informationen über den eigenen oder fremden Clan | `clansystem.info` |
 | `/clan list` | Listet alle Clans des Servers sortiert nach Punkten auf | `clansystem.list` |
 | `/clan chat <Nachricht>` | Schreibt in den privaten Clan-Chat (Präfix: `#`) | `clansystem.chat` |
@@ -106,6 +108,30 @@ Ztone bündelt alle wichtigen Core-Features für moderne Survival- und SMP-Netzw
 | `/clanadmin setlevel <Clan> <Level>` | Setzt das Level eines Clans manuell | `clansystem.admin.level` |
 | `/clanadmin spy` | Schaltet den Clan- und Allianz-Chat-Spion ein/aus | `clansystem.admin.spy` |
 | `/clanadmin reset` | Bereinigt die gesamte Clan-Datenbank (Vorsicht!) | `clansystem.admin.reset` |
+| `/clanadmin taxes [run\|info]` | Verwaltet das Steuersystem (Zyklus-Status einsehen oder sofortigen Einzug auslösen) | `clansystem.admin.taxes` |
+
+---
+
+### 🔹 Clan-Steuersystem & Kassenstaffeln
+Ztone 1.1.3 führt ein vollautomatisches, konfigurierbares Steuersystem für Clans ein (`clansystem/config.yml`):
+* **Zyklischer Steuereinzug:** Steuern werden in festen Abständen (Standard: alle 7 Tage) serverweit direkt aus der Clankasse abgezogen.
+* **Persistenter Einzugszeitpunkt:** Der Zeitstempel des letzten Steuereinzugs wird in der SQLite-Datenbank (`metadata`-Tabelle) gespeichert. Server-Restarts oder Downtimes stören den Zyklus nicht.
+* **Berechnungsformel:**
+  $$\text{Gesamtsteuer} = \text{Level-Basiswert} + (\text{Clankasse} \times \text{Multiplikator}) + \text{Flat-Steuer}$$
+* **Staffel-Multiplikatoren (`balance-brackets`):**
+  * `0 $` bis `50.000 $`: 0.00 Multiplikator (+ 0 $ Flat)
+  * `50.000 $` bis `100.000 $`: 0.01 (1%) Multiplikator (+ 500 $ Flat)
+  * `100.000 $` bis `500.000 $`: 0.02 (2%) Multiplikator (+ 1.500 $ Flat)
+  * `500.000 $` bis `1.000.000 $`: 0.03 (3%) Multiplikator (+ 5.000 $ Flat)
+  * `1.000.000 $`+: 0.05 (5%) Multiplikator (+ 10.000 $ Flat)
+* **14 Tage Schonfrist:** Neu gegründete Clans sind in den ersten 14 Tagen (`grace-period-days: 14`) von allen Steuern befreit.
+* **Schuldensperre bei Zahlungsunfähigkeit:**
+  * Reicht das Guthaben nicht aus, wird die Steuer trotzdem voll abgebucht – der Clan gerät ins **Minus** (Schulden).
+  * Solange der Clan im Minus ist, greift die vollständige Clan-Sperre (keine Homes, Warps, Kisten, Kriege etc.), bis der Betrag per `/clan deposit` ausgeglichen ist.
+* **Transparenz & GUI:**
+  * Jede Steuerabbuchung wird im Transaktionsverlauf (`/clan bank` / Kassenbuch) mit Typ `Steuern` (orangefarbener Farbstoff) dokumentiert.
+  * Das Clankassen-Icon (Slot 31) im Clan-Hauptmenü zeigt die nächste voraussichtliche Steuer oder verbleibende Schonfrist-Tage an.
+  * Spieler können per `/clan taxes` (oder `/clan bank taxes`) eine detaillierte Kostenaufstellung und den nächsten Fälligkeitszeitpunkt abrufen.
 
 ---
 
@@ -162,6 +188,20 @@ Jeder Claim-Besitzer kann pro Spieler oder global folgende Rechte vergeben:
 * `SPAWNER`: SmartSpawner GUI öffnen und Mob-Spawner modifizieren/abbauen.
 * `FIRE_EXPLOSIONS`: Feuerzeug, TNT-Zündung und Explosionen.
 * `PVP`: Nur relevant, wenn ein Claim durch Admins mit `/claimspvpoverride` freigegeben ist.
+
+---
+
+### 🔹 WorldGuard-Integration (Custom-Flag `claim`)
+Ztone 1.1.3 ersetzt die alte pauschale Regionenblockade durch ein natives WorldGuard StateFlag:
+* **Offizieller WorldGuard-Flag:**
+  * Flag-Name: `claim` (Standardwert: `ALLOW`).
+  * Erscheint bei `/rg flags <region>` direkt unter den **Third-Party Flags** (mit Klick-Optionen für `Allow` und `Deny`).
+* **Granulare Steuerung:**
+  * `/rg flag <region> claim deny`: Verbietet das Claimen von Chunks innerhalb dieser Region (z. B. für Spawns oder Server-Events).
+  * `/rg flag <region> claim allow`: Erlaubt das Claimen (Standardverhalten aller Regionen).
+  * `/rg flag __global__ claim deny`: Verbietet Claiming weltweit, sodass Claims nur in Zonen mit explizitem `claim: allow` gesetzt werden können.
+* **Hierarchien & Prioritäten:**
+  * Schneidet ein Chunk mehrere Regionen, bestimmt die Region mit der höchsten Priorität das Verhalten. Bei gleicher Priorität sticht `DENY`.
 
 ---
 
@@ -315,7 +355,7 @@ Sendet standardisierte Plugin-Nachrichten an VoxelMap, Xaero's Minimap und Journ
 
 ## 12. StoneSit (Sitzen, Hinlegen & Spielerstapeln)
 
-Hochperformantes Sit-, Pose- (`/lay` & `/legsup`) und PlayerSit-Modul (1:1 nach GSit für Paper 26.2 optimiert, ohne Bellyflop-, Spin- oder Toggle-Datenbank-Overhead).
+Hochperformantes Sit-, Pose- (`/lay` & `/legsup`), Spin- (`/spin`) und PlayerSit-Modul (1:1 nach GSit für Paper 26.2 optimiert, mit flüssiger 360° Rotations-Animation ohne unnötigen Datenbank-Overhead).
 
 ### 🔹 Befehle
 | Befehl | Aliase | Beschreibung | Berechtigung |
@@ -323,6 +363,7 @@ Hochperformantes Sit-, Pose- (`/lay` & `/legsup`) und PlayerSit-Modul (1:1 nach 
 | `/sit` | `/gsit`, `/stonesit` | Setzt dich auf den aktuellen Block (oder steht wieder auf) | `stonesit.sit` |
 | `/lay` | `/glay`, `/layback`, `/glayback` | Legt dich auf den aktuellen Block (zählt als Schlafen im Bett, setzt aber **keinen** Respawn-Punkt) | `stonesit.lay` |
 | `/legsup` | `/glegsup` | Legt dich mit hochgestreckten Beinen auf den aktuellen Block (zählt ebenfalls als Schlafen ohne Respawn-Punkt) | `stonesit.legsup` |
+| `/spin` | `/gspin`, `/stonespin` | Lässt dich kontinuierlich 360° um die eigene Achse drehen (Animation) | `stonesit.spin` |
 | `/stonesitreload` | `/gsitreload`, `/gsitrl`, `/stonesitrl`, `/sit reload` | Lädt `plugins/Ztone/stonesit/config.yml` im laufenden Betrieb neu | `stonesit.reload` |
 
 ### 🔹 Besondere Features
@@ -330,6 +371,10 @@ Hochperformantes Sit-, Pose- (`/lay` & `/legsup`) und PlayerSit-Modul (1:1 nach 
 * **Schlafen im Bett ohne Respawn-Punkt (`/lay` & `/legsup`):**
   * Setzt den Phantom-Timer (`TIME_SINCE_REST`) auf `0`.
   * Zählt für das Überspringen der Nacht und von Gewittern (gemäß Gamerule `playersSleepingPercentage`) nach 5 Sekunden (`100` Ticks) – sowohl alleine als auch kombiniert mit Spielern in echten Betten –, **ohne** jemals den Respawn-Punkt des Spielers zu verändern.
+* **360° Rotations-Animation (`/spin`):**
+  * Vollwertiger Posen-Zustand (PoseType.SPIN), exakt wie in GSit: Der Charakter steht auf der Position und führt kontinuierlich die Dreizack-Riptide-Wirbelbewegung (Pose.SPIN_ATTACK / AutoSpinAttack) aus.
+  * Startet mit authentischem Dreizack-Riptide-Sound (ITEM_TRIDENT_RIPTIDE).
+  * Beendigung per Schleichen (Shift/Sneak), Schaden, Teleportation oder erneute Ausführung von `/spin`.
 * **Spieler-Stapeln (PlayerSit) & Admin-Kopfsitz-Schutz:**
   * Spieler können sich per Rechtsklick mit leerer Hand auf den Kopf anderer Spieler setzen.
   * **Admin-Schutz (`stonesit.bypass.sneakeject`):** Sitzt ein Admin mit dieser Permission auf dem Kopf eines Spielers (oder weiter oben im Stapel), kann der untere Spieler ihn **nicht** durch Sneaken (Schleichen) vom Kopf werfen!
@@ -342,9 +387,10 @@ Hochperformantes Sit-, Pose- (`/lay` & `/legsup`) und PlayerSit-Modul (1:1 nach 
 | `stonesit.sit.*` | `true` | Beinhaltet `stonesit.sit` und `stonesit.sitclick` |
 | `stonesit.sit` | `true` | Erlaubt den Befehl `/sit` (`/gsit`, `/stonesit`) |
 | `stonesit.sitclick` | `true` | Erlaubt das Hinsetzen per Rechtsklick auf Stufen, Treppen, Teppiche etc. |
-| `stonesit.pose.*` | `true` | Beinhaltet `stonesit.lay` und `stonesit.legsup` |
+| `stonesit.pose.*` | `true` | Beinhaltet `stonesit.lay`, `stonesit.legsup` und `stonesit.spin` |
 | `stonesit.lay` | `true` | Erlaubt den Befehl `/lay` (`/glay`, `/layback`, `/glayback`) |
 | `stonesit.legsup` | `true` | Erlaubt den Befehl `/legsup` (`/glegsup`) |
+| `stonesit.spin` | `true` | Erlaubt den Befehl `/spin` (`/gspin`, `/stonespin`) |
 | `stonesit.playersit.*` | `true` | Beinhaltet `stonesit.playersit` |
 | `stonesit.playersit` | `true` | Erlaubt das Draufsetzen auf andere Spieler per Rechtsklick (PlayerSit) |
 | `stonesit.bypass.sneakeject` | `op` | **Admin-Kopfsitz-Schutz:** Verhindert, dass man durch Sneaken (Schleichen) vom Kopf eines anderen Spielers geworfen werden kann |
@@ -422,8 +468,9 @@ Alle Platzhalter erfordern das installierte Plugin **PlaceholderAPI**.
 | `%stonesit_sitting%` / `%gsit_sitting%` | `true` oder `false` (Block-Sit oder PlayerSit) |
 | `%stonesit_blocksitting%` / `%gsit_blocksitting%` | `true` oder `false` (Sitzt auf einem Block) |
 | `%stonesit_playersitting%` / `%gsit_playersitting%` | `true` oder `false` (Sitzt im Spieler-Stapel) |
+| `%stonesit_spinning%` / `%gsit_spinning%` | `true` oder `false` (Dreht sich per `/spin`) |
 | `%stonesit_posing%` / `%gsit_posing%` | `true` oder `false` (Liegt per `/lay` oder `/legsup`) |
-| `%stonesit_pose%` / `%gsit_pose%` | `lay`, `legs_up` oder `none` |
+| `%stonesit_pose%` / `%gsit_pose%` | `lay`, `legs_up`, `spin` oder `none` |
 
 ---
 
@@ -433,7 +480,7 @@ Alle Platzhalter erfordern das installierte Plugin **PlaceholderAPI**.
 # Kompilieren mit Gradle Shadow-Jar
 ./gradlew shadowJar
 ```
-Die fertige Server-JAR befindet sich im Verzeichnis `build/libs/Ztone-1.1.2.jar`.
+Die fertige Server-JAR befindet sich im Verzeichnis `build/libs/Ztone-1.1.3.jar`.
 
 ---
 
@@ -479,3 +526,52 @@ Die fertige Server-JAR befindet sich im Verzeichnis `build/libs/Ztone-1.1.2.jar`
 * **Clan-Kiste Dupe-Glitch:** Behebt Duplikationsmöglichkeiten beim Serverneustart bei geöffneter Kiste.
 * **DeathChest Loot-Rollback:** Bereits entnommene Beute wird nach einem Reload/Restart nicht mehr zurückgesetzt.
 * **Kriegserklärungen gegen verschuldete Clans:** Vollständig unterbunden.
+
+---
+
+## 17. Changelog v1.1.3
+
+### ⚙️ System & Administration
+* **Versionierung:**
+  * Plugin-Version, Build-Skripte und Modulschnittstellen auf Version `1.1.3` angehoben.
+* **WorldGuard Custom-Flag `claim` (Ersatz der alten pauschalen Regionensperre):**
+  * Die alte Variante (pauschale Sperre jedes Chunks, der eine beliebige WorldGuard-Region berührt) wurde vollständig entfernt.
+  * Neues WorldGuard StateFlag `claim` (Default: `ALLOW`) registriert – sichtbar in `/rg flags <region>` unter Third-Party Flags.
+  * Granulare Kontrolle pro Region via `/rg flag <region> claim <allow|deny>` sowie über `__global__`.
+  * Volle Unterstützung von WorldGuard-Prioritäten und Regionen-Hierarchien.
+  * Startup-Lifecycle (`load: STARTUP`) implementiert, damit Flags vor dem Einfrieren der WorldGuard FlagRegistry in `onLoad()` registriert werden; Welten- und Modulstarts laufen synchron und sicher über `ServerLoadEvent`.
+* **Neues Clan-Steuersystem (`ClanTaxManager`):**
+  * Automatischer, globaler Steuereinzug in konfigurierbaren Intervallen (Standard: alle 7 Tage) direkt aus der Clankasse (`balance`).
+  * Persistente Speicherung des letzten Einzugszeitpunkts in der zentralen SQLite-Datenbank (`metadata`-Tabelle) – kein Reset des Zyklus durch Server-Restarts oder Downtimes.
+  * Vollständige Konfiguration in `clansystem/config.yml` unter `taxes:` (`enabled`, `interval-days`, `grace-period-days`, `level-base`, `balance-brackets` mit `min`, `max`, `multiplier`, `flat-tax`).
+* **Admin-Befehle für Steuern (`/clanadmin taxes`):**
+  * `/clanadmin taxes info`: Zeigt den aktuellen Status, Intervall, Schonfrist, letzten und nächsten Einzugszeitpunkt an.
+  * `/clanadmin taxes run`: Löst einen sofortigen manuellen Steuereinzug für alle Clans aus.
+  * Tab-Vervollständigung und eigene Permission `clansystem.admin.taxes` (bzw. `clansystem.admin`).
+
+### 🎮 Gameplay & Clan-Features
+* **Transparente Steuerformel & Kassenstaffeln:**
+  * Formel: $\text{Gesamtsteuer} = \text{Level-Basiswert} + (\text{Clankasse} \times \text{Multiplikator}) + \text{Flat-Steuer}$.
+  * Progressive Staffelung je nach Kontostand der Clankasse mit anpassbaren Multiplikatoren und Festbeträgen.
+* **14 Tage Schonfrist für neue Clans:**
+  * Neu gegründete Clans sind in den ersten zwei Wochen (`grace-period-days: 14`) vollständig von Steuerabzügen ausgenommen.
+* **Kopplung an die Clankassen-Schuldensperre:**
+  * Reicht das Guthaben der Clankasse nicht aus, fällt der Clan ins Minus.
+  * Sämtliche Clan-Funktionen bleiben blockiert, bis die Schulden per Einzahlung (`/clan deposit`) beglichen werden.
+* **Transaktionsverlauf & Benachrichtigungen:**
+  * Steuerabzüge werden im Kassenbuch (`/clan bank`) mit eigenem Icon (`Steuern`) und detaillierter Lore protokolliert.
+  * Bei Fälligkeit werden alle online befindlichen Clanmitglieder mit einer Chat-Nachricht (inkl. Schuldenwarnung bei Minus) informiert.
+* **Steuerübersicht & GUI-Vorschau:**
+  * Befehl `/clan taxes` (und `/clan bank taxes` / `/clan steuern`) zur Anzeige der detaillierten Kostenaufstellung, Kassenstaffel, Multiplikatoren und des nächsten Fälligkeitsdatums.
+  * Das Clankassen-Item in der Haupt-GUI (Slot 31) zeigt die anstehende Steuerlast oder die verbleibende Schonfrist direkt in der Lore an.
+* **StoneSit `/spin`-Befehl & 360° Rotations-Animation:**
+  * Befehl `/spin` (mit Aliasen `/gspin`, `/stonespin`) nach dem Vorbild von GSit hinzugefügt.
+  * Lässt den Spieler kontinuierlich und flüssig 360° um die eigene Achse auf einem unsichtbaren Drehsitz rotieren.
+  * Beendigung per Sneaken (Shift), Schaden, Teleportieren oder erneutes Ausführen des Befehls.
+  * Voll integriert mit Berechtigungen (`stonesit.spin`), WorldGuard-/Claim-Checks und Platzhaltern (`%stonesit_spinning%`, `%stonesit_pose%`).
+
+### 🐛 Behobene Fehler
+* **StoneSit Rüstungs-Anzeigefehler bei `/lay` & `/legsup` behoben:**
+  * Es wurde behoben, dass bei Verwendung von `/lay` oder `/legsup` die gesamte Rüstung und gehaltene Gegenstände für andere Spieler unsichtbar wurden.
+  * Rüstungspakete werden nun bereits im Spawn-Bundle des Fake-Bett-NPCs mitgesendet und beim Aufstehen zuverlässig vor dem Bereinigen der Viewer-Referenzen wiederhergestellt.
+  * Ein ungültiger Reflexionsaufruf auf NMS-Inventarmethoden wurde durch direkte Abfrage der NMS-Ausrüstungsslots ersetzt.

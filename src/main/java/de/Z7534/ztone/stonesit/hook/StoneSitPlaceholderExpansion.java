@@ -29,7 +29,7 @@ public final class StoneSitPlaceholderExpansion extends PlaceholderExpansion {
 
     @Override
     public @NotNull String getVersion() {
-        return "1.1.2";
+        return "1.1.3";
     }
 
     @Override
@@ -46,8 +46,12 @@ public final class StoneSitPlaceholderExpansion extends PlaceholderExpansion {
             case "sitting" -> String.valueOf(sitManager.isEntitySitting(player) || sitManager.isPlayerInPlayerSitStack(player));
             case "blocksitting" -> String.valueOf(sitManager.isEntitySitting(player));
             case "playersitting" -> String.valueOf(sitManager.isPlayerInPlayerSitStack(player));
-            case "posing" -> String.valueOf(sitManager.isPlayerPosing(player));
+            case "spinning" -> String.valueOf(sitManager.isPlayerSpinning(player));
+            case "posing" -> String.valueOf(sitManager.isPlayerPosing(player) || sitManager.isPlayerSpinning(player));
             case "pose" -> {
+                if (sitManager.isPlayerSpinning(player)) {
+                    yield "spin";
+                }
                 StoneSitPose pose = sitManager.getPoseByPlayer(player);
                 yield pose != null ? pose.getPoseType().getName() : "none";
             }

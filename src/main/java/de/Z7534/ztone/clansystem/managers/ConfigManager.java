@@ -10,8 +10,7 @@ import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 
 import java.io.File;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 import java.util.regex.Pattern;
 
 public class ConfigManager {
@@ -83,6 +82,59 @@ public class ConfigManager {
     private List<ClanRank> defaultRanks;
     private boolean chestLogging;
 
+    // Clan-spezifische Steuern-Einstellungen
+    private boolean taxesEnabled = true;
+    private int taxesIntervalDays = 7;
+    private int taxesGracePeriodDays = 14;
+    private Map<Integer, Double> taxesLevelBase = new HashMap<>();
+    private double taxesFallbackBase = 500.0;
+    private List<TaxBracket> taxesBrackets = new ArrayList<>();
+
+    public static class TaxBracket {
+        private final double min;
+        private final double max;
+        private final double multiplier;
+        private final double flatTax;
+
+        public TaxBracket(double min, double max, double multiplier, double flatTax) {
+            this.min = min;
+            this.max = max;
+            this.multiplier = multiplier;
+            this.flatTax = flatTax;
+        }
+
+        public double getMin() {
+            return min;
+        }
+
+        public double getMax() {
+            return max;
+        }
+
+        public double getMultiplier() {
+            return multiplier;
+        }
+
+        public double getFlatTax() {
+            return flatTax;
+        }
+
+        public boolean matches(double balance) {
+            if (balance < min) {
+                return false;
+            }
+            if (max >= 0 && balance > max) {
+                return false;
+            }
+            return true;
+        }
+
+        public double calculate(double balance) {
+            double effectiveBalance = Math.max(0.0, balance);
+            return (effectiveBalance * multiplier) + flatTax;
+        }
+    }
+
     public ConfigManager(Ztone plugin) {
         this.plugin = plugin;
         this.defaultRanks = new ArrayList<>();
@@ -113,6 +165,7 @@ public class ConfigManager {
         loadPvPSettings();
         loadBroadcastSettings();
         loadDefaultRanks();
+        loadTaxesSettings();
         this.chestLogging = clanConfig.getBoolean("chest-logging", true);
     }
 
@@ -306,6 +359,58 @@ public class ConfigManager {
         }
     }
 
+    private void loadTaxesSettings() {
+        taxesLevelBase.clear();
+        taxesBrackets.clear();
+
+        ConfigurationSection taxesSec = clanConfig.getConfigurationSection("taxes");
+        if (taxesSec == null && clanConfig.getDefaultSection() != null) {
+            taxesSec = clanConfig.getDefaultSection().getConfigurationSection("taxes");
+        }
+        if (taxesSec == null) {
+            this.taxesEnabled = true;
+            this.taxesIntervalDays = 7;
+            this.taxesGracePeriodDays = 14;
+            this.taxesFallbackBase = 500.0;
+        } else {
+            this.taxesEnabled = taxesSec.getBoolean("enabled", true);
+            this.taxesIntervalDays = Math.max(1, taxesSec.getInt("interval-days", 7));
+            this.taxesGracePeriodDays = Math.max(0, taxesSec.getInt("grace-period-days", 14));
+            this.taxesFallbackBase = taxesSec.getDouble("fallback-base", 500.0);
+
+            ConfigurationSection levelSec = taxesSec.getConfigurationSection("level-base");
+            if (levelSec != null) {
+                for (String key : levelSec.getKeys(false)) {
+                    try {
+                        int lvl = Integer.parseInt(key);
+                        taxesLevelBase.put(lvl, levelSec.getDouble(key, taxesFallbackBase));
+                    } catch (NumberFormatException ignored) {}
+                }
+            }
+
+            List<Map<?, ?>> bracketList = taxesSec.getMapList("balance-brackets");
+            if (bracketList != null && !bracketList.isEmpty()) {
+                for (Map<?, ?> map : bracketList) {
+                    try {
+                        double min = map.containsKey("min") ? Double.parseDouble(map.get("min").toString()) : 0.0;
+                        double max = map.containsKey("max") ? Double.parseDouble(map.get("max").toString()) : -1.0;
+                        double mult = map.containsKey("multiplier") ? Double.parseDouble(map.get("multiplier").toString()) : 0.0;
+                        double flat = map.containsKey("flat-tax") ? Double.parseDouble(map.get("flat-tax").toString()) : 0.0;
+                        taxesBrackets.add(new TaxBracket(min, max, mult, flat));
+                    } catch (Exception ignored) {}
+                }
+            }
+        }
+
+        if (taxesBrackets.isEmpty()) {
+            taxesBrackets.add(new TaxBracket(0.0, 50000.0, 0.0, 0.0));
+            taxesBrackets.add(new TaxBracket(50000.0, 100000.0, 0.01, 0.0));
+            taxesBrackets.add(new TaxBracket(100000.0, 500000.0, 0.02, 0.0));
+            taxesBrackets.add(new TaxBracket(500000.0, 1000000.0, 0.03, 0.0));
+            taxesBrackets.add(new TaxBracket(1000000.0, -1.0, 0.05, 0.0));
+        }
+    }
+
     public boolean isClansystemEnabled() {
         return clansystemEnabled;
     }
@@ -452,6 +557,55 @@ public class ConfigManager {
 
     public List<ClanRank> getDefaultRanks() { return defaultRanks; }
     public boolean isChestLogging() { return chestLogging; }
+
+    public boolean isTaxesEnabled() {
+        return taxesEnabled && isClankasseEnabled();
+    }
+
+    public int getTaxesIntervalDays() {
+        return taxesIntervalDays;
+    }
+
+    public int getTaxesGracePeriodDays() {
+        return taxesGracePeriodDays;
+    }
+
+    public Map<Integer, Double> getTaxesLevelBase() {
+        return Collections.unmodifiableMap(taxesLevelBase);
+    }
+
+    public double getTaxesFallbackBase() {
+        return taxesFallbackBase;
+    }
+
+    public List<TaxBracket> getTaxesBrackets() {
+        return Collections.unmodifiableList(taxesBrackets);
+    }
+
+    public double getTaxBaseForLevel(int level) {
+        return taxesLevelBase.getOrDefault(level, taxesFallbackBase);
+    }
+
+    public TaxBracket getMatchingTaxBracket(double balance) {
+        for (TaxBracket bracket : taxesBrackets) {
+            if (bracket.matches(balance)) {
+                return bracket;
+            }
+        }
+        return null;
+    }
+
+    public double calculateTotalTax(int level, double balance) {
+        double base = getTaxBaseForLevel(level);
+        double bracketTax = 0.0;
+        TaxBracket bracket = getMatchingTaxBracket(balance);
+        if (bracket != null) {
+            bracketTax = bracket.calculate(balance);
+        }
+        double total = base + bracketTax;
+        return Math.max(0.0, Math.round(total * 100.0) / 100.0);
+    }
+
     public FileConfiguration getGlobalConfig() { return globalConfig; }
     public FileConfiguration getClanConfig() { return clanConfig; }
 }

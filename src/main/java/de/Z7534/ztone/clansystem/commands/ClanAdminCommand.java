@@ -58,6 +58,7 @@ public class ClanAdminCommand implements CommandExecutor, TabCompleter {
             case "warp" -> handleWarp(sender, args);
             case "promote" -> handlePromote(sender, args);
             case "demote" -> handleDemote(sender, args);
+            case "taxes", "steuern" -> handleTaxes(sender, args);
             case "help", "?" -> sendHelp(sender);
             default -> sendHelp(sender);
         }
@@ -773,6 +774,43 @@ public class ClanAdminCommand implements CommandExecutor, TabCompleter {
         }
     }
 
+    private void handleTaxes(CommandSender sender, String[] args) {
+        if (!sender.hasPermission("clansystem.admin.taxes") && !sender.hasPermission("clansystem.admin")) {
+            plugin.getMessageManager().send(sender, "general.no-permission");
+            return;
+        }
+
+        if (args.length < 2 || args[1].equalsIgnoreCase("info")) {
+            long lastRun = plugin.getDatabaseManager().getLastTaxRun();
+            long nextRun = plugin.getTaxManager() != null ? plugin.getTaxManager().getNextTaxRunTimestamp() : 0L;
+            java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("dd.MM.yyyy HH:mm");
+            String lastRunStr = lastRun > 0 ? sdf.format(new java.util.Date(lastRun)) : "Noch nie";
+            String nextRunStr = nextRun > 0 ? sdf.format(new java.util.Date(nextRun)) : "Unbekannt";
+
+            plugin.getMessageManager().send(sender, "admin.taxes-info",
+                    MessageManager.of(
+                            "enabled", plugin.getConfigManager().isTaxesEnabled() ? "§aAktiviert" : "§cDeaktiviert",
+                            "interval", String.valueOf(plugin.getConfigManager().getTaxesIntervalDays()),
+                            "grace", String.valueOf(plugin.getConfigManager().getTaxesGracePeriodDays()),
+                            "last_run", lastRunStr,
+                            "next_run", nextRunStr
+                    ));
+            return;
+        }
+
+        if (args[1].equalsIgnoreCase("run")) {
+            if (plugin.getTaxManager() == null) {
+                plugin.getMessageManager().send(sender, "admin.taxes-disabled");
+                return;
+            }
+            plugin.getTaxManager().collectTaxes(sender);
+            return;
+        }
+
+        plugin.getMessageManager().send(sender, "general.invalid-usage",
+                MessageManager.of("usage", "/clanadmin taxes [run|info]"));
+    }
+
     private void sendHelp(CommandSender sender) {
         sender.sendMessage(de.Z7534.ztone.clansystem.utils.ColorUtils.colorize("&8&m----------&8[ &6Clan-Admin &8]&m----------"));
         sender.sendMessage(de.Z7534.ztone.clansystem.utils.ColorUtils.colorize("&e/clanadmin reload &8- &7Konfiguration neu laden"));
@@ -806,7 +844,7 @@ public class ClanAdminCommand implements CommandExecutor, TabCompleter {
             List<String> subCommands = Arrays.asList(
                     "reload", "delete", "setlevel", "setleader", "chest", "addpoints",
                     "info", "forcejoin", "forceleave", "list", "settings", "bold",
-                    "home", "warp", "promote", "demote", "help"
+                    "home", "warp", "promote", "demote", "taxes", "steuern", "help"
             );
             String input = args[0].toLowerCase();
             completions = subCommands.stream()
@@ -817,6 +855,11 @@ public class ClanAdminCommand implements CommandExecutor, TabCompleter {
             String input = args[1].toLowerCase();
 
             switch (subCommand) {
+                case "taxes", "steuern" -> {
+                    completions = Arrays.asList("run", "info").stream()
+                            .filter(s -> s.startsWith(input))
+                            .collect(Collectors.toList());
+                }
                 case "delete", "setlevel", "setleader", "chest", "addpoints", "settings", "bold", "home", "warp" -> {
                     completions = plugin.getClanManager().getAllClans().stream()
                             .map(Clan::getName)

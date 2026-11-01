@@ -133,19 +133,42 @@ public class ClanMainGUI extends AbstractGUI {
 
         if (plugin.getConfigManager().isClankasseEnabled()) {
             String formattedBalance = plugin.getEconomyManager() != null ? plugin.getEconomyManager().format(clan.getBalance()) : (clan.getBalance() + " $");
-            setItem(31, new ItemBuilder(Material.GOLD_INGOT)
+            ItemBuilder kasseItem = new ItemBuilder(Material.GOLD_INGOT)
                     .name("&6&l➔ Clankasse")
-                    .lore(
-                            "&7Guthaben: &e" + formattedBalance,
-                            "",
-                            "&7Guthaben deines Clans.",
-                            "&7Verwalte Ein- und Auszahlungen.",
-                            "",
-                            "&a▶ &7Linksklick: Transaktionen",
-                            "&6▶ &7Rechtsklick: Clankasse-Top 10"
-                    )
-                    .glow()
-                    .build(),
+                    .addLore("&7Guthaben: &e" + formattedBalance);
+
+            if (plugin.getConfigManager().isTaxesEnabled()) {
+                double estimatedTax = plugin.getConfigManager().calculateTotalTax(clan.getLevel(), clan.getBalance());
+                String formattedTax = plugin.getEconomyManager() != null ? plugin.getEconomyManager().format(estimatedTax) : (estimatedTax + " $");
+                boolean inGrace = plugin.getTaxManager() != null && plugin.getTaxManager().isClanInGracePeriod(clan);
+                long nextRun = plugin.getTaxManager() != null ? plugin.getTaxManager().getNextTaxRunTimestamp() : 0L;
+                String nextRunStr = nextRun > 0 ? new java.text.SimpleDateFormat("dd.MM.yyyy HH:mm").format(new java.util.Date(nextRun)) : "Demnächst";
+
+                if (inGrace) {
+                    long remainingDays = plugin.getTaxManager() != null ? plugin.getTaxManager().getRemainingGraceDays(clan) : 0L;
+                    kasseItem.addLore(
+                            "&7Steuer-Status: &aSchonfrist &8(&eNoch " + remainingDays + " Tage befreit&8)",
+                            "&7Voraussichtliche Steuer: &e" + formattedTax,
+                            "&7Nächster Einzug: &7" + nextRunStr
+                    );
+                } else {
+                    kasseItem.addLore(
+                            "&7Nächste Steuer: &c" + formattedTax,
+                            "&7Fälligkeit: &e" + nextRunStr
+                    );
+                }
+            }
+
+            kasseItem.addLore(
+                    "",
+                    "&7Guthaben deines Clans.",
+                    "&7Verwalte Ein- und Auszahlungen.",
+                    "",
+                    "&a▶ &7Linksklick: Transaktionen",
+                    "&6▶ &7Rechtsklick: Clankasse-Top 10"
+            );
+
+            setItem(31, kasseItem.glow().build(),
                     () -> {
                         if (member != null && (clan.isLeader(player.getUniqueId()) || member.hasPermission(Permission.BANK_VIEW_TRANSACTIONS))) {
                             new ClanBankTransactionsGUI(plugin, player, clan).open();

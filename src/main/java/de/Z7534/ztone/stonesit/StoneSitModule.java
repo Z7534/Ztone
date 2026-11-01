@@ -3,6 +3,7 @@ package de.Z7534.ztone.stonesit;
 import de.Z7534.ztone.Ztone;
 import de.Z7534.ztone.stonesit.command.PoseCommand;
 import de.Z7534.ztone.stonesit.command.SitCommand;
+import de.Z7534.ztone.stonesit.command.SpinCommand;
 import de.Z7534.ztone.stonesit.command.StoneSitReloadCommand;
 import de.Z7534.ztone.stonesit.config.StoneSitConfig;
 import de.Z7534.ztone.stonesit.hook.StoneSitPlaceholderExpansion;
@@ -63,6 +64,13 @@ public final class StoneSitModule {
         if (legsUpCmd != null) {
             legsUpCmd.setExecutor(legsUpExecutor);
             legsUpCmd.setTabCompleter(legsUpExecutor);
+        }
+
+        SpinCommand spinExecutor = new SpinCommand(config, sitManager, environmentUtil);
+        PluginCommand spinCmd = plugin.getCommand("spin");
+        if (spinCmd != null) {
+            spinCmd.setExecutor(spinExecutor);
+            spinCmd.setTabCompleter(spinExecutor);
         }
 
         StoneSitReloadCommand reloadExecutor = new StoneSitReloadCommand(config);

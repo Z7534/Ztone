@@ -31,6 +31,10 @@ import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
+import org.bukkit.event.Listener;
+import org.bukkit.event.server.ServerLoadEvent;
 
 import java.io.File;
 import java.util.UUID;
@@ -51,6 +55,7 @@ public class Ztone extends JavaPlugin {
     private GlowManager glowManager;
     private TeleportManager teleportManager;
     private EconomyManager economyManager;
+    private ClanTaxManager taxManager;
 
     // Backup Manager
     private DatabaseBackupManager databaseBackupManager;
@@ -72,9 +77,42 @@ public class Ztone extends JavaPlugin {
     // Command Filter für deaktivierte Module
     private ModuleCommandFilterListener moduleCommandFilterListener;
 
+    private boolean initialized = false;
+
+    @Override
+    public void onLoad() {
+        instance = this;
+        try {
+            de.Z7534.ztone.claims.hook.WorldGuardHook.registerClaimFlag();
+        } catch (Throwable t) {
+            getLogger().warning("WorldGuard-Flag 'claim' konnte nicht registriert werden: " + t.getMessage());
+        }
+    }
+
     @Override
     public void onEnable() {
         instance = this;
+
+        if (Bukkit.getWorlds().isEmpty()) {
+            getLogger().info("Ztone im STARTUP-Modus: Module werden nach dem Laden der Welten initialisiert.");
+            getServer().getPluginManager().registerEvents(new Listener() {
+                @EventHandler(priority = EventPriority.LOWEST)
+                public void onServerLoad(ServerLoadEvent event) {
+                    if (!initialized) {
+                        initialize();
+                    }
+                }
+            }, this);
+        } else {
+            initialize();
+        }
+    }
+
+    private void initialize() {
+        if (initialized) {
+            return;
+        }
+        initialized = true;
 
         getLogger().info("========================================");
         getLogger().info("  ZTONE v" + getDescription().getVersion());
@@ -161,9 +199,11 @@ public class Ztone extends JavaPlugin {
                     this.chatInputManager = new ChatInputManager(this);
                     this.glowManager = new GlowManager(this);
                     this.teleportManager = new TeleportManager(this);
+                    this.taxManager = new ClanTaxManager(this);
 
                     clanManager.loadAllClans();
                     glowManager.setupAll();
+                    taxManager.start();
 
                     ClanCommand clanCommand = new ClanCommand(this);
                     if (getCommand("clan") != null) {
@@ -387,6 +427,9 @@ public class Ztone extends JavaPlugin {
 
     @Override
     public void onDisable() {
+        if (!initialized) {
+            return;
+        }
 
         if (dragonEgg != null) {
             try {
@@ -485,6 +528,13 @@ public class Ztone extends JavaPlugin {
         }
 
         if (configManager != null && configManager.isClansystemEnabled()) {
+            if (taxManager != null) {
+                try {
+                    taxManager.stop();
+                } catch (Throwable t) {
+                    getLogger().warning("Fehler beim Beenden des TaxManagers: " + t.getMessage());
+                }
+            }
             if (glowManager != null) {
                 try {
                     glowManager.shutdown();
@@ -580,6 +630,9 @@ public class Ztone extends JavaPlugin {
             clanManager.loadAllClans();
             if (glowManager != null) {
                 glowManager.setupAll();
+            }
+            if (taxManager != null) {
+                taxManager.start();
             }
         }
     }
@@ -802,6 +855,10 @@ public class Ztone extends JavaPlugin {
 
     public EconomyManager getEconomyManager() {
         return economyManager;
+    }
+
+    public ClanTaxManager getTaxManager() {
+        return taxManager;
     }
 
     public Pvpmanager getPvpManager() {

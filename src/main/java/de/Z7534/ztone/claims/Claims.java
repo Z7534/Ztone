@@ -58,7 +58,7 @@ public final class Claims {
         WorldGuardHook worldGuardHook = new WorldGuardHook();
         claimManager.setWorldGuardHook(worldGuardHook);
         if (worldGuardHook.isAvailable()) {
-            plugin.getLogger().info("WorldGuard gefunden - Regionen werden vor Claims geschützt.");
+            plugin.getLogger().info("WorldGuard gefunden - Custom-Flag 'claim' für Regionen aktiv (Standard: ALLOW).");
         }
 
         pvpClaimBypassManager = new PvPClaimBypassManager(plugin, claimManager);

@@ -51,6 +51,8 @@ public final class SitManager {
     private final Map<UUID, Seat> seats = new HashMap<>();
     private final Map<Block, Set<Seat>> blockSeats = new HashMap<>();
 
+    // Spin Tracking (/spin & /gspin) -> Jetzt vollwertig als PoseType.SPIN in poses integriert
+
     // Pose Tracking (/lay & /legsup, O(1) Lookups)
     private final Map<UUID, StoneSitPose> poses = new HashMap<>();
     private final Map<Block, Set<StoneSitPose>> blockPoses = new HashMap<>();
@@ -554,7 +556,7 @@ public final class SitManager {
 
         Set<World> activeWorlds = new HashSet<>();
         for (StoneSitPose pose : poses.values()) {
-            if (pose.getLayTicks() >= 100 && pose.getPlayer().isValid()) {
+            if (pose.getPoseType() != PoseType.SPIN && pose.getLayTicks() >= 100 && pose.getPlayer().isValid()) {
                 activeWorlds.add(pose.getPlayer().getWorld());
             }
         }
@@ -589,6 +591,9 @@ public final class SitManager {
                 }
                 StoneSitPose pPose = poses.get(p.getUniqueId());
                 if (pPose != null) {
+                    if (pPose.getPoseType() == PoseType.SPIN) {
+                        continue;
+                    }
                     worldPoses.add(pPose);
                     if (pPose.wasSleepingIgnoredBeforePose()) {
                         continue;
@@ -643,7 +648,8 @@ public final class SitManager {
             }
 
             for (Player p : world.getPlayers()) {
-                if (p.isSleeping() || poses.containsKey(p.getUniqueId())) {
+                StoneSitPose checkPose = poses.get(p.getUniqueId());
+                if (p.isSleeping() || (checkPose != null && checkPose.getPoseType() != PoseType.SPIN)) {
                     if (config.isPoseLayRest()) {
                         p.setStatistic(Statistic.TIME_SINCE_REST, 0);
                     }
@@ -930,4 +936,17 @@ public final class SitManager {
         }
         stopPlayerSit(player, reason);
     }
+
+    // =========================================================================
+    //                               SPIN FEATURE
+    // =========================================================================
+
+    public boolean isPlayerSpinning(LivingEntity entity) {
+        if (!(entity instanceof Player player)) {
+            return false;
+        }
+        StoneSitPose pose = poses.get(player.getUniqueId());
+        return pose != null && pose.getPoseType() == PoseType.SPIN;
+    }
+
 }

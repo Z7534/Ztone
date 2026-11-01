@@ -303,6 +303,9 @@ admin:
   demote-leader: "&cDer Clan-Leader kann nicht degradiert werden! Nutze /clanadmin setleader <clan> <spieler>."
   demote-lowest: "&c%player% hat bereits den niedrigsten Rang (%rank%)!"
   demote-success: "&a%player% im Clan &e%clan% &awurde auf den Rang &e%rank% &adegradiert."
+  taxes-run-success: "&aSteuereinzug erfolgreich ausgeführt! &7(%count% Clans besteuert, %exempt% in Schonfrist, %total% eingezogen)"
+  taxes-disabled: "&cDas Steuersystem ist aktuell in der Konfiguration deaktiviert!"
+  taxes-info: "&6&lSteuern-Status:&r\n&7Aktiv: &e%enabled%\n&7Intervall: &e%interval% Tage\n&7Schonfrist: &e%grace% Tage\n&7Letzter Einzug: &e%last_run%\n&7Nächster Einzug: &e%next_run%"
 
 # Clankassen-Nachrichten
 bank:
@@ -320,6 +323,16 @@ bank:
   top-entry: "%rank%&e%clan% &8» &a%balance%"
   top-empty: "&7Es sind noch keine Clans mit Guthaben vorhanden."
   top-footer: "&8&m---------------------------------------"
+  taxes-deducted: "&6Es wurden &c%amount% &6an Steuern aus der Clankasse abgebucht. &7(Neuer Kontostand: &e%balance%&7)"
+  taxes-exempt-grace: "&7Dein Clan ist noch in der Schonfrist (%days% Tage verbleibend) und von Steuern befreit."
+  taxes-debt-warning: "&c&lACHTUNG: &cDie Clankasse ist im Minus (&e-%debt%$&c)! Clan-Funktionen sind gesperrt, bis der Betrag per &e/clan deposit &causgeglichen wurde."
+  taxes-info-header: "&8&m----------&8[ &6Clan-Steuern &8]&m----------"
+  taxes-info-level: "&7Level-Basissteuer: &e%level_base%"
+  taxes-info-bracket: "&7Kassen-Staffel: &e%bracket% &7(Multiplikator: &e%multiplier%&7)"
+  taxes-info-total: "&7Geschätzte nächste Steuer: &c%tax%"
+  taxes-info-next: "&7Nächster Einzug: &e%next_run%"
+  taxes-info-grace: "&aSchonfrist aktiv: &7Noch &e%days% &7Tage befreit."
+  taxes-info-footer: "&8&m---------------------------------------"
 
 # PvPManager Krieg
 PvP_War_Forced: "&cDu kannst PvP im Clankrieg nicht deaktivieren! Deine Rolle hat permanentes Kriegs-PvP."

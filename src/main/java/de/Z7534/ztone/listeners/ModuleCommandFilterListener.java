@@ -114,6 +114,7 @@ public class ModuleCommandFilterListener implements Listener {
                     "sit", "gsit", "stonesit",
                     "lay", "glay", "layback", "glayback",
                     "legsup", "glegsup",
+                    "spin", "gspin", "stonespin",
                     "stonesitreload", "gsitreload", "gsitrl", "stonesitrl"
             }, "§cDas StoneSit-Modul ist auf diesem Server deaktiviert.", pluginPrefix);
         }

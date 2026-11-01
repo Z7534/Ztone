@@ -6,12 +6,14 @@ public class ClanBankTransaction {
 
     public enum Type {
         DEPOSIT,
-        WITHDRAW
+        WITHDRAW,
+        TAX
     }
 
     public enum TransactionType {
         DEPOSIT,
-        WITHDRAW
+        WITHDRAW,
+        TAX
     }
 
     private final int id;

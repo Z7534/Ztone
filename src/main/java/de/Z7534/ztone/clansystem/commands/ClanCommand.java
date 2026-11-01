@@ -169,9 +169,11 @@ public class ClanCommand implements CommandExecutor, TabCompleter {
             } else if ((subCommand.equals("bank") || subCommand.equals("kasse")) && args.length >= 2) {
                 String bankSub = args[1].toLowerCase();
                 if (bankSub.equals("deposit") || bankSub.equals("einzahlen") || bankSub.equals("info")
-                        || bankSub.equals("top")) {
+                        || bankSub.equals("top") || bankSub.equals("taxes") || bankSub.equals("steuern")) {
                     allowed = true;
                 }
+            } else if (subCommand.equals("taxes") || subCommand.equals("steuern")) {
+                allowed = true;
             }
             if (!allowed) {
                 String debtFormatted = String.format(java.util.Locale.GERMANY, "%,.2f", playerClan.getDebt());
@@ -272,6 +274,14 @@ public class ClanCommand implements CommandExecutor, TabCompleter {
 
             }
 
+            case "taxes", "steuern" -> {
+                Clan clan = plugin.getClanManager().getClanByPlayer(player);
+                if (clan == null) {
+                    plugin.getMessageManager().send(player, "clan.not-in-clan");
+                    return true;
+                }
+                handleClanTaxesInfo(player, clan);
+            }
             case "info" -> handleInfo(player, args);
 
             case "chat", "c" -> handleChat(player, args);
@@ -3521,6 +3531,50 @@ public class ClanCommand implements CommandExecutor, TabCompleter {
 
 
 
+    private void handleClanTaxesInfo(Player player, Clan clan) {
+        if (!plugin.getConfigManager().isTaxesEnabled()) {
+            player.sendMessage(de.Z7534.ztone.clansystem.utils.ColorUtils.colorize("&cDas Steuersystem ist aktuell deaktiviert!"));
+            return;
+        }
+
+        de.Z7534.ztone.clansystem.managers.EconomyManager eco = plugin.getEconomyManager();
+        double levelBase = plugin.getConfigManager().getTaxBaseForLevel(clan.getLevel());
+        de.Z7534.ztone.clansystem.managers.ConfigManager.TaxBracket bracket = plugin.getConfigManager().getMatchingTaxBracket(clan.getBalance());
+        double totalTax = plugin.getConfigManager().calculateTotalTax(clan.getLevel(), clan.getBalance());
+
+        String formattedLevelBase = eco != null ? eco.format(levelBase) : (levelBase + " $");
+        String formattedTotal = eco != null ? eco.format(totalTax) : (totalTax + " $");
+
+        String bracketDesc;
+        String multDesc;
+        if (bracket != null) {
+            String maxStr = bracket.getMax() < 0 ? "∞" : (eco != null ? eco.format(bracket.getMax()) : (bracket.getMax() + "$"));
+            String minStr = eco != null ? eco.format(bracket.getMin()) : (bracket.getMin() + "$");
+            bracketDesc = minStr + " - " + maxStr;
+            multDesc = (Math.round(bracket.getMultiplier() * 1000.0) / 10.0) + "%";
+        } else {
+            bracketDesc = "Keine";
+            multDesc = "0%";
+        }
+
+        long nextRun = plugin.getTaxManager() != null ? plugin.getTaxManager().getNextTaxRunTimestamp() : 0L;
+        java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("dd.MM.yyyy HH:mm");
+        String nextRunStr = nextRun > 0 ? sdf.format(new java.util.Date(nextRun)) : "Unbekannt";
+
+        plugin.getMessageManager().send(player, "bank.taxes-info-header");
+        plugin.getMessageManager().send(player, "bank.taxes-info-level", de.Z7534.ztone.clansystem.managers.MessageManager.of("level_base", formattedLevelBase));
+        plugin.getMessageManager().send(player, "bank.taxes-info-bracket", de.Z7534.ztone.clansystem.managers.MessageManager.of("bracket", bracketDesc, "multiplier", multDesc));
+        plugin.getMessageManager().send(player, "bank.taxes-info-total", de.Z7534.ztone.clansystem.managers.MessageManager.of("tax", formattedTotal));
+        plugin.getMessageManager().send(player, "bank.taxes-info-next", de.Z7534.ztone.clansystem.managers.MessageManager.of("next_run", nextRunStr));
+
+        if (plugin.getTaxManager() != null && plugin.getTaxManager().isClanInGracePeriod(clan)) {
+            long remaining = plugin.getTaxManager().getRemainingGraceDays(clan);
+            plugin.getMessageManager().send(player, "bank.taxes-info-grace", de.Z7534.ztone.clansystem.managers.MessageManager.of("days", String.valueOf(remaining)));
+        }
+
+        plugin.getMessageManager().send(player, "bank.taxes-info-footer");
+    }
+
     private void handleBank(Player player, String[] args) {
 
         if (args.length >= 2 && args[1].equalsIgnoreCase("top")) {
@@ -3596,6 +3650,7 @@ public class ClanCommand implements CommandExecutor, TabCompleter {
             }
 
             case "top" -> handleTop(player, "kasse");
+            case "taxes", "steuern" -> handleClanTaxesInfo(player, clan);
 
             case "gui", "transactions", "transaktionen" -> {
 
@@ -3916,6 +3971,7 @@ public class ClanCommand implements CommandExecutor, TabCompleter {
         player.sendMessage(de.Z7534.ztone.clansystem.utils.ColorUtils.colorize("&e/clan withdraw <betrag> &8- &7Geld aus Clankasse abheben"));
 
         player.sendMessage(de.Z7534.ztone.clansystem.utils.ColorUtils.colorize("&e/clan bank &8- &7Clankasse öffnen"));
+        player.sendMessage(de.Z7534.ztone.clansystem.utils.ColorUtils.colorize("&e/clan taxes &8- &7Steuerinfo anzeigen"));
 
         player.sendMessage(de.Z7534.ztone.clansystem.utils.ColorUtils.colorize("&e/clan info [clan] &8- &7Clan-Info anzeigen"));
 
@@ -4075,7 +4131,11 @@ public class ClanCommand implements CommandExecutor, TabCompleter {
 
                 case "bank", "kasse" -> {
 
-                    completions = Arrays.asList("deposit", "withdraw", "info", "transaktionen", "top").stream()
+                    List<String> bankOpts = new ArrayList<>(Arrays.asList("deposit", "withdraw", "info", "transaktionen", "top"));
+                    if (plugin.getConfigManager().isTaxesEnabled()) {
+                        bankOpts.addAll(Arrays.asList("taxes", "steuern"));
+                    }
+                    completions = bankOpts.stream()
 
                             .filter(s -> s.startsWith(input))
 
