@@ -331,6 +331,19 @@ public class ClanAdminCommand implements CommandExecutor, TabCompleter {
         sender.sendMessage(de.Z7534.ztone.clansystem.utils.ColorUtils.colorize("&7Homes: &e" + clan.getHomeCount()));
         sender.sendMessage(de.Z7534.ztone.clansystem.utils.ColorUtils.colorize("&7Warps: &e" + clan.getWarpCount()));
         sender.sendMessage(de.Z7534.ztone.clansystem.utils.ColorUtils.colorize("&7Ränge: &e" + clan.getRanks().size()));
+        sender.sendMessage(de.Z7534.ztone.clansystem.utils.ColorUtils.colorize("&7Mitglieder &8(&e" + clan.getMemberCount() + "&8):"));
+        java.util.List<ClanMember> sortedMembers = new java.util.ArrayList<>(clan.getMembers().values());
+        sortedMembers.sort(java.util.Comparator.comparingInt((ClanMember m) -> {
+            ClanRank r = clan.getRank(m.getRankId());
+            return r != null ? -r.getPriority() : 0;
+        }).thenComparing(ClanMember::getName, String.CASE_INSENSITIVE_ORDER));
+        for (ClanMember m : sortedMembers) {
+            boolean online = m.isOnline();
+            ClanRank rank = clan.getRank(m.getRankId());
+            String rankName = rank != null ? rank.getName() : "Mitglied";
+            String status = online ? "&a●" : "&7○";
+            sender.sendMessage(de.Z7534.ztone.clansystem.utils.ColorUtils.colorize("  " + status + " &e" + m.getName() + " &8(&7" + rankName + "&8)"));
+        }
         sender.sendMessage(de.Z7534.ztone.clansystem.utils.ColorUtils.colorize("&8&m-----------------------------------------"));
     }
 
@@ -656,7 +669,7 @@ public class ClanAdminCommand implements CommandExecutor, TabCompleter {
         }
 
         if (clan.isLeader(targetUuid) || targetMember.isLeader()) {
-            sender.sendMessage(ColorUtils.colorize("&8[&6Clan-Admin&8] &cDer Clan-Leader hat bereits die höchste Stellung und kann nicht befördert werden!"));
+            plugin.getMessageManager().send(sender, "admin.promote-leader");
             return;
         }
 
@@ -672,14 +685,14 @@ public class ClanAdminCommand implements CommandExecutor, TabCompleter {
         }
 
         if (nextRank == null) {
-            sender.sendMessage(ColorUtils.colorize("&8[&6Clan-Admin&8] &c" + resolvedName + " hat bereits den höchsten Rang (" + (currentRank != null ? currentRank.getName() : "Co. Owner") + ")!"));
+            plugin.getMessageManager().send(sender, "admin.promote-highest", MessageManager.of("player", resolvedName, "rank", (currentRank != null ? currentRank.getName() : "Co. Owner")));
             return;
         }
 
         targetMember.setRank(nextRank);
         plugin.getDatabaseManager().updateMember(targetMember);
 
-        sender.sendMessage(ColorUtils.colorize("&8[&6Clan-Admin&8] &a" + resolvedName + " im Clan &e" + clan.getName() + " &awurde auf den Rang &e" + nextRank.getName() + " &abefördert."));
+        plugin.getMessageManager().send(sender, "admin.promote-success", MessageManager.of("player", resolvedName, "clan", clan.getName(), "rank", nextRank.getName()));
 
         if (targetPlayer != null) {
             plugin.getMessageManager().send(targetPlayer, "rank.rank-changed",
@@ -729,7 +742,7 @@ public class ClanAdminCommand implements CommandExecutor, TabCompleter {
         }
 
         if (clan.isLeader(targetUuid) || targetMember.isLeader()) {
-            sender.sendMessage(ColorUtils.colorize("&8[&6Clan-Admin&8] &cDer Clan-Leader kann nicht degradiert werden! Nutze /clanadmin setleader <clan> <spieler>."));
+            plugin.getMessageManager().send(sender, "admin.demote-leader");
             return;
         }
 
@@ -745,14 +758,14 @@ public class ClanAdminCommand implements CommandExecutor, TabCompleter {
         }
 
         if (prevRank == null) {
-            sender.sendMessage(ColorUtils.colorize("&8[&6Clan-Admin&8] &c" + resolvedName + " hat bereits den niedrigsten Rang (" + (currentRank != null ? currentRank.getName() : "Member") + ")!"));
+            plugin.getMessageManager().send(sender, "admin.demote-lowest", MessageManager.of("player", resolvedName, "rank", (currentRank != null ? currentRank.getName() : "Member")));
             return;
         }
 
         targetMember.setRank(prevRank);
         plugin.getDatabaseManager().updateMember(targetMember);
 
-        sender.sendMessage(ColorUtils.colorize("&8[&6Clan-Admin&8] &a" + resolvedName + " im Clan &e" + clan.getName() + " &awurde auf den Rang &e" + prevRank.getName() + " &adegradiert."));
+        plugin.getMessageManager().send(sender, "admin.demote-success", MessageManager.of("player", resolvedName, "clan", clan.getName(), "rank", prevRank.getName()));
 
         if (targetPlayer != null) {
             plugin.getMessageManager().send(targetPlayer, "rank.rank-changed",

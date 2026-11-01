@@ -57,6 +57,11 @@ public final class ClaimCommand implements CommandExecutor, TabCompleter {
             return true;
         }
 
+        if (args.length > 0 && args[0].equalsIgnoreCase("merge")) {
+            handleMerge(player);
+            return true;
+        }
+
         SelectionSession session = ctx.selection().get(player.getUniqueId());
         if (session != null) {
             new ClaimConfirmGui(ctx, session).open(player);
@@ -396,5 +401,14 @@ public final class ClaimCommand implements CommandExecutor, TabCompleter {
         }
 
         return out;
+    }
+
+    private void handleMerge(Player player) {
+        int merged = ctx.claims().mergeAdjacentClaimsFor(player.getUniqueId(), player.getWorld().getName());
+        if (merged > 0) {
+            player.sendMessage(Text.line(ctx.config().prefix() + ctx.config().message("claim-merge-success"), Map.of("anzahl", String.valueOf(merged))));
+        } else {
+            player.sendMessage(Text.line(ctx.config().prefix() + ctx.config().message("claim-merge-none")));
+        }
     }
 }

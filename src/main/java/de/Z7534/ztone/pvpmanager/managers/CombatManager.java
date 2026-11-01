@@ -45,6 +45,11 @@ public class CombatManager {
                 untag(player);
                 continue;
             }
+            // Force fly aus im Combat
+            if (player.isFlying() || player.getAllowFlight()) {
+                player.setFlying(false);
+                player.setAllowFlight(false);
+            }
             plugin.getDisplayManager().updateCombatDisplay(player, (endTime - now) / 1000);
             plugin.getGlowManager().reassert(player);
         }
@@ -74,6 +79,13 @@ public class CombatManager {
             opponents.computeIfAbsent(player.getUniqueId(), k -> ConcurrentHashMap.newKeySet())
                     .add(opponent.getUniqueId());
             lastAttacker.put(player.getUniqueId(), opponent.getUniqueId());
+        }
+
+        // Force fly aus im Combat!
+        if (player.isFlying() || player.getAllowFlight()) {
+            player.setFlying(false);
+            player.setAllowFlight(false);
+            plugin.getMessageDispatcher().send(player, "Flight_Disabled_InCombat");
         }
 
         if (plugin.getConfigManager().config().getBoolean("Combat Tag.Glowing", true)

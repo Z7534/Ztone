@@ -62,7 +62,7 @@ public class DeathChestCommand implements CommandExecutor, TabCompleter {
                     return true;
                 }
                 config.load();
-                sender.sendMessage(Text.line(config.getPrefix() + " <green>Konfiguration wurde neu geladen.</green>"));
+                sender.sendMessage(config.getMessage("reload-success"));
                 return true;
             }
             default -> {

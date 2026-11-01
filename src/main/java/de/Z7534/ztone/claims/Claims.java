@@ -9,6 +9,7 @@ import de.Z7534.ztone.claims.database.ClaimRepository;
 import de.Z7534.ztone.claims.database.Database;
 import de.Z7534.ztone.claims.database.PlayerRepository;
 import de.Z7534.ztone.claims.hook.SmartSpawnerHook;
+import de.Z7534.ztone.claims.hook.WorldGuardHook;
 import de.Z7534.ztone.claims.integration.ClaimsPlaceholderExpansion;
 import de.Z7534.ztone.claims.listener.*;
 import de.Z7534.ztone.claims.manager.*;
@@ -53,6 +54,12 @@ public final class Claims {
         this.bypassManager = new BypassManager();
         claimManager = new ClaimManager(plugin, configManager, claimRepository, playerRepository, bypassManager);
         claimManager.loadAll();
+
+        WorldGuardHook worldGuardHook = new WorldGuardHook();
+        claimManager.setWorldGuardHook(worldGuardHook);
+        if (worldGuardHook.isAvailable()) {
+            plugin.getLogger().info("WorldGuard gefunden - Regionen werden vor Claims geschützt.");
+        }
 
         pvpClaimBypassManager = new PvPClaimBypassManager(plugin, claimManager);
         pvpClaimBypassManager.load();

@@ -75,7 +75,8 @@ public class LevelManager {
                                     colors,
                                     rewardsSection.getBoolean("gradient-unlocked", false),
                                     rewardsSection.getBoolean("strikethrough-unlocked", false),
-                                    rewardsSection.getBoolean("glow-unlocked", false)
+                                    rewardsSection.getBoolean("glow-unlocked", false),
+                                    rewardsSection.getBoolean("wars-toggle-unlocked", false)
                             );
                             rewards.put(level, levelRewards);
                         }
@@ -100,15 +101,15 @@ public class LevelManager {
             pointsRequired.put(5, 1500);
 
             rewards.put(1, new LevelRewards(15, 1, 3, 3, "NETHER_STAR",
-                    java.util.List.of("&f", "&5", "&7", "&9", "&a"), false, false, false));
+                    java.util.List.of("&f", "&5", "&7", "&9", "&a"), false, false, false, false));
             rewards.put(2, new LevelRewards(5, 0, 1, 1, "DIAMOND",
-                    java.util.List.of("&b", "&e"), true, false, false));
+                    java.util.List.of("&b", "&e"), true, false, false, false));
             rewards.put(3, new LevelRewards(5, 0, 1, 1, "EMERALD",
-                    java.util.List.of("&1", "&3"), false, false, true));
+                    java.util.List.of("&1", "&3"), false, false, true, false));
             rewards.put(4, new LevelRewards(5, 0, 2, 1, "TOTEM_OF_UNDYING",
-                    java.util.List.of("&0", "&8"), false, true, false));
+                    java.util.List.of("&0", "&8"), false, true, false, false));
             rewards.put(5, new LevelRewards(10, 0, 3, 0, "NETHERITE_INGOT",
-                    java.util.List.of("&c", "&4", "&2", "&6"), false, false, false));
+                    java.util.List.of("&c", "&4", "&2", "&6"), false, false, false, false));
         }
     }
 
@@ -134,7 +135,7 @@ public class LevelManager {
     }
 
     public LevelRewards getRewards(int level) {
-        return rewards.getOrDefault(level, new LevelRewards(0, 0, 0, 0, null, java.util.List.of(), false, false, false));
+        return rewards.getOrDefault(level, new LevelRewards(0, 0, 0, 0, null, java.util.List.of(), false, false, false, false));
     }
 
     public int calculateLevel(int points) {
@@ -236,6 +237,9 @@ public class LevelManager {
         }
         if (r.glowUnlocked()) {
             sb.append("&a+Glow-Effekt ");
+        }
+        if (r.warsToggleUnlocked()) {
+            sb.append("&a+Clankrieg-Einstellung ");
         }
 
         return sb.toString().trim();
@@ -351,8 +355,22 @@ public class LevelManager {
         return required <= 0 || level >= required;
     }
 
+    public int getWarsToggleUnlockLevel() {
+        for (int i = 1; i <= maxLevel; i++) {
+            if (getRewards(i).warsToggleUnlocked()) {
+                return i;
+            }
+        }
+        return 7;
+    }
+
+    public boolean isWarsToggleUnlocked(int level) {
+        int required = getWarsToggleUnlockLevel();
+        return required <= 0 || level >= required;
+    }
+
     public record LevelRewards(int maxMembers, int maxHomes, int maxWarps, int chestRows, String icon,
                                 java.util.List<String> colors, boolean gradientUnlocked,
-                                boolean strikethroughUnlocked, boolean glowUnlocked) {
+                                boolean strikethroughUnlocked, boolean glowUnlocked, boolean warsToggleUnlocked) {
     }
 }

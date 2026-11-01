@@ -304,12 +304,10 @@ public class LeaderboardCache {
                     } else {
                         Double base = baseMap.get(entry.uuid());
                         if (base == null) {
-                            // Basis noch unbekannt (neuer Spieler) -> bis zum naechsten
-                            // vollstaendigen Durchlauf unveraendert lassen.
-                            updated.add(entry);
-                            continue;
+                            value = raw;
+                        } else {
+                            value = Math.max(0.0, raw - base);
                         }
-                        value = Math.max(0.0, raw - base);
                     }
                     if (value == entry.rawValue()) {
                         updated.add(entry);
@@ -317,6 +315,29 @@ public class LeaderboardCache {
                     }
                     changed = true;
                     updated.add(new LeaderboardEntry(entry.uuid(), entry.name(), value, formatValue(type, value)));
+                }
+
+                // Online-Spieler hinzufügen, die noch nicht in der vorherigen Liste standen
+                java.util.Set<UUID> presentUuids = new java.util.HashSet<>();
+                for (LeaderboardEntry e : updated) {
+                    presentUuids.add(e.uuid());
+                }
+                for (Map.Entry<UUID, Double> onl : online.entrySet()) {
+                    UUID u = onl.getKey();
+                    if (!presentUuids.contains(u) && !exclusionService.isExcluded(type, u)) {
+                        Player p = Bukkit.getPlayer(u);
+                        String name = p != null ? p.getName() : "???";
+                        double raw = onl.getValue();
+                        double val;
+                        if (period == TimePeriod.GLOBAL) {
+                            val = raw;
+                        } else {
+                            Double base = baseMap.get(u);
+                            val = (base != null) ? Math.max(0.0, raw - base) : raw;
+                        }
+                        changed = true;
+                        updated.add(new LeaderboardEntry(u, name, val, formatValue(type, val)));
+                    }
                 }
 
                 if (changed) {

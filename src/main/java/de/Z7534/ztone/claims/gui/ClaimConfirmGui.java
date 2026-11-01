@@ -93,6 +93,10 @@ public final class ClaimConfirmGui extends Gui {
                 player.sendMessage(Text.line(ctx.config().prefix() + ctx.config().message("dimension-disabled")));
                 player.closeInventory();
             }
+            case WORLDGUARD_PROTECTED -> {
+                player.sendMessage(Text.line(ctx.config().prefix() + ctx.config().message("worldguard-protected")));
+                player.closeInventory();
+            }
             case FOREIGN_CHUNK -> {
                 player.sendMessage(Text.line(ctx.config().prefix() + ctx.config().message("cannot-select-foreign")));
                 player.closeInventory();

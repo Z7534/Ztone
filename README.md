@@ -1,6 +1,6 @@
 # 🛡️ Ztone – All-in-One Server-System
 
-Willkommen in der offiziellen Dokumentation für **Ztone** (Version 1.1.0).  
+Willkommen in der offiziellen Dokumentation für **Ztone** (Version 1.1.2).  
 Ztone ist eine hochgradig optimierte, modulare All-in-One-Lösung für Minecraft Paper-, Purpur- und Leaf-Server (kompatibel mit Java 21 & Java 25).
 
 ---
@@ -22,17 +22,18 @@ Ztone ist eine hochgradig optimierte, modulare All-in-One-Lösung für Minecraft
 14. [Globale Konfiguration, Auto-Updater & Datenbank](#13-globale-konfiguration-auto-updater--datenbank)
 15. [PlaceholderAPI Gesamtübersicht](#14-placeholderapi-gesamtübersicht)
 16. [Kompilierung & Entwicklung](#15-kompilierung--entwicklung)
+17. [Changelog v1.1.2](#16-changelog-v112)
 
 ---
 
 ## 🧩 Übersicht & Module
 
 Ztone bündelt alle wichtigen Core-Features für moderne Survival- und SMP-Netzwerke in einem einzigen Plugin:
-* **Clansystem:** Eigene Clans, Ränge mit detaillierten Rechten, Clankasse mit Zinsen/Schulden, Clan-Homes, Clan-Warps, Clankriege und Allianzen. Volle Leader-Rechte über alle Clan-Ränge (inkl. Co-Owner-Beförderung).
-* **Claims:** Chunk-basiertes Claiming mit interaktiver Karten-GUI, granularen Schutzflags, Subclaims, Trusted- und Ban-System sowie Anti-Combat-Fluchtsperre.
+* **Clansystem:** Eigene Clans, Ränge mit detaillierten Rechten, Clankasse mit Zinsen/Schulden (Schuldensperre bei Minus), Clan-Homes, Clan-Warps, Clankriege (12h Cooldown, Max. 1 Krieg, Settings-Toggle ab Level 7) und Allianzen. Einheitlicher Prefix und Small-Caps.
+* **Claims:** Chunk-basiertes Claiming mit interaktiver Karten-GUI, automatischem Claim-Merging für aneinandergrenzende Grundstücke, WorldGuard-Regionssperre, granularen Schutzflags, Subclaims, Trusted- und Ban-System sowie Anti-Combat-Fluchtsperre.
 * **PvPManager:** Umfassender Combat-Tag, Spawn-/Respawn-Schutz, Anti-CombatLog, Anti-Kill-Abuse und strenge PvP-Hierarchie (Wildnis: Dimensions- & Spielerstatus; Claims: standardmäßig deaktiviert, außer bei Clankrieg oder Admin-Override).
 * **StoneAttack:** Holographische Leaderboards mit transparentem Display-Design, dynamisches PlayerLimit und TPS/MSPT-Serverüberwachung.
-* **DeathChest:** Sichere Todeskisten mit Despawn-Timer, Dupe-Schutz und Hologrammen.
+* **DeathChest:** Sichere Todeskisten mit Restart-Persistenz, Anti-Rollback, automatischer Hologramm-Bereinigung, Killer-Lock-Bypass und Echtzeit-Chatbenachrichtigung beim Plündern.
 * **ClearLag:** Intelligente Boden-Item-Bereinigung mit Countdown-Warnungen und Actionbar.
 * **PlayRewards:** Tägliche Belohnungen, Playtime-Tracking und Streak-System mit Schutzpunkten.
 * **StoneVoice & Stonemute:** SimpleVoiceChat-Gruppenüberwachung für Admins sowie automatischer Mute-Sync über LiteBans.
@@ -432,4 +433,49 @@ Alle Platzhalter erfordern das installierte Plugin **PlaceholderAPI**.
 # Kompilieren mit Gradle Shadow-Jar
 ./gradlew shadowJar
 ```
-Die fertige Server-JAR befindet sich im Verzeichnis `build/libs/Ztone-1.0.5.jar`.
+Die fertige Server-JAR befindet sich im Verzeichnis `build/libs/Ztone-1.1.2.jar`.
+
+---
+
+## 16. Changelog v1.1.2
+
+### ⚙️ System & Administration
+* **Automatischer `messages.yml`-Reset beim Serverstart:**
+  * Veraltete `messages.yml`-Dateien (`clansystem/messages.yml`, `claims/messages.yml`, `stoneattack/messages.yml`) sowie Sprachdateien (`pvpmanager/locale/messages_de.properties`) werden beim Serverstart automatisch durch die neuesten Versionen aus der JAR ersetzt.
+  * Bestehende Dateien werden vorab sicher als `.old` gesichert (z. B. `messages.yml.old`).
+* **WorldGuard-Regionssperre für Claims:**
+  * Chunks, die sich mit geschützten WorldGuard-Regionen überschneiden (ausgenommen `__global__`), können von Spielern nicht geclaimt werden.
+  * Vollständig reflexionsbasiert ohne harte Compile-Time-Abhängigkeit.
+* **Erweiterter `/clanadmin info`-Befehl:**
+  * Zeigt nun die vollständige Mitgliederliste mit Rangbezeichnung, Rang-Priorität und Online-Status (Grün/Grau) an.
+* **Admin Claim-Merge (`/staffclaim merge [all|<Spieler>]`):**
+  * Ermöglicht das Zusammenführen aneinandergrenzender Claims für einzelne Spieler oder serverweit.
+* **Chat-Prefixe & Small-Caps-Vereinheitlichung:**
+  * Alle verbliebenen Legacy-Prefixe (`[Clan]`, `[Krieg]`) wurden restlos entfernt.
+  * Konsistente Nutzung des Prefixes `&b&lᴄʟᴀɴꜱʏꜱᴛᴇᴍ &8>> &r` und Small-Caps-Formatierung für alle Clan-Meldungen.
+
+### 🎮 Gameplay & Clan-Features
+* **Automatisches Claim-Merging (`/claim merge`):**
+  * Aneinandergrenzende Claims desselben Besitzers in der gleichen Welt verschmelzen automatisch zu einem gemeinsamen Groß-Claim (beim Claimen, Übertragen und rückwirkend beim Serverstart).
+  * Spieler können ihre Claims per `/claim merge` jederzeit manuell konsolidieren.
+* **PvP Combat-Flugschutz:**
+  * Im Kampf (`Combat Tag`) wird der Flugmodus (`/fly`) sofort forciert deaktiviert.
+  * Flugversuche während des Gefechts werden mit einer Fehlermeldung unterbunden.
+* **Clankrieg 12h-Cooldown & Kriegslimit:**
+  * Nach Kriegsende (Sieg, Niederlage oder Kapitulation) gilt eine 12-stündige Abklingzeit für beide Clans.
+  * Jeder Clan kann maximal 1 aktiven Clankrieg gleichzeitig austragen.
+* **Optionale Clankriege in Clan-Einstellungen (ab Level 7):**
+  * Freischaltung ab Clan-Level 7 in `clansystem/level.yml` (`wars-toggle-unlocked: true`).
+  * Im Einstellungsmenü (Slot 29) de- und aktivierbar. Deaktivierte Clans können weder angegriffen werden noch Kriege erklären.
+* **Vollständige Clankassen-Schuldensperre:**
+  * Bei Minus auf dem Clankonto sind alle Clan-Interaktionen gesperrt (Homes, Warps, Kiste, Allianzen, Einstellungen, Kriege).
+  * Clans mit Schulden können weder einen Krieg erklären noch kann ihnen der Krieg erklärt werden.
+* **DeathChest Plünder-Feedback & Schutz:**
+  * Entnimmt ein Spieler Items aus einer fremden Todeskiste, erhält das Opfer sofort eine Chat-Benachrichtigung mit Täter, Item und Anzahl.
+  * Todeskisten despawnen bei Server-Restarts nicht mehr und behalten ihren Plünder-Status bei (kein Dupe/Rollback).
+  * Verwaiste Hologramme werden beim Serverstart und Chunk-Load automatisch bereinigt.
+
+### 🐛 Behobene Fehler
+* **Clan-Kiste Dupe-Glitch:** Behebt Duplikationsmöglichkeiten beim Serverneustart bei geöffneter Kiste.
+* **DeathChest Loot-Rollback:** Bereits entnommene Beute wird nach einem Reload/Restart nicht mehr zurückgesetzt.
+* **Kriegserklärungen gegen verschuldete Clans:** Vollständig unterbunden.

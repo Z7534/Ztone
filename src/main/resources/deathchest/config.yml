@@ -33,6 +33,8 @@ messages:
   chest-created: "<prefix> <gray>Deine Todeskiste wurde bei <yellow>{x}, {y}, {z}</yellow> gesichert.</gray>"
   chest-despawned: "<prefix> <gray>Deine Todeskiste ist abgelaufen und verfallen.</gray>"
   all-chests-cleared: "<prefix> <green>Es wurden <yellow>{count}</yellow> aktive Todeskisten entfernt.</green>"
+  reload-success: "<prefix> <green>Konfiguration wurde neu geladen.</green>"
+  item-looted: "<prefix> <yellow>{player}</yellow> hat <gold>{amount}x {item}</gold> aus deiner Todeskiste genommen!"
   no-permission: "<prefix> <red>Dazu hast du keine Berechtigung!</red>"
   player-not-found: "<prefix> <red>Spieler <yellow>{player}</yellow> ist nicht online.</red>"
   usage: "<prefix> <gray>Verwendung: <yellow>/deathchest <bypass|clear|reload></yellow></gray>"

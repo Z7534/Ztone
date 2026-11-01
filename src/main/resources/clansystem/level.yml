@@ -105,6 +105,7 @@ levels:
       max-warps: 2          # +2 (jetzt 13)
       icon: DIAMOND_BLOCK
       colors: ["&6"]         # Gold
+      wars-toggle-unlocked: true
 
   8:
     points-required: 6800

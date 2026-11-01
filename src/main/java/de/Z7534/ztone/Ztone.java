@@ -32,6 +32,7 @@ import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import java.io.File;
 import java.util.UUID;
 
 public class Ztone extends JavaPlugin {
@@ -81,6 +82,9 @@ public class Ztone extends JavaPlugin {
         getLogger().info("========================================");
 
         saveDefaultConfig();
+
+        // Alte messages.yml Dateien löschen und durch die neuen ersetzen
+        refreshMessageFiles();
 
         this.configManager = new ConfigManager(this);
 
@@ -898,6 +902,53 @@ public class Ztone extends JavaPlugin {
                     claims.getBanEnforcer().evict(player, claim);
                 }
             }
+        }
+    }
+
+    /**
+     * Löscht beim Serverstart alte messages.yml Dateien auf dem Datenträger und
+     * stellt sicher, dass die aktuellen Nachrichten aus der JAR frisch bereitgestellt werden.
+     */
+    private void refreshMessageFiles() {
+        // 1. Clansystem messages.yml
+        resetMessageResource("clansystem/messages.yml", "clansystem/messages.yml");
+        File legacyClanMessages = new File(getDataFolder(), "messages.yml");
+        if (legacyClanMessages.exists() && !legacyClanMessages.isDirectory()) {
+            try {
+                legacyClanMessages.delete();
+            } catch (Exception ignored) {}
+        }
+
+        // 2. Claims messages.yml
+        resetMessageResource("claims/messages.yml", "claims/messages.yml");
+
+        // 3. StoneAttack messages.yml
+        resetMessageResource("stoneattack/messages.yml", "stoneattack/messages.yml");
+
+        // 4. PvPManager Locale messages
+        resetMessageResource("pvpmanager/locale/messages_de.properties", "pvpmanager/locale/messages_de.properties");
+    }
+
+    private void resetMessageResource(String diskRelativePath, String resourcePath) {
+        try {
+            File diskFile = new File(getDataFolder(), diskRelativePath);
+            if (diskFile.exists()) {
+                File backup = new File(getDataFolder(), diskRelativePath + ".old");
+                if (backup.exists()) {
+                    backup.delete();
+                }
+                diskFile.renameTo(backup);
+                diskFile.delete();
+                getLogger().info("Alte Sprachdatei '" + diskRelativePath + "' gelöscht (Backup in .old gespeichert).");
+            }
+            File parent = diskFile.getParentFile();
+            if (parent != null && !parent.exists()) {
+                parent.mkdirs();
+            }
+            saveResource(resourcePath, true);
+            getLogger().info("Aktuelle Sprachdatei '" + diskRelativePath + "' erfolgreich frisch bereitgestellt.");
+        } catch (Throwable t) {
+            getLogger().warning("Konnte Sprachdatei '" + diskRelativePath + "' nicht aktualisieren: " + t.getMessage());
         }
     }
 }

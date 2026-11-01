@@ -62,6 +62,7 @@ public final class SelectionListener implements Listener {
             case SPAWN_PROTECTED -> player.sendMessage(Text.line(config.prefix() + config.message("spawn-protected")));
             case END_PROTECTED -> player.sendMessage(Text.line(config.prefix() + config.message("end-protected")));
             case DIMENSION_DISABLED -> player.sendMessage(Text.line(config.prefix() + config.message("dimension-disabled")));
+            case WORLDGUARD_PROTECTED -> player.sendMessage(Text.line(config.prefix() + config.message("worldguard-protected")));
             case NOT_ENOUGH_SLOTS -> {
                 int used = claimManager.getUsedClaimSlots(player.getUniqueId());
                 int max = claimManager.getMaxClaimSlots(player);

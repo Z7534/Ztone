@@ -44,6 +44,10 @@ import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
 
 import java.util.*;
+import de.Z7534.ztone.stonelog.util.MaterialNameUtil;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class DeathChestListener implements Listener {
 
@@ -51,6 +55,8 @@ public class DeathChestListener implements Listener {
     private final DeathChestManager deathChestManager;
     private final DeathChestConfig config;
     private final DeathChestBypassManager bypassManager;
+    private final Map<UUID, ItemStack[]> activeChestSnapshots = new ConcurrentHashMap<>();
+
 
     public DeathChestListener(Ztone plugin, DeathChestManager deathChestManager, DeathChestConfig config,
                               DeathChestBypassManager bypassManager) {
@@ -208,6 +214,9 @@ public class DeathChestListener implements Listener {
                                 "victim", chest.getVictimName() != null ? chest.getVictimName() : "?"
                         )));
                     }
+                    if (!player.getUniqueId().equals(chest.getVictimUuid())) {
+                        activeChestSnapshots.computeIfAbsent(chest.getId(), id -> cloneContents(inv));
+                    }
                     player.openInventory(inv);
                     player.playSound(block.getLocation(), Sound.BLOCK_CHEST_OPEN, 0.5f, 1.0f);
                 }
@@ -226,6 +235,9 @@ public class DeathChestListener implements Listener {
         // Unlocked / Non-PvP death: Victim or any other player can open internal inventory
         Inventory inv = chest.getInventory();
         if (inv != null) {
+            if (!player.getUniqueId().equals(chest.getVictimUuid())) {
+                activeChestSnapshots.computeIfAbsent(chest.getId(), id -> cloneContents(inv));
+            }
             player.openInventory(inv);
             player.playSound(block.getLocation(), Sound.BLOCK_CHEST_OPEN, 0.5f, 1.0f);
         }
@@ -302,10 +314,20 @@ public class DeathChestListener implements Listener {
             }
         }
 
+        final boolean isLooter = !player.getUniqueId().equals(chest.getVictimUuid());
+        if (isLooter) {
+            activeChestSnapshots.computeIfAbsent(chest.getId(), id -> cloneContents(topInv));
+        }
+
         // 4. Early-Cleanup check: If chest becomes empty after this click
         final UUID clickerUuid = player.getUniqueId();
+        final String clickerName = player.getName();
         Bukkit.getScheduler().runTask(plugin, () -> {
+            if (isLooter) {
+                checkAndNotifyLooted(chest, clickerName, topInv);
+            }
             if (deathChestManager.isInventoryEmpty(topInv)) {
+                activeChestSnapshots.remove(chest.getId());
                 deathChestManager.removeDeathChest(chest, true, clickerUuid);
             }
         });
@@ -339,9 +361,13 @@ public class DeathChestListener implements Listener {
         // Ansatz A (1-Tick Delay) + Ansatz B (Skip current closing player to avoid circular closeInventory calls)
         final UUID closingPlayerUuid = event.getPlayer().getUniqueId();
         Bukkit.getScheduler().runTask(plugin, () -> {
+            if (inv.getViewers().isEmpty()) {
+                activeChestSnapshots.remove(chest.getId());
+            }
             if (deathChestManager.isInventoryEmpty(inv)) {
                 deathChestManager.removeDeathChest(chest, true, closingPlayerUuid);
             }
+            deathChestManager.saveActiveChests();
         });
     }
 
@@ -427,5 +453,226 @@ public class DeathChestListener implements Listener {
     @EventHandler
     public void onChunkLoad(ChunkLoadEvent event) {
         deathChestManager.onChunkLoad(event.getChunk());
+    }
+
+    private ItemStack[] cloneContents(Inventory inv) {
+        if (inv == null) return new ItemStack[0];
+        ItemStack[] copy = new ItemStack[inv.getSize()];
+        for (int i = 0; i < inv.getSize(); i++) {
+            ItemStack item = inv.getItem(i);
+            if (item != null && !item.getType().isAir()) {
+                copy[i] = item.clone();
+            }
+        }
+        return copy;
+    }
+
+    private void checkAndNotifyLooted(DeathChestData chest, String looterName, Inventory topInv) {
+        ItemStack[] known = activeChestSnapshots.get(chest.getId());
+        if (known == null) {
+            return;
+        }
+
+        Player victim = Bukkit.getPlayer(chest.getVictimUuid());
+        Map<String, Integer> takenItems = new LinkedHashMap<>();
+
+        int size = Math.min(known.length, topInv.getSize());
+        for (int i = 0; i < size; i++) {
+            ItemStack before = known[i];
+            ItemStack current = topInv.getItem(i);
+
+            if (before != null && !before.getType().isAir()) {
+                int beforeAmount = before.getAmount();
+                int currentAmount = (current != null && !current.getType().isAir() && current.isSimilar(before))
+                        ? current.getAmount()
+                        : 0;
+                int diff = beforeAmount - currentAmount;
+                if (diff > 0) {
+                    String itemName = formatItemName(before);
+                    takenItems.put(itemName, takenItems.getOrDefault(itemName, 0) + diff);
+                }
+            }
+
+            known[i] = (current != null && !current.getType().isAir()) ? current.clone() : null;
+        }
+
+        if (victim != null && victim.isOnline() && !takenItems.isEmpty()) {
+            for (Map.Entry<String, Integer> entry : takenItems.entrySet()) {
+                victim.sendMessage(config.getMessage("item-looted", Map.of(
+                        "player", looterName,
+                        "amount", String.valueOf(entry.getValue()),
+                        "item", entry.getKey()
+                )));
+            }
+        }
+    }
+
+    private String formatItemName(ItemStack item) {
+        if (item == null || item.getType().isAir()) {
+            return "Luft";
+        }
+        if (item.hasItemMeta() && item.getItemMeta().hasDisplayName()) {
+            Component dn = item.getItemMeta().displayName();
+            if (dn != null) {
+                String plain = PlainTextComponentSerializer.plainText().serialize(dn).trim();
+                if (!plain.isEmpty()) {
+                    return plain;
+                }
+            }
+        }
+        return getGermanMaterialName(item.getType());
+    }
+
+    private String getGermanMaterialName(org.bukkit.Material mat) {
+        if (mat == null) return "Unbekannt";
+        return switch (mat) {
+            case NETHERITE_SWORD -> "Netheritschwert";
+            case DIAMOND_SWORD -> "Diamantschwert";
+            case IRON_SWORD -> "Eisenschwert";
+            case GOLDEN_SWORD -> "Goldschwert";
+            case STONE_SWORD -> "Steinschwert";
+            case WOODEN_SWORD -> "Holzschwert";
+
+            case NETHERITE_PICKAXE -> "Netheritspitzhacke";
+            case DIAMOND_PICKAXE -> "Diamantspitzhacke";
+            case IRON_PICKAXE -> "Eisenspitzhacke";
+            case GOLDEN_PICKAXE -> "Goldspitzhacke";
+            case STONE_PICKAXE -> "Steinspitzhacke";
+            case WOODEN_PICKAXE -> "Holzspitzhacke";
+
+            case NETHERITE_AXE -> "Netheritaxt";
+            case DIAMOND_AXE -> "Diamantaxt";
+            case IRON_AXE -> "Eisenaxt";
+            case GOLDEN_AXE -> "Goldaxt";
+            case STONE_AXE -> "Steinaxt";
+            case WOODEN_AXE -> "Holzaxt";
+
+            case NETHERITE_SHOVEL -> "Netheritschaufel";
+            case DIAMOND_SHOVEL -> "Diamantschaufel";
+            case IRON_SHOVEL -> "Eisenschaufel";
+            case GOLDEN_SHOVEL -> "Goldschaufel";
+            case STONE_SHOVEL -> "Steinschaufel";
+            case WOODEN_SHOVEL -> "Holzschaufel";
+
+            case NETHERITE_HOE -> "Netherithacke";
+            case DIAMOND_HOE -> "Diamanthacke";
+            case IRON_HOE -> "Eisenhacke";
+            case GOLDEN_HOE -> "Goldhacke";
+            case STONE_HOE -> "Steinhacke";
+            case WOODEN_HOE -> "Holzhacke";
+
+            case NETHERITE_HELMET -> "Netherithelm";
+            case DIAMOND_HELMET -> "Diamanthelm";
+            case IRON_HELMET -> "Eisenhelm";
+            case GOLDEN_HELMET -> "Goldhelm";
+            case CHAINMAIL_HELMET -> "Kettenhelm";
+            case LEATHER_HELMET -> "Lederkappe";
+            case TURTLE_HELMET -> "Schildkrötenpanzer";
+
+            case NETHERITE_CHESTPLATE -> "Netheritbrustplatte";
+            case DIAMOND_CHESTPLATE -> "Diamantbrustplatte";
+            case IRON_CHESTPLATE -> "Eisenbrustplatte";
+            case GOLDEN_CHESTPLATE -> "Goldbrustplatte";
+            case CHAINMAIL_CHESTPLATE -> "Kettenbrustplatte";
+            case LEATHER_CHESTPLATE -> "Lederjacke";
+
+            case NETHERITE_LEGGINGS -> "Netherithose";
+            case DIAMOND_LEGGINGS -> "Diamanthose";
+            case IRON_LEGGINGS -> "Eisenhose";
+            case GOLDEN_LEGGINGS -> "Goldhose";
+            case CHAINMAIL_LEGGINGS -> "Kettenhose";
+            case LEATHER_LEGGINGS -> "Lederhose";
+
+            case NETHERITE_BOOTS -> "Netheritstiefel";
+            case DIAMOND_BOOTS -> "Diamantstiefel";
+            case IRON_BOOTS -> "Eisenstiefel";
+            case GOLDEN_BOOTS -> "Goldstiefel";
+            case CHAINMAIL_BOOTS -> "Kettenstiefel";
+            case LEATHER_BOOTS -> "Lederstiefel";
+
+            case BOW -> "Bogen";
+            case CROSSBOW -> "Armbrust";
+            case TRIDENT -> "Dreizack";
+            case MACE -> "Streitkolben";
+            case SHIELD -> "Schild";
+            case ELYTRA -> "Elytren";
+            case ARROW -> "Pfeil";
+            case SPECTRAL_ARROW -> "Spektralpfeil";
+            case TIPPED_ARROW -> "Getränkter Pfeil";
+            case WIND_CHARGE -> "Windkugel";
+            case FIREWORK_ROCKET -> "Feuerwerksrakete";
+
+            case TOTEM_OF_UNDYING -> "Totem der Unsterblichkeit";
+            case GOLDEN_APPLE -> "Goldener Apfel";
+            case ENCHANTED_GOLDEN_APPLE -> "Verzauberter Goldener Apfel";
+            case ENDER_PEARL -> "Enderperle";
+            case ENDER_EYE -> "Enderauge";
+            case EXPERIENCE_BOTTLE -> "Erfahrungsflasche";
+            case POTION -> "Trank";
+            case SPLASH_POTION -> "Wurftrank";
+            case LINGERING_POTION -> "Verweiltrank";
+
+            case NETHERITE_INGOT -> "Netheritbarren";
+            case NETHERITE_SCRAP -> "Netheritschrott";
+            case NETHERITE_BLOCK -> "Netheritblock";
+            case DIAMOND -> "Diamant";
+            case DIAMOND_BLOCK -> "Diamantblock";
+            case EMERALD -> "Smaragd";
+            case EMERALD_BLOCK -> "Smaragdblock";
+            case GOLD_INGOT -> "Goldbarren";
+            case GOLD_BLOCK -> "Goldblock";
+            case IRON_INGOT -> "Eisenbarren";
+            case IRON_BLOCK -> "Eisenblock";
+            case COPPER_INGOT -> "Kupferbarren";
+            case COPPER_BLOCK -> "Kupferblock";
+            case LAPIS_LAZULI -> "Lapislazuli";
+            case LAPIS_BLOCK -> "Lapislazuliblock";
+            case REDSTONE -> "Redstone";
+            case REDSTONE_BLOCK -> "Redstoneblock";
+            case COAL -> "Kohle";
+            case COAL_BLOCK -> "Kohleblock";
+            case RAW_IRON -> "Roheisen";
+            case RAW_GOLD -> "Rohgold";
+            case RAW_COPPER -> "Rohkupfer";
+
+            case OBSIDIAN -> "Obsidian";
+            case CRYING_OBSIDIAN -> "Weinender Obsidian";
+            case RESPAWN_ANCHOR -> "Seelenanker";
+            case END_CRYSTAL -> "Endkristall";
+            case TNT -> "TNT";
+            case COBWEB -> "Spinnennetz";
+            case ANVIL -> "Amboss";
+            case CHIPPED_ANVIL -> "Angeschlagener Amboss";
+            case DAMAGED_ANVIL -> "Beschädigter Amboss";
+            case ENCHANTING_TABLE -> "Zaubertisch";
+            case BEACON -> "Leuchtfeuer";
+            case CHEST -> "Truhe";
+            case ENDER_CHEST -> "Endertruhe";
+            case SHULKER_BOX -> "Shulkerkiste";
+            case FLINT_AND_STEEL -> "Feuerzeug";
+            case SHEARS -> "Schere";
+            case FISHING_ROD -> "Angel";
+            case WATER_BUCKET -> "Wassereimer";
+            case LAVA_BUCKET -> "Lavaeimer";
+            case MILK_BUCKET -> "Milcheimer";
+            case BUCKET -> "Eimer";
+            case COMPASS -> "Kompass";
+            case CLOCK -> "Uhr";
+            case NAME_TAG -> "Namensschild";
+            case LEAD -> "Leine";
+            case SADDLE -> "Sattel";
+
+            case GOLDEN_CARROT -> "Goldene Karotte";
+            case COOKED_BEEF -> "Steak";
+            case COOKED_PORKCHOP -> "Gebratenes Schweinefleisch";
+            case COOKED_MUTTON -> "Gebratenes Hammelfleisch";
+            case COOKED_CHICKEN -> "Gebratenes Hühnchen";
+            case COOKED_SALMON -> "Gebratener Lachs";
+            case COOKED_COD -> "Gebratener Kabeljau";
+            case BREAD -> "Brot";
+            case APPLE -> "Apfel";
+
+            default -> MaterialNameUtil.prettify(mat);
+        };
     }
 }

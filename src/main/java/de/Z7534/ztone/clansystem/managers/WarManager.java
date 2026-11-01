@@ -36,6 +36,18 @@ public class WarManager {
         if (!attacker.hasAnyMemberWithPermission(Permission.WAR_ALWAYS_PVP) || !defender.hasAnyMemberWithPermission(Permission.WAR_ALWAYS_PVP)) {
             return null;
         }
+        if (attacker.isInDebt() || defender.isInDebt()) {
+            return null;
+        }
+        if (!attacker.getActiveWars().isEmpty() || !defender.getActiveWars().isEmpty()) {
+            return null;
+        }
+        if (attacker.hasWarCooldown() || defender.hasWarCooldown()) {
+            return null;
+        }
+        if (!attacker.isWarsEnabled() || !defender.isWarsEnabled()) {
+            return null;
+        }
         ClanWar war = new ClanWar(attacker.getId(), defender.getId());
 
         int warId = plugin.getDatabaseManager().createWar(war).join();
@@ -74,11 +86,16 @@ public class WarManager {
         Clan clanA = plugin.getClanManager().getClan(clanIdA);
         Clan clanB = plugin.getClanManager().getClan(clanIdB);
 
+        long warCooldown = System.currentTimeMillis() + (12L * 60 * 60 * 1000L);
         if (clanA != null) {
             clanA.removeWar(clanIdB);
+            clanA.setWarCooldownUntil(warCooldown);
+            plugin.getClanManager().updateClanInDatabase(clanA);
         }
         if (clanB != null) {
             clanB.removeWar(clanIdA);
+            clanB.setWarCooldownUntil(warCooldown);
+            plugin.getClanManager().updateClanInDatabase(clanB);
         }
 
         String winnerName = "Unentschieden";
@@ -94,7 +111,8 @@ public class WarManager {
                 winner.setBalance(winner.getBalance() + 50000.0);
                 plugin.getClanManager().updateClanInDatabase(winner);
 
-                winner.broadcastMessage("§8[§6Krieg§8] §aDein Clan hat den Krieg gewonnen! Belohnung: §e+500 Punkte§a, §e+3 dauerhafte Warps§a, §e+50.000$ Clankasse§a!");
+                winner.broadcastMessage(plugin.getMessageManager().get("war.won",
+                        MessageManager.of("points", "500", "warps", "3", "money", "50.000")));
             }
 
             if (loser != null) {
@@ -102,9 +120,11 @@ public class WarManager {
                 loser.setBalance(loser.getBalance() - 50000.0);
                 plugin.getClanManager().updateClanInDatabase(loser);
 
-                loser.broadcastMessage("§8[§6Krieg§8] §cDein Clan hat den Krieg verloren! Strafe: §e-200 Punkte§c, §e-50.000$ Clankasse§c!");
+                loser.broadcastMessage(plugin.getMessageManager().get("war.lost",
+                        MessageManager.of("points", "200", "money", "50.000")));
                 if (loser.isInDebt()) {
-                    loser.broadcastMessage("§8[§6Krieg§8] §4ACHTUNG: §cDein Clan ist mit §e-" + String.format(java.util.Locale.GERMANY, "%,.2f", loser.getDebt()) + "$ §cim Minus! Clan-Aktionen sind gesperrt, bis die Schulden per §e/clan deposit §cbeglichen wurden!");
+                    loser.broadcastMessage(plugin.getMessageManager().get("war.debt-warning",
+                            MessageManager.of("debt", String.format(java.util.Locale.GERMANY, "%,.2f", loser.getDebt()))));
                 }
             }
         }

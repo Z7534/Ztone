@@ -32,6 +32,8 @@ public class Clan {
     private String gradientColorEnd;
     private double balance = 0.0;
     private int bonusWarps = 0;
+    private long warCooldownUntil = 0L;
+    private boolean warsEnabled = true;
 
     private Map<UUID, ClanMember> members;
 
@@ -293,7 +295,7 @@ public class Clan {
 
     public void broadcastMessage(String message, java.util.UUID excludeUuid) {
 
-        net.kyori.adventure.text.Component component = ColorUtils.colorize(message);
+        net.kyori.adventure.text.Component component = ColorUtils.colorize(de.Z7534.ztone.util.SmallCapsUtil.toSmallCaps(message));
         for (ClanMember member : members.values()) {
             if (excludeUuid != null && member.getUuid().equals(excludeUuid)) {
                 continue;
@@ -541,6 +543,30 @@ public class Clan {
             return wasInDebt && !isInDebt();
         }
         return false;
+    }
+
+    public long getWarCooldownUntil() {
+        return warCooldownUntil;
+    }
+
+    public void setWarCooldownUntil(long warCooldownUntil) {
+        this.warCooldownUntil = warCooldownUntil;
+    }
+
+    public boolean hasWarCooldown() {
+        return System.currentTimeMillis() < warCooldownUntil;
+    }
+
+    public long getRemainingWarCooldownMillis() {
+        return Math.max(0, warCooldownUntil - System.currentTimeMillis());
+    }
+
+    public boolean isWarsEnabled() {
+        return warsEnabled;
+    }
+
+    public void setWarsEnabled(boolean warsEnabled) {
+        this.warsEnabled = warsEnabled;
     }
 
     public boolean withdraw(double amount) {

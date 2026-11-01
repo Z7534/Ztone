@@ -128,6 +128,18 @@ public class ClanChestGUI implements InventoryHolder {
                 }
             }
         }
+
+        // Live-Synchronisation im Arbeitsspeicher nach jedem Klick (Anti-Dupe / Anti-Rollback)
+        Bukkit.getScheduler().runTask(plugin, () -> {
+            if (inventory != null) {
+                ItemStack[] contents = new ItemStack[inventory.getSize()];
+                for (int i = 0; i < inventory.getSize(); i++) {
+                    ItemStack it = inventory.getItem(i);
+                    contents[i] = it != null ? it.clone() : null;
+                }
+                clan.setChestContents(contents);
+            }
+        });
     }
 
     public void handleClose(InventoryCloseEvent event) {
@@ -161,12 +173,46 @@ public class ClanChestGUI implements InventoryHolder {
         }
     }
 
-    public static void closeAllOpenChests() {
-        for (Inventory inv : activeClanInventories.values()) {
-            new ArrayList<>(inv.getViewers()).forEach(HumanEntity::closeInventory);
+    public static void closeAllOpenChests(Ztone plugin) {
+        for (Map.Entry<Integer, Inventory> entry : new ArrayList<>(activeClanInventories.entrySet())) {
+            int clanId = entry.getKey();
+            Inventory inv = entry.getValue();
+
+            // Cursor-Items sicher an den Spieler zurückgeben, bevor geschlossen wird
+            for (HumanEntity viewer : new ArrayList<>(inv.getViewers())) {
+                ItemStack cursor = viewer.getItemOnCursor();
+                if (cursor != null && !cursor.getType().isAir()) {
+                    viewer.setItemOnCursor(null);
+                    if (viewer instanceof Player p) {
+                        Map<Integer, ItemStack> leftover = p.getInventory().addItem(cursor);
+                        for (ItemStack drop : leftover.values()) {
+                            p.getWorld().dropItemNaturally(p.getLocation(), drop);
+                        }
+                    }
+                }
+                viewer.closeInventory();
+            }
+
+            // Live-Stand der Truhe sofort synchron in den Clan und die Datenbank schreiben
+            if (plugin != null) {
+                Clan clan = plugin.getClanManager().getClan(clanId);
+                if (clan != null) {
+                    ItemStack[] contents = new ItemStack[inv.getSize()];
+                    for (int i = 0; i < inv.getSize(); i++) {
+                        ItemStack it = inv.getItem(i);
+                        contents[i] = it != null ? it.clone() : null;
+                    }
+                    clan.setChestContents(contents);
+                    plugin.getDatabaseManager().saveChestSync(clan.getId(), contents);
+                }
+            }
         }
         activeClanInventories.clear();
         openChests.clear();
+    }
+
+    public static void closeAllOpenChests() {
+        closeAllOpenChests(null);
     }
 
     private long countItems(ItemStack[] items) {

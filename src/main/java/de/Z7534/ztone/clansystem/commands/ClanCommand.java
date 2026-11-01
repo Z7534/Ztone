@@ -158,7 +158,27 @@ public class ClanCommand implements CommandExecutor, TabCompleter {
 
         String subCommand = args[0].toLowerCase();
 
-
+        Clan playerClan = plugin.getClanManager().getClanByPlayer(player);
+        if (playerClan != null && playerClan.isInDebt()) {
+            boolean allowed = false;
+            if (subCommand.equals("deposit") || subCommand.equals("einzahlen") || subCommand.equals("info")
+                    || subCommand.equals("help") || subCommand.equals("?") || subCommand.equals("list")
+                    || subCommand.equals("top") || subCommand.equals("chat") || subCommand.equals("c")
+                    || subCommand.equals("ac")) {
+                allowed = true;
+            } else if ((subCommand.equals("bank") || subCommand.equals("kasse")) && args.length >= 2) {
+                String bankSub = args[1].toLowerCase();
+                if (bankSub.equals("deposit") || bankSub.equals("einzahlen") || bankSub.equals("info")
+                        || bankSub.equals("top")) {
+                    allowed = true;
+                }
+            }
+            if (!allowed) {
+                String debtFormatted = String.format(java.util.Locale.GERMANY, "%,.2f", playerClan.getDebt());
+                plugin.getMessageManager().send(player, "clan.debt-lock", MessageManager.of("debt", debtFormatted));
+                return true;
+            }
+        }
 
         switch (subCommand) {
 
@@ -317,11 +337,8 @@ public class ClanCommand implements CommandExecutor, TabCompleter {
 
 
         if (clan.isInDebt()) {
-
-            player.sendMessage(de.Z7534.ztone.clansystem.utils.ColorUtils.colorize("§8[§6Clan§8] §cDein Clan hat Schulden (§e-" + String.format(java.util.Locale.GERMANY, "%,.2f", clan.getDebt()) + "$§c)! Clan-Aktionen sind gesperrt, bis die Schulden per §e/clan deposit §cbeglichen wurden."));
-
+            plugin.getMessageManager().send(player, "clan.debt-lock", MessageManager.of("debt", String.format(java.util.Locale.GERMANY, "%,.2f", clan.getDebt())));
             return;
-
         }
 
 
@@ -382,9 +399,9 @@ public class ClanCommand implements CommandExecutor, TabCompleter {
 
         if (plugin.getClanManager().renameClan(clan, newName)) {
 
-            player.sendMessage(de.Z7534.ztone.clansystem.utils.ColorUtils.colorize("§8[§6Clan§8] §aDer Clan wurde erfolgreich von §e" + oldName + " §azu §e" + newName + " §aumbenannt!"));
+            plugin.getMessageManager().send(player, "clan.renamed", MessageManager.of("old", oldName, "new", newName));
 
-            clan.broadcastMessage("§8[§6Clan§8] §7Der Clan wurde von §e" + player.getName() + " §7in §e" + newName + " §7umbenannt.");
+            clan.broadcastMessage(plugin.getMessageManager().get("clan.renamed-broadcast", MessageManager.of("player", player.getName(), "new", newName)));
 
         }
 
@@ -721,7 +738,7 @@ public class ClanCommand implements CommandExecutor, TabCompleter {
 
         if (clan.isLeader(targetUuid) || targetMember.isLeader()) {
 
-            player.sendMessage(de.Z7534.ztone.clansystem.utils.ColorUtils.colorize("&8[&6Clan&8] &cDer Clan-Leader kann nicht gekickt werden!"));
+            plugin.getMessageManager().send(player, "clan.cannot-kick-leader");
 
             return;
 
@@ -1196,11 +1213,8 @@ public class ClanCommand implements CommandExecutor, TabCompleter {
 
 
         if (clan.isInDebt()) {
-
-            player.sendMessage(de.Z7534.ztone.clansystem.utils.ColorUtils.colorize("§8[§6Clan§8] §cDein Clan hat Schulden (§e-" + String.format(java.util.Locale.GERMANY, "%,.2f", clan.getDebt()) + "$§c)! Clan-Aktionen sind gesperrt, bis die Schulden per §e/clan deposit §cbeglichen wurden."));
-
+            plugin.getMessageManager().send(player, "clan.debt-lock", MessageManager.of("debt", String.format(java.util.Locale.GERMANY, "%,.2f", clan.getDebt())));
             return;
-
         }
 
 
@@ -1276,11 +1290,8 @@ public class ClanCommand implements CommandExecutor, TabCompleter {
 
 
         if (clan.isInDebt()) {
-
-            player.sendMessage(de.Z7534.ztone.clansystem.utils.ColorUtils.colorize("§8[§6Clan§8] §cDein Clan hat Schulden (§e-" + String.format(java.util.Locale.GERMANY, "%,.2f", clan.getDebt()) + "$§c)! Clan-Aktionen sind gesperrt, bis die Schulden per §e/clan deposit §cbeglichen wurden."));
-
+            plugin.getMessageManager().send(player, "clan.debt-lock", MessageManager.of("debt", String.format(java.util.Locale.GERMANY, "%,.2f", clan.getDebt())));
             return;
-
         }
 
 
@@ -1390,11 +1401,8 @@ public class ClanCommand implements CommandExecutor, TabCompleter {
 
 
         if (clan.isInDebt()) {
-
-            player.sendMessage(de.Z7534.ztone.clansystem.utils.ColorUtils.colorize("§8[§6Clan§8] §cDein Clan hat Schulden (§e-" + String.format(java.util.Locale.GERMANY, "%,.2f", clan.getDebt()) + "$§c)! Clan-Aktionen sind gesperrt, bis die Schulden per §e/clan deposit §cbeglichen wurden."));
-
+            plugin.getMessageManager().send(player, "clan.debt-lock", MessageManager.of("debt", String.format(java.util.Locale.GERMANY, "%,.2f", clan.getDebt())));
             return;
-
         }
 
 
@@ -1468,11 +1476,8 @@ public class ClanCommand implements CommandExecutor, TabCompleter {
 
 
         if (clan.isInDebt()) {
-
-            player.sendMessage(de.Z7534.ztone.clansystem.utils.ColorUtils.colorize("§8[§6Clan§8] §cDein Clan hat Schulden (§e-" + String.format(java.util.Locale.GERMANY, "%,.2f", clan.getDebt()) + "$§c)! Clan-Aktionen sind gesperrt, bis die Schulden per §e/clan deposit §cbeglichen wurden."));
-
+            plugin.getMessageManager().send(player, "clan.debt-lock", MessageManager.of("debt", String.format(java.util.Locale.GERMANY, "%,.2f", clan.getDebt())));
             return;
-
         }
 
 
@@ -1520,11 +1525,8 @@ public class ClanCommand implements CommandExecutor, TabCompleter {
 
 
         if (clan.isInDebt()) {
-
-            player.sendMessage(de.Z7534.ztone.clansystem.utils.ColorUtils.colorize("§8[§6Clan§8] §cDein Clan hat Schulden (§e-" + String.format(java.util.Locale.GERMANY, "%,.2f", clan.getDebt()) + "$§c)! Clan-Aktionen sind gesperrt, bis die Schulden per §e/clan deposit §cbeglichen wurden."));
-
+            plugin.getMessageManager().send(player, "clan.debt-lock", MessageManager.of("debt", String.format(java.util.Locale.GERMANY, "%,.2f", clan.getDebt())));
             return;
-
         }
 
 
@@ -1618,11 +1620,8 @@ public class ClanCommand implements CommandExecutor, TabCompleter {
 
 
         if (clan.isInDebt()) {
-
-            player.sendMessage(de.Z7534.ztone.clansystem.utils.ColorUtils.colorize("§8[§6Clan§8] §cDein Clan hat Schulden (§e-" + String.format(java.util.Locale.GERMANY, "%,.2f", clan.getDebt()) + "$§c)! Clan-Aktionen sind gesperrt, bis die Schulden per §e/clan deposit §cbeglichen wurden."));
-
+            plugin.getMessageManager().send(player, "clan.debt-lock", MessageManager.of("debt", String.format(java.util.Locale.GERMANY, "%,.2f", clan.getDebt())));
             return;
-
         }
 
 
@@ -1772,11 +1771,8 @@ public class ClanCommand implements CommandExecutor, TabCompleter {
 
 
         if (clan.isInDebt()) {
-
-            player.sendMessage(de.Z7534.ztone.clansystem.utils.ColorUtils.colorize("§8[§6Clan§8] §cDein Clan hat Schulden (§e-" + String.format(java.util.Locale.GERMANY, "%,.2f", clan.getDebt()) + "$§c)! Clan-Aktionen sind gesperrt, bis die Schulden per §e/clan deposit §cbeglichen wurden."));
-
+            plugin.getMessageManager().send(player, "clan.debt-lock", MessageManager.of("debt", String.format(java.util.Locale.GERMANY, "%,.2f", clan.getDebt())));
             return;
-
         }
 
 
@@ -1850,11 +1846,8 @@ public class ClanCommand implements CommandExecutor, TabCompleter {
 
 
         if (clan.isInDebt()) {
-
-            player.sendMessage(de.Z7534.ztone.clansystem.utils.ColorUtils.colorize("§8[§6Clan§8] §cDein Clan hat Schulden (§e-" + String.format(java.util.Locale.GERMANY, "%,.2f", clan.getDebt()) + "$§c)! Clan-Aktionen sind gesperrt, bis die Schulden per §e/clan deposit §cbeglichen wurden."));
-
+            plugin.getMessageManager().send(player, "clan.debt-lock", MessageManager.of("debt", String.format(java.util.Locale.GERMANY, "%,.2f", clan.getDebt())));
             return;
-
         }
 
 
@@ -1890,11 +1883,8 @@ public class ClanCommand implements CommandExecutor, TabCompleter {
 
 
         if (clan.isInDebt()) {
-
-            player.sendMessage(de.Z7534.ztone.clansystem.utils.ColorUtils.colorize("§8[§6Clan§8] §cDein Clan hat Schulden (§e-" + String.format(java.util.Locale.GERMANY, "%,.2f", clan.getDebt()) + "$§c)! Clan-Aktionen sind gesperrt, bis die Schulden per §e/clan deposit §cbeglichen wurden."));
-
+            plugin.getMessageManager().send(player, "clan.debt-lock", MessageManager.of("debt", String.format(java.util.Locale.GERMANY, "%,.2f", clan.getDebt())));
             return;
-
         }
 
 
@@ -2261,22 +2251,64 @@ public class ClanCommand implements CommandExecutor, TabCompleter {
 
 
 
-                if (!clan.hasAnyMemberWithPermission(Permission.WAR_ALWAYS_PVP)) {
-
-                    player.sendMessage(de.Z7534.ztone.clansystem.utils.ColorUtils.colorize("§8[§6Clan§8] §cDein Clan hat kein Mitglied mit Clankrieg-PvP-Rechten (WAR_ALWAYS_PVP)!"));
-
+                if (clan.isInDebt()) {
+                    plugin.getMessageManager().send(player, "war.clan-in-debt",
+                            MessageManager.of("debt", String.format(java.util.Locale.GERMANY, "%,.2f", clan.getDebt())));
                     return;
-
                 }
 
+                if (targetClan.isInDebt()) {
+                    plugin.getMessageManager().send(player, "war.target-in-debt",
+                            MessageManager.of("clan", targetClan.getName(), "debt", String.format(java.util.Locale.GERMANY, "%,.2f", targetClan.getDebt())));
+                    return;
+                }
 
+                if (!clan.getActiveWars().isEmpty()) {
+                    plugin.getMessageManager().send(player, "war.max-wars-reached");
+                    return;
+                }
+
+                if (!targetClan.getActiveWars().isEmpty()) {
+                    plugin.getMessageManager().send(player, "war.target-max-wars-reached");
+                    return;
+                }
+
+                if (clan.hasWarCooldown()) {
+                    long remainingSec = clan.getRemainingWarCooldownMillis() / 1000L;
+                    long hours = remainingSec / 3600L;
+                    long mins = (remainingSec % 3600L) / 60L;
+                    plugin.getMessageManager().send(player, "war.cooldown",
+                            MessageManager.of("time", hours + "h " + mins + "m"));
+                    return;
+                }
+
+                if (targetClan.hasWarCooldown()) {
+                    long remainingSec = targetClan.getRemainingWarCooldownMillis() / 1000L;
+                    long hours = remainingSec / 3600L;
+                    long mins = (remainingSec % 3600L) / 60L;
+                    plugin.getMessageManager().send(player, "war.target-cooldown",
+                            MessageManager.of("time", hours + "h " + mins + "m"));
+                    return;
+                }
+
+                if (!clan.isWarsEnabled()) {
+                    plugin.getMessageManager().send(player, "war.wars-disabled");
+                    return;
+                }
+
+                if (!targetClan.isWarsEnabled()) {
+                    plugin.getMessageManager().send(player, "war.target-wars-disabled");
+                    return;
+                }
+
+                if (!clan.hasAnyMemberWithPermission(Permission.WAR_ALWAYS_PVP)) {
+                    plugin.getMessageManager().send(player, "war.no-war-pvp-members");
+                    return;
+                }
 
                 if (!targetClan.hasAnyMemberWithPermission(Permission.WAR_ALWAYS_PVP)) {
-
-                    player.sendMessage(de.Z7534.ztone.clansystem.utils.ColorUtils.colorize("§8[§6Clan§8] §cDer gegnerische Clan hat kein Mitglied mit Clankrieg-PvP-Rechten (WAR_ALWAYS_PVP)!"));
-
+                    plugin.getMessageManager().send(player, "war.target-no-war-pvp-members");
                     return;
-
                 }
 
 
@@ -2467,7 +2499,7 @@ public class ClanCommand implements CommandExecutor, TabCompleter {
 
                 if (clan.isLeader(targetMember.getUuid()) || targetMember.isLeader()) {
 
-                    player.sendMessage(de.Z7534.ztone.clansystem.utils.ColorUtils.colorize("&8[&6Clan&8] &cDer Rang des Clan-Leaders kann nicht geändert werden!"));
+                    plugin.getMessageManager().send(player, "rank.cannot-change-leader");
 
                     return;
 
@@ -2794,7 +2826,7 @@ public class ClanCommand implements CommandExecutor, TabCompleter {
 
         if (clan.isLeader(targetMember.getUuid()) || targetMember.isLeader()) {
 
-            player.sendMessage(de.Z7534.ztone.clansystem.utils.ColorUtils.colorize("&8[&6Clan&8] &cDer Clan-Leader hat bereits die höchste Stellung!"));
+            plugin.getMessageManager().send(player, "rank.already-highest-leader");
 
             return;
 
@@ -2929,7 +2961,7 @@ public class ClanCommand implements CommandExecutor, TabCompleter {
 
         if (clan.isLeader(targetMember.getUuid()) || targetMember.isLeader()) {
 
-            player.sendMessage(de.Z7534.ztone.clansystem.utils.ColorUtils.colorize("&8[&6Clan&8] &cDer Clan-Leader kann nicht degradiert werden!"));
+            plugin.getMessageManager().send(player, "rank.cannot-demote-leader");
 
             return;
 
@@ -3177,7 +3209,7 @@ public class ClanCommand implements CommandExecutor, TabCompleter {
                 case "kasse", "clankasse", "geld", "bank", "money", "balance" -> mode = ClanTopGUI.Mode.BALANCE;
                 case "punkte", "points", "p" -> mode = ClanTopGUI.Mode.POINTS;
                 default -> {
-                    player.sendMessage("§cNutzung: §e/clan top [punkte|kasse]");
+                    plugin.getMessageManager().send(player, "clan.top-usage");
                     return;
                 }
             }
@@ -3301,7 +3333,7 @@ public class ClanCommand implements CommandExecutor, TabCompleter {
 
         if (debtCleared) {
 
-            clan.broadcastMessage("§8[§6Clan§8] §aDie Schulden des Clans wurden beglichen! Alle Clan-Aktionen sind wieder freigeschaltet.");
+            clan.broadcastMessage(plugin.getMessageManager().get("clan.debt-cleared"));
 
         }
 
@@ -3363,7 +3395,7 @@ public class ClanCommand implements CommandExecutor, TabCompleter {
 
         if (clan.isInDebt()) {
 
-            player.sendMessage(de.Z7534.ztone.clansystem.utils.ColorUtils.colorize("§8[§6Clan§8] §cDein Clan hat Schulden! Du kannst kein Geld abheben."));
+            plugin.getMessageManager().send(player, "clan.cannot-withdraw-debt");
 
             return;
 

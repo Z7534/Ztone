@@ -106,7 +106,7 @@ public class NoClanGUI extends AbstractGUI {
 
         Clan clan = plugin.getClanManager().createClan(name, player);
         if (clan == null) {
-            player.sendMessage(ColorUtils.colorize("&cDer Clan konnte nicht erstellt werden."));
+            plugin.getMessageManager().send(player, "clan.create-failed");
             return;
         }
 

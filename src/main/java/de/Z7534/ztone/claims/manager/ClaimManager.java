@@ -3,6 +3,7 @@ package de.Z7534.ztone.claims.manager;
 import de.Z7534.ztone.claims.config.ConfigManager;
 import de.Z7534.ztone.claims.database.ClaimRepository;
 import de.Z7534.ztone.claims.database.PlayerRepository;
+import de.Z7534.ztone.claims.hook.WorldGuardHook;
 import de.Z7534.ztone.claims.model.Claim;
 import de.Z7534.ztone.claims.model.ChunkPos;
 import de.Z7534.ztone.claims.model.PlayerData;
@@ -30,6 +31,7 @@ public final class ClaimManager {
     private final Map<ChunkPos, Claim> chunkIndex = new ConcurrentHashMap<>();
     private final Map<UUID, PlayerData> playerData = new ConcurrentHashMap<>();
     private final BypassManager bypass;
+    private WorldGuardHook worldGuardHook;
 
     public ClaimManager(JavaPlugin plugin, ConfigManager config,
                         ClaimRepository claimRepository, PlayerRepository playerRepository,
@@ -49,6 +51,10 @@ public final class ClaimManager {
         }
         playerData.clear();
         playerData.putAll(playerRepository.loadAll());
+        int merged = mergeAllAdjacentClaims();
+        if (merged > 0) {
+            plugin.getLogger().info("Automatisch zusammengeführt: " + merged + " aneinandergrenzende Claims.");
+        }
         plugin.getLogger().info("Geladen: " + claimsById.size() + " Claims, " + playerData.size() + " Spieler-Datensätze.");
     }
 
@@ -245,6 +251,7 @@ public final class ClaimManager {
             claimRepository.removeTrust(current.id(), newOwner);
             claimRepository.removeBan(current.id(), newOwner);
         });
+        mergeAdjacentClaimsFor(newOwner, current.world());
         return true;
     }
 
@@ -363,12 +370,20 @@ public final class ClaimManager {
         return (dx * dx + dz * dz) <= (radius * radius);
     }
 
+    public void setWorldGuardHook(WorldGuardHook worldGuardHook) {
+        this.worldGuardHook = worldGuardHook;
+    }
+
+    public boolean isWorldGuardProtected(ChunkPos pos) {
+        return worldGuardHook != null && worldGuardHook.isChunkInRegion(pos);
+    }
+
     public boolean isDimensionEnabled(String world) {
         return config.dimensionEnabled(world);
     }
 
     public enum Result {
-        OK, NOT_ENOUGH_SLOTS, SPAWN_PROTECTED, END_PROTECTED, DIMENSION_DISABLED, FOREIGN_CHUNK, NOTHING_SELECTED
+        OK, NOT_ENOUGH_SLOTS, SPAWN_PROTECTED, END_PROTECTED, DIMENSION_DISABLED, FOREIGN_CHUNK, NOTHING_SELECTED, WORLDGUARD_PROTECTED
     }
 
     public Result validate(Player player, Set<ChunkPos> toClaim, Set<ChunkPos> toUnclaim) {
@@ -390,6 +405,7 @@ public final class ClaimManager {
                 if (!isDimensionEnabled(pos.world())) return Result.DIMENSION_DISABLED;
                 if (isSpawnProtected(pos)) return Result.SPAWN_PROTECTED;
                 if (isEndProtected(pos)) return Result.END_PROTECTED;
+                if (isWorldGuardProtected(pos)) return Result.WORLDGUARD_PROTECTED;
             }
             if (existing == null) {
                 newChunks++;
@@ -502,6 +518,7 @@ public final class ClaimManager {
                 async(() -> claimRepository.replaceChunks(survivorId, survivorChunks));
             }
         }
+        mergeAdjacentClaimsFor(owner, world);
     }
 
     /**
@@ -759,5 +776,128 @@ public final class ClaimManager {
             nowManager = true;
         }
         return nowManager;
+    }
+
+    public int mergeAllAdjacentClaims() {
+        Map<String, Set<UUID>> ownersByWorld = new HashMap<>();
+        for (Claim c : claimsById.values()) {
+            ownersByWorld.computeIfAbsent(c.world(), w -> new HashSet<>()).add(c.owner());
+        }
+
+        int totalMerged = 0;
+        for (Map.Entry<String, Set<UUID>> entry : ownersByWorld.entrySet()) {
+            String world = entry.getKey();
+            for (UUID owner : entry.getValue()) {
+                totalMerged += mergeAdjacentClaimsFor(owner, world);
+            }
+        }
+        return totalMerged;
+    }
+
+    public int mergeAdjacentClaimsFor(UUID owner, String world) {
+        List<Claim> list = new ArrayList<>();
+        for (Claim c : claimsById.values()) {
+            if (c.owner().equals(owner) && c.world().equals(world)) {
+                list.add(c);
+            }
+        }
+        if (list.size() <= 1) {
+            return 0;
+        }
+
+        // Adjacency graph among claims of same owner in same world
+        Map<Long, Set<Long>> adj = new HashMap<>();
+        for (Claim c : list) {
+            adj.put(c.id(), new HashSet<>());
+        }
+
+        for (Claim c : list) {
+            for (ChunkPos pos : c.chunks()) {
+                for (ChunkPos n : pos.neighbours()) {
+                    Claim other = chunkIndex.get(n);
+                    if (other != null && other != c && other.owner().equals(owner) && other.world().equals(world)) {
+                        adj.get(c.id()).add(other.id());
+                        adj.get(other.id()).add(c.id());
+                    }
+                }
+            }
+        }
+
+        Set<Long> visited = new HashSet<>();
+        int mergedCount = 0;
+
+        for (Claim c : list) {
+            if (visited.contains(c.id())) continue;
+
+            List<Claim> component = new ArrayList<>();
+            Deque<Long> queue = new ArrayDeque<>();
+            queue.add(c.id());
+            visited.add(c.id());
+
+            while (!queue.isEmpty()) {
+                long curId = queue.poll();
+                Claim curClaim = claimsById.get(curId);
+                if (curClaim != null) {
+                    component.add(curClaim);
+                }
+                for (long neighborId : adj.getOrDefault(curId, Collections.emptySet())) {
+                    if (visited.add(neighborId)) {
+                        queue.add(neighborId);
+                    }
+                }
+            }
+
+            if (component.size() > 1) {
+                mergeClaimGroup(component);
+                mergedCount += (component.size() - 1);
+            }
+        }
+
+        return mergedCount;
+    }
+
+    private void mergeClaimGroup(List<Claim> component) {
+        if (component == null || component.size() <= 1) return;
+
+        component.sort(Comparator.comparingInt((Claim c) -> -c.chunks().size()).thenComparingLong(Claim::id));
+
+        Claim survivor = component.get(0);
+        Set<ChunkPos> allChunks = new HashSet<>();
+        for (Claim c : component) {
+            allChunks.addAll(c.chunks());
+        }
+
+        unindex(survivor);
+        survivor.chunks().clear();
+        survivor.chunks().addAll(allChunks);
+
+        for (int i = 1; i < component.size(); i++) {
+            Claim victim = component.get(i);
+            mergeAccessLists(survivor, victim);
+            if (victim.isBanAll()) {
+                survivor.setBanAll(true);
+            }
+            if (victim.isClanTrustEnabled()) {
+                survivor.setClanTrustEnabled(true);
+            }
+            if (victim.isAllyTrustEnabled()) {
+                survivor.setAllyTrustEnabled(true);
+            }
+            for (UUID mgr : victim.managers()) {
+                if (survivor.managers().add(mgr)) {
+                    final long sId = survivor.id();
+                    async(() -> claimRepository.setManager(sId, mgr));
+                }
+            }
+            unindex(victim);
+            claimsById.remove(victim.id());
+            final long victimId = victim.id();
+            async(() -> claimRepository.deleteClaim(victimId));
+        }
+
+        index(survivor);
+        final long survivorId = survivor.id();
+        final Set<ChunkPos> survivorChunks = new HashSet<>(survivor.chunks());
+        async(() -> claimRepository.replaceChunks(survivorId, survivorChunks));
     }
 }

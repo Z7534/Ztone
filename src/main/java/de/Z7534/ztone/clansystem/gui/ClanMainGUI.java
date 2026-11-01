@@ -85,7 +85,7 @@ public class ClanMainGUI extends AbstractGUI {
                     .glow()
                     .build(), () -> {
                 if (clan.isInDebt()) {
-                    player.sendMessage(de.Z7534.ztone.clansystem.utils.ColorUtils.colorize("§8[§6Clan§8] §cDein Clan hat Schulden! Die Clan-Truhe ist gesperrt."));
+                    plugin.getMessageManager().send(player, "clan.debt-lock-chest");
                     return;
                 }
                 new ClanChestGUI(plugin, player, clan).open();
@@ -109,7 +109,7 @@ public class ClanMainGUI extends AbstractGUI {
                 )
                 .build(), () -> {
                 if (clan.isInDebt()) {
-                    player.sendMessage(de.Z7534.ztone.clansystem.utils.ColorUtils.colorize("§8[§6Clan§8] §cDein Clan hat Schulden! Clan-Homes sind gesperrt."));
+                    plugin.getMessageManager().send(player, "clan.debt-lock-homes");
                     return;
                 }
                 new ClanHomesGUI(plugin, player, clan).open();
@@ -125,7 +125,7 @@ public class ClanMainGUI extends AbstractGUI {
                 )
                 .build(), () -> {
                 if (clan.isInDebt()) {
-                    player.sendMessage(de.Z7534.ztone.clansystem.utils.ColorUtils.colorize("§8[§6Clan§8] §cDein Clan hat Schulden! Clan-Warps sind gesperrt."));
+                    plugin.getMessageManager().send(player, "clan.debt-lock-warps");
                     return;
                 }
                 new ClanWarpsGUI(plugin, player, clan).open();
@@ -163,7 +163,13 @@ public class ClanMainGUI extends AbstractGUI {
                         "&a▶ &7Klicke zum Öffnen"
                 )
                 .hideFlags()
-                .build(), () -> new ClanAlliesGUI(plugin, player, clan).open());
+                .build(), () -> {
+            if (clan.isInDebt()) {
+                plugin.getMessageManager().send(player, "clan.debt-lock-allies");
+                return;
+            }
+            new ClanAlliesGUI(plugin, player, clan).open();
+        });
 
         boolean atWar = !clan.getActiveWars().isEmpty();
         setItem(38, new ItemBuilder(Material.IRON_SWORD)
@@ -177,7 +183,13 @@ public class ClanMainGUI extends AbstractGUI {
                 )
                 .hideFlags()
                 .glow(atWar)
-                .build(), () -> new ClanWarsGUI(plugin, player, clan).open());
+                .build(), () -> {
+            if (clan.isInDebt()) {
+                plugin.getMessageManager().send(player, "clan.debt-lock-wars");
+                return;
+            }
+            new ClanWarsGUI(plugin, player, clan).open();
+        });
 
         if (member != null && (member.hasPermission(Permission.SETTINGS) || member.hasPermission(Permission.RANK_MANAGE))) {
             setItem(40, new ItemBuilder(Material.COMPARATOR)
@@ -188,7 +200,13 @@ public class ClanMainGUI extends AbstractGUI {
                             "",
                             "&a▶ &7Klicke zum Öffnen"
                     )
-                    .build(), () -> new ClanSettingsGUI(plugin, player, clan).open());
+                    .build(), () -> {
+            if (clan.isInDebt()) {
+                plugin.getMessageManager().send(player, "clan.debt-lock-settings");
+                return;
+            }
+            new ClanSettingsGUI(plugin, player, clan).open();
+        });
         }
 
         setItem(42, new ItemBuilder(Material.BOOK)

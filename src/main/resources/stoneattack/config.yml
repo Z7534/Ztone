@@ -130,7 +130,7 @@ leaderboard:
   #    Basiswerte nicht mehr zur neuen Quelle.
   value-placeholders:
     playtime:
-      placeholder: "%lushrewards_global_playtime%"
+      placeholder: ""
       # Einheit des Platzhalter-Werts: ticks | seconds | minutes | hours
       unit: "minutes"
     kills:

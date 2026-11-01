@@ -46,7 +46,7 @@ public final class SelectionManager {
     }
 
     public enum ClickResult {
-        MARKED_CLAIM, MARKED_UNCLAIM, UNMARKED, FOREIGN, SPAWN_PROTECTED, END_PROTECTED, DIMENSION_DISABLED, NOT_ENOUGH_SLOTS
+        MARKED_CLAIM, MARKED_UNCLAIM, UNMARKED, FOREIGN, SPAWN_PROTECTED, END_PROTECTED, DIMENSION_DISABLED, NOT_ENOUGH_SLOTS, WORLDGUARD_PROTECTED
     }
 
     public ClickResult handleClick(Player player, ChunkPos pos, boolean bypass) {
@@ -81,6 +81,9 @@ public final class SelectionManager {
             }
             if (claimManager.isEndProtected(pos)) {
                 return ClickResult.END_PROTECTED;
+            }
+            if (claimManager.isWorldGuardProtected(pos)) {
+                return ClickResult.WORLDGUARD_PROTECTED;
             }
         }
 

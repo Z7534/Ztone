@@ -34,7 +34,7 @@ public final class StaffClaimCommand implements CommandExecutor, TabCompleter {
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         if (args.length == 0) {
-            sender.sendMessage("§cVerwendung: /staffclaim <addclaims|removeclaims|info|tp|unclaim|unclaimhere|unclaimhereonly|trust|ban|bypass|pvp|reload> ...");
+            sender.sendMessage("§cVerwendung: /staffclaim <addclaims|removeclaims|info|tp|unclaim|unclaimhere|unclaimhereonly|trust|ban|bypass|pvp|merge|reload> ...");
             return true;
         }
 
@@ -52,6 +52,7 @@ public final class StaffClaimCommand implements CommandExecutor, TabCompleter {
             case "bypass" -> handleBypass(sender, args);
             case "pvp", "pvpclaimbypass", "claimspvpoverride" -> pvpBypassCommand.onCommand(sender, command, label, Arrays.copyOfRange(args, 1, args.length));
             case "reload" -> handleReload(sender);
+            case "merge" -> handleMerge(sender, args);
             default -> sender.sendMessage("§cUnbekannter Unterbefehl.");
         }
         return true;
@@ -469,6 +470,7 @@ public final class StaffClaimCommand implements CommandExecutor, TabCompleter {
             addIfPerm(subs, sender, "pvpclaimbypass", PvPClaimBypassManager.PERMISSION);
             addIfPerm(subs, sender, "claimspvpoverride", PvPClaimBypassManager.PERMISSION);
             addIfPerm(subs, sender, "reload", "claims.admin.reload");
+            addIfPerm(subs, sender, "merge", "claims.admin");
             StringUtil.copyPartialMatches(args[0], subs, out);
             Collections.sort(out);
             return out;
@@ -482,7 +484,7 @@ public final class StaffClaimCommand implements CommandExecutor, TabCompleter {
 
         if (args.length == 2) {
             switch (sub) {
-                case "addclaims", "removeclaims", "info", "tp", "unclaim", "trust", "ban" -> {
+                case "addclaims", "removeclaims", "info", "tp", "unclaim", "trust", "ban", "merge" -> {
                     StringUtil.copyPartialMatches(args[1], getKnownPlayerNames(), out);
                     Collections.sort(out);
                 }
@@ -593,5 +595,30 @@ public final class StaffClaimCommand implements CommandExecutor, TabCompleter {
             }
             action.accept(claims.get(claimNr - 1));
         }));
+    }
+
+    private void handleMerge(CommandSender sender, String[] args) {
+        if (!requirePerm(sender, "claims.admin")) return;
+        if (args.length >= 2 && !args[1].equalsIgnoreCase("all") && !args[1].equalsIgnoreCase("alle")) {
+            String targetName = args[1];
+            Optional<PlayerData> targetOpt = ctx.claims().findPlayerDataByNameBlocking(targetName);
+            if (targetOpt.isEmpty()) {
+                sender.sendMessage(Text.line(ctx.config().prefix() + "<red>Spieler nicht gefunden: " + targetName));
+                return;
+            }
+            UUID targetUuid = targetOpt.get().uuid();
+            int merged = 0;
+            Set<String> worlds = new HashSet<>();
+            for (Claim c : ctx.claims().claimsOf(targetUuid)) {
+                worlds.add(c.world());
+            }
+            for (String world : worlds) {
+                merged += ctx.claims().mergeAdjacentClaimsFor(targetUuid, world);
+            }
+            sender.sendMessage(Text.line(ctx.config().prefix() + ctx.config().message("staffclaim-merge-success"), Map.of("anzahl", String.valueOf(merged), "spieler", targetName)));
+        } else {
+            int merged = ctx.claims().mergeAllAdjacentClaims();
+            sender.sendMessage(Text.line(ctx.config().prefix() + ctx.config().message("staffclaim-merge-all"), Map.of("anzahl", String.valueOf(merged))));
+        }
     }
 }

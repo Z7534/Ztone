@@ -51,7 +51,7 @@ public class MessageManager {
             defaultMessages = YamlConfiguration.loadConfiguration(
                     new InputStreamReader(bundled, StandardCharsets.UTF_8));
         }
-        prefix = messagesConfig.getString("prefix", "&8[&6Clan&8] &7");
+        prefix = messagesConfig.getString("prefix", "&b&lᴄʟᴀɴꜱʏꜱᴛᴇᴍ &8>> &r");
     }
 
     public String getPrefix() {

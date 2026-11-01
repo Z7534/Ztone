@@ -46,7 +46,7 @@ public class ClanManager {
     }
 
     public void saveAllClans() {
-        de.Z7534.ztone.clansystem.gui.ClanChestGUI.closeAllOpenChests();
+        de.Z7534.ztone.clansystem.gui.ClanChestGUI.closeAllOpenChests(plugin);
         for (Clan clan : clansById.values()) {
             plugin.getDatabaseManager().updateClan(clan);
             plugin.getDatabaseManager().saveChestSync(clan.getId(), clan.getChestContents());

@@ -214,8 +214,45 @@ public class ClanSettingsGUI extends AbstractGUI {
         }
 
         // =========================================================================
-        // REIHE 3 (Slot 31): DANGER ZONE (Zentriert)
+        // REIHE 3 (Slot 29: Clankrieg-Toggle, Slot 31: DANGER ZONE)
         // =========================================================================
+
+        if (hasPerm(Permission.SETTINGS)) {
+            boolean unlocked = plugin.getLevelManager().isWarsToggleUnlocked(clan.getLevel());
+            if (unlocked) {
+                boolean enabled = clan.isWarsEnabled();
+                setItem(29, new ItemBuilder(enabled ? Material.IRON_SWORD : Material.WOODEN_SWORD)
+                        .name("&c&l➤ Clankriege: " + (enabled ? "&aAktiviert" : "&cDeaktiviert"))
+                        .lore(
+                                "&7Status: " + (enabled ? "&aAktiv" : "&cDeaktiviert"),
+                                "",
+                                "&7Wenn deaktiviert, kann dein Clan",
+                                "&7weder Kriege erklären noch den",
+                                "&7Krieg von anderen erklärt bekommen.",
+                                "",
+                                "&eKlicke zum Umschalten"
+                        )
+                        .glow(enabled)
+                        .build(), () -> {
+                    clan.setWarsEnabled(!clan.isWarsEnabled());
+                    plugin.getClanManager().updateClanInDatabase(clan);
+                    plugin.getMessageManager().send(player, clan.isWarsEnabled() ? "settings.wars-enabled" : "settings.wars-disabled");
+                    refresh();
+                    player.updateInventory();
+                });
+            } else {
+                int reqLevel = plugin.getLevelManager().getWarsToggleUnlockLevel();
+                setItem(29, new ItemBuilder(Material.BARRIER)
+                        .name("&c&l➤ Clankriege &8(&4Gesperrt&8)")
+                        .lore(
+                                "&7Freischaltung ab &eClan-Level " + reqLevel + "&7!",
+                                "",
+                                "&7Erreiche Level " + reqLevel + ", um Clankriege",
+                                "&7vollständig ein- oder auszuschalten."
+                        )
+                        .build());
+            }
+        }
 
         if (clan.isLeader(player.getUniqueId()) || adminView) {
             // Clan auflösen für Leader oder Admins

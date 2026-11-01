@@ -40,7 +40,7 @@ public class ModuleCommandFilterListener implements Listener {
         if (!cfg.isClansystemEnabled()) {
             registerDisabled(new String[]{
                     "clan", "clanadmin"
-            }, "§8[§6Clan§8] §cDas Clan-System ist auf diesem Server deaktiviert.", pluginPrefix);
+            }, de.Z7534.ztone.util.SmallCapsUtil.toSmallCaps("&b&lᴄʟᴀɴꜱʏꜱᴛᴇᴍ &8>> &cDas Clan-System ist auf diesem Server deaktiviert."), pluginPrefix);
         }
 
         // 3. PvPManager Module

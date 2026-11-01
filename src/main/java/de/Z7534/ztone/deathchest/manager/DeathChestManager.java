@@ -106,11 +106,64 @@ public class DeathChestManager {
         int cx = chunk.getX();
         int cz = chunk.getZ();
 
+        for (Entity entity : chunk.getEntities()) {
+            if (entity instanceof TextDisplay td) {
+                boolean isDc = td.getScoreboardTags().contains("ztone_deathchest");
+                if (!isDc) {
+                    for (String tag : td.getScoreboardTags()) {
+                        if (tag.startsWith("dc_")) {
+                            isDc = true;
+                            break;
+                        }
+                    }
+                }
+                if (isDc) {
+                    boolean active = false;
+                    for (DeathChestData chest : chestsById.values()) {
+                        if (entity.getUniqueId().equals(chest.getTextDisplayUuid())) {
+                            active = true;
+                            break;
+                        }
+                    }
+                    if (!active) {
+                        td.remove();
+                    }
+                }
+            }
+        }
+
         for (DeathChestData chest : chestsById.values()) {
             Location loc = chest.getPrimaryLocation();
             if (loc != null && world.equals(loc.getWorld())
                     && (loc.getBlockX() >> 4) == cx && (loc.getBlockZ() >> 4) == cz) {
                 updateHologram(chest);
+            }
+        }
+    }
+
+    public void cleanOrphanHolograms() {
+        Set<UUID> activeDisplayUuids = new HashSet<>();
+        for (DeathChestData chest : chestsById.values()) {
+            if (chest.getTextDisplayUuid() != null) {
+                activeDisplayUuids.add(chest.getTextDisplayUuid());
+            }
+        }
+        for (World world : Bukkit.getWorlds()) {
+            for (Entity entity : world.getEntities()) {
+                if (entity instanceof TextDisplay td) {
+                    boolean isDc = td.getScoreboardTags().contains("ztone_deathchest");
+                    if (!isDc) {
+                        for (String tag : td.getScoreboardTags()) {
+                            if (tag.startsWith("dc_")) {
+                                isDc = true;
+                                break;
+                            }
+                        }
+                    }
+                    if (isDc && !activeDisplayUuids.contains(td.getUniqueId())) {
+                        td.remove();
+                    }
+                }
             }
         }
     }
@@ -578,11 +631,13 @@ public class DeathChestManager {
     }
 
     public void saveActiveChests() {
-        if (!config.isPersistenceEnabled()) {
-            for (DeathChestData chest : new ArrayList<>(chestsById.values())) {
-                removeDeathChest(chest, true);
+        for (DeathChestData chest : chestsById.values()) {
+            Inventory inv = chest.getInventory();
+            if (inv != null && !inv.getViewers().isEmpty()) {
+                for (org.bukkit.entity.HumanEntity viewer : new ArrayList<>(inv.getViewers())) {
+                    viewer.closeInventory();
+                }
             }
-            return;
         }
 
         File folder = new File(plugin.getDataFolder(), "deathchest");
@@ -736,7 +791,8 @@ public class DeathChestManager {
             }
         }
 
-        file.delete();
+        cleanOrphanHolograms();
+        saveActiveChests();
     }
 
     public Map<UUID, DeathChestData> getChestsById() { return chestsById; }

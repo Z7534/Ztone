@@ -30,6 +30,7 @@ public class DeathChestConfig {
     private String messageChestCreated;
     private String messageChestDespawned;
     private String messageAllChestsCleared;
+    private String messageItemLooted;
 
     public DeathChestConfig(Ztone plugin) {
         this.plugin = plugin;
@@ -64,6 +65,8 @@ public class DeathChestConfig {
                 "<prefix> <gray>Deine Todeskiste ist verfallen.</gray>");
         this.messageAllChestsCleared = config.getString("messages.all-chests-cleared",
                 "<prefix> <green>Es wurden <yellow>{count}</yellow> aktive Todeskisten entfernt.</green>");
+        this.messageItemLooted = config.getString("messages.item-looted",
+                "<prefix> <yellow>{player}</yellow> hat <gold>{amount}x {item}</gold> aus deiner Todeskiste genommen!");
     }
 
     public Component getMessage(String key, Map<String, String> placeholders) {
@@ -73,6 +76,7 @@ public class DeathChestConfig {
             case "chest-created" -> messageChestCreated;
             case "chest-despawned" -> messageChestDespawned;
             case "all-chests-cleared" -> messageAllChestsCleared;
+            case "item-looted" -> messageItemLooted;
             default -> config.getString("messages." + key, "");
         };
         template = template.replace("<prefix>", prefix);

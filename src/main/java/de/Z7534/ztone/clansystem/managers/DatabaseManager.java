@@ -327,6 +327,8 @@ public class DatabaseManager {
             ensureColumn(conn, tablePrefix + "clans", "gradient_color_end", "VARCHAR(9) DEFAULT '#0000FF'");
             ensureColumn(conn, tablePrefix + "clans", "balance", "DOUBLE DEFAULT 0.0");
             ensureColumn(conn, tablePrefix + "clans", "bonus_warps", "INTEGER DEFAULT 0");
+            ensureColumn(conn, tablePrefix + "clans", "war_cooldown_until", "BIGINT DEFAULT 0");
+            ensureColumn(conn, tablePrefix + "clans", "wars_enabled", "INTEGER DEFAULT 1");
 
             if (dialect.type() == StorageType.SQLITE) {
                 createRealCounterpartTables(conn);
@@ -450,7 +452,7 @@ public class DatabaseManager {
 
     public CompletableFuture<Integer> createClan(Clan clan) {
         return CompletableFuture.supplyAsync(() -> {
-            String sql = "INSERT INTO " + tablePrefix + "clans (name, suffix, level, points, leader_uuid, created_at, join_type, icon, glow_enabled, glow_color, name_color, name_strikethrough, gradient_enabled, gradient_color_start, gradient_color_end, balance, bonus_warps) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+            String sql = "INSERT INTO " + tablePrefix + "clans (name, suffix, level, points, leader_uuid, created_at, join_type, icon, glow_enabled, glow_color, name_color, name_strikethrough, gradient_enabled, gradient_color_start, gradient_color_end, balance, bonus_warps, war_cooldown_until, wars_enabled) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
             try (Connection conn = getConnection();
                  PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
@@ -472,6 +474,8 @@ public class DatabaseManager {
                 ps.setString(15, clan.getGradientColorEnd());
                 ps.setDouble(16, clan.getBalance());
                 ps.setInt(17, clan.getBonusWarps());
+                ps.setLong(18, clan.getWarCooldownUntil());
+                ps.setInt(19, clan.isWarsEnabled() ? 1 : 0);
 
                 ps.executeUpdate();
 
@@ -490,7 +494,7 @@ public class DatabaseManager {
 
     public CompletableFuture<Void> updateClan(Clan clan) {
         return CompletableFuture.runAsync(() -> {
-            String sql = "UPDATE " + tablePrefix + "clans SET name = ?, suffix = ?, level = ?, points = ?, leader_uuid = ?, join_type = ?, icon = ?, glow_enabled = ?, glow_color = ?, name_color = ?, name_strikethrough = ?, gradient_enabled = ?, gradient_color_start = ?, gradient_color_end = ?, balance = ?, bonus_warps = ? WHERE id = ?";
+            String sql = "UPDATE " + tablePrefix + "clans SET name = ?, suffix = ?, level = ?, points = ?, leader_uuid = ?, join_type = ?, icon = ?, glow_enabled = ?, glow_color = ?, name_color = ?, name_strikethrough = ?, gradient_enabled = ?, gradient_color_start = ?, gradient_color_end = ?, balance = ?, bonus_warps = ?, war_cooldown_until = ?, wars_enabled = ? WHERE id = ?";
 
             try (Connection conn = getConnection();
                  PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -511,7 +515,9 @@ public class DatabaseManager {
                 ps.setString(14, clan.getGradientColorEnd());
                 ps.setDouble(15, clan.getBalance());
                 ps.setInt(16, clan.getBonusWarps());
-                ps.setInt(17, clan.getId());
+                ps.setLong(17, clan.getWarCooldownUntil());
+                ps.setInt(18, clan.isWarsEnabled() ? 1 : 0);
+                ps.setInt(19, clan.getId());
 
                 ps.executeUpdate();
 
@@ -574,6 +580,12 @@ public class DatabaseManager {
                 } catch (Exception e) {
                     clan.setJoinType(Clan.JoinType.INVITE);
                 }
+                try {
+                    clan.setWarCooldownUntil(rs.getLong("war_cooldown_until"));
+                } catch (Exception ignored) {}
+                try {
+                    clan.setWarsEnabled(rs.getInt("wars_enabled") != 0);
+                } catch (Exception ignored) {}
 
                 loadRanksForClan(conn, clan);
 
