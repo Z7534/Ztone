@@ -1,11 +1,11 @@
-name: Ztone
-version: '1.1.3'
+﻿name: Ztone
+version: '1.1.5'
 main: de.Z7534.ztone.Ztone
 api-version: '26.2'
 authors: [Z7534]
 load: STARTUP
-description: All-in-One Ztone System (Clansystem, Clankasse, PvPManager, Claims, StoneAttack, Stonelog, Stonemute, MapControl, StoneVoice, PlayRewards, Deathchest, ClearLag, StoneSit, DragonEgg)
-softdepend: [Vault, PlaceholderAPI, LuckPerms, ProtocolLib, WorldGuard, GriefPrevention, Towny, Lands, Kingdoms, SimpleClans, HuskTowns, BountyHunters, NotBounties, CMI, Essentials, TAB, LibsDisguises, LiteBans, voicechat, floodgate, Plan, StoneSMPCore]
+description: All-in-One Ztone System (Clansystem, Clankasse, PvPManager, Claims, StoneAttack, Stonelog, MapControl, StoneVoice, PlayRewards, Deathchest, ClearLag, StoneSit, DragonEgg)
+softdepend: [Vault, PlaceholderAPI, LuckPerms, ProtocolLib, WorldGuard, GriefPrevention, Towny, Lands, Kingdoms, SimpleClans, HuskTowns, BountyHunters, NotBounties, CMI, Essentials, TAB, LibsDisguises, voicechat, floodgate, Plan, StoneSMPCore]
 
 commands:
   ztone:
@@ -13,10 +13,10 @@ commands:
     usage: /ztone <reload>
     permission: ztone.admin
   clan:
-    description: Hauptbefehl für das Clan-System
+    description: Hauptbefehl fÃ¼r das Clan-System
     usage: /<command> [subcommand]
   clanadmin:
-    description: Admin-Befehle für das Clan-System
+    description: Admin-Befehle fÃ¼r das Clan-System
     usage: /<command> [subcommand]
     permission: clansystem.admin
   pvpmanager:
@@ -26,10 +26,10 @@ commands:
     description: Schaltet den eigenen PvP-Status ein/aus
     aliases: [togglepvp, pvptoggle]
   pvpoverride:
-    description: Erlaubt es, jeden überalle anzugreifen
+    description: Erlaubt es, jeden Ã¼beralle anzugreifen
     aliases: [pvpo]
   pvpinfo:
-    description: Zeigt ausführliche PvP-Informationen an
+    description: Zeigt ausfÃ¼hrliche PvP-Informationen an
   pvpstatus:
     description: Zeigt den PvP-Status eines Spielers an
   pvplist:
@@ -41,23 +41,23 @@ commands:
   untag:
     description: Entfernt den Combat-Tag von einem oder allen Spielern
   teleportoverride:
-    description: Setzt einen Teleport-Bypass-Flag für einen Spieler
+    description: Setzt einen Teleport-Bypass-Flag fÃ¼r einen Spieler
   testrace:
     description: Debug-Command zum Testen von Race-Conditions
   announce:
     description: Sendet eine serverweite Broadcast-Nachricht
   soup:
-    description: Füllt alle leeren Schüsseln im Inventar mit Suppe
+    description: FÃ¼llt alle leeren SchÃ¼sseln im Inventar mit Suppe
   pvpdimensiontoggle:
-    description: Schaltet das Standard-PvP für eine Dimension an/aus
+    description: Schaltet das Standard-PvP fÃ¼r eine Dimension an/aus
     usage: /pvpdimensiontoggle <dimension> <on|off> [--force]
 
   # Claims Commands
   claim:
-    description: Öffnet das Claim-Hauptmenü oder verwaltet Claim-Zahlungen und Bans
+    description: Ã–ffnet das Claim-HauptmenÃ¼ oder verwaltet Claim-Zahlungen und Bans
     usage: /claim [pay <spieler> <anzahl> | ban <spieler|*> [hier|alle|<claim>] | unban <spieler|*> [hier|alle|<claim>]]
   staffclaim:
-    description: Admin-Befehle für das Claim-System
+    description: Admin-Befehle fÃ¼r das Claim-System
     usage: /staffclaim <addclaims|removeclaims|info|tp|unclaim|unclaimhere|trust|ban|bypass|pvp|reload> ...
   claimspvpoverride:
     description: Schaltet PvP auf einem Claim als Admin an/aus (Override)
@@ -65,7 +65,7 @@ commands:
     aliases: [pvpclaimbypass, claimpvpbypass, pvpclaim, claimpvpoverride, pvpclaimoverride]
     permission: claims.admin.pvpbypass
   pvpclaimbypass:
-    description: Erlaubt oder verbietet PvP auf einem Claim für Admins
+    description: Erlaubt oder verbietet PvP auf einem Claim fÃ¼r Admins
     usage: /pvpclaimbypass [on|off|toggle|player|list]
     aliases: [claimpvpbypass, pvpclaim]
     permission: claims.admin.pvpbypass
@@ -110,7 +110,7 @@ commands:
 
   # PlayRewards Commands
   playrewards:
-    description: Öffnet das Playtime- und Belohnungsmenü
+    description: Ã–ffnet das Playtime- und BelohnungsmenÃ¼
     permission: playrewards.use
     aliases: [pr, playreward]
 
@@ -131,7 +131,7 @@ commands:
     usage: /sit
     aliases: [gsit, stonesit]
   lay:
-    description: Legt dich auf den aktuellen Block (zählt als Schlafen ohne Respawn-Punkt)
+    description: Legt dich auf den aktuellen Block (zÃ¤hlt als Schlafen ohne Respawn-Punkt)
     usage: /lay
     aliases: [glay, layback, glayback]
   legsup:
@@ -139,11 +139,11 @@ commands:
     usage: /legsup
     aliases: [glegsup]
   spin:
-    description: Lässt dich auf der Stelle im Kreis drehen (Spin-Animation)
+    description: LÃ¤sst dich auf der Stelle im Kreis drehen (Spin-Animation)
     usage: /spin
     aliases: [gspin, stonespin]
   stonesitreload:
-    description: Lädt die StoneSit-Konfiguration neu
+    description: LÃ¤dt die StoneSit-Konfiguration neu
     usage: /stonesitreload
     aliases: [gsitreload, gsitrl, stonesitrl]
     permission: stonesit.reload
@@ -204,7 +204,7 @@ permissions:
     description: Erlaubt die Verwaltung von Clan-Einstellungen
     default: true
   clansystem.rank:
-    description: Erlaubt die Verwaltung von Rängen
+    description: Erlaubt die Verwaltung von RÃ¤ngen
     default: true
   clansystem.bypass.cooldown:
     description: Ignoriert alle Cooldowns
@@ -220,7 +220,7 @@ permissions:
         description: Erlaubt das Neuladen der Konfiguration
         default: op
       clansystem.admin.delete:
-        description: Erlaubt das Löschen von Clans
+        description: Erlaubt das LÃ¶schen von Clans
         default: op
       clansystem.admin.setlevel:
         description: Erlaubt das Setzen von Clan-Leveln
@@ -232,19 +232,19 @@ permissions:
         description: Erlaubt den Zugriff auf fremde Clan-Truhen
         default: op
       clansystem.admin.addpoints:
-        description: Erlaubt das Hinzufügen von Clan-Punkten
+        description: Erlaubt das HinzufÃ¼gen von Clan-Punkten
         default: op
       clansystem.admin.settings:
-        description: Erlaubt das Öffnen des Clan-Settings-Menüs fremder Clans
+        description: Erlaubt das Ã–ffnen des Clan-Settings-MenÃ¼s fremder Clans
         default: op
       clansystem.admin.bold:
         description: Erlaubt das Umschalten der Fett-Formatierung eines Clan-Suffix
         default: op
       clansystem.admin.info:
-        description: Erlaubt das Anzeigen von Clan-Infos über /clanadmin info
+        description: Erlaubt das Anzeigen von Clan-Infos Ã¼ber /clanadmin info
         default: op
       clansystem.admin.list:
-        description: Erlaubt das Anzeigen der Clan-Liste über /clanadmin list
+        description: Erlaubt das Anzeigen der Clan-Liste Ã¼ber /clanadmin list
         default: op
       clansystem.admin.home:
         description: Erlaubt das Teleportieren zum Home eines fremden Clans
@@ -253,13 +253,13 @@ permissions:
         description: Erlaubt das Teleportieren zu einem Warp eines fremden Clans
         default: op
       clansystem.admin.promote:
-        description: Erlaubt das Befördern von Spielern in ihrem Clan über /clanadmin promote
+        description: Erlaubt das BefÃ¶rdern von Spielern in ihrem Clan Ã¼ber /clanadmin promote
         default: op
       clansystem.admin.demote:
-        description: Erlaubt das Degradieren von Spielern in ihrem Clan über /clanadmin demote
+        description: Erlaubt das Degradieren von Spielern in ihrem Clan Ã¼ber /clanadmin demote
         default: op
       clansystem.admin.bypass:
-        description: Umgeht alle Einschränkungen
+        description: Umgeht alle EinschrÃ¤nkungen
         default: op
 
   # PvPManager Permissions
@@ -300,7 +300,7 @@ permissions:
     description: Zugriff auf /pvpoverride
     default: op
   pvpmanager.command.override.others:
-    description: Erlaubt es, PvP-Override für andere Spieler zu aktivieren
+    description: Erlaubt es, PvP-Override fÃ¼r andere Spieler zu aktivieren
     default: op
   pvpmanager.command.pvp:
     description: Eigenen PvP-Status togglen
@@ -321,10 +321,10 @@ permissions:
     description: Offline-Spieler in /pvplist anzeigen
     default: op
   pvpmanager.command.pvpstatus:
-    description: Eigenen Status prüfen
+    description: Eigenen Status prÃ¼fen
     default: true
   pvpmanager.command.pvpstatus.others:
-    description: Status anderer prüfen
+    description: Status anderer prÃ¼fen
     default: true
   pvpmanager.command.tag:
     description: Sich selbst taggen / eigene Tag-Zeit ansehen
@@ -345,7 +345,7 @@ permissions:
     description: Zugriff auf Debug-Command /testrace
     default: op
   pvpmanager.command.pvpdimensiontoggle:
-    description: Schaltet das Standard-PvP für eine Dimension ein/aus
+    description: Schaltet das Standard-PvP fÃ¼r eine Dimension ein/aus
     default: op
 
   pvpmanager.feature.recycling:
@@ -353,11 +353,11 @@ permissions:
     default: op
 
   pvpmanager.bypass.lootprotection:
-    description: Erlaubt das Aufheben von geschütztem PvP-Loot anderer Spieler
+    description: Erlaubt das Aufheben von geschÃ¼tztem PvP-Loot anderer Spieler
     default: op
 
   pvpmanager.exempt:
-    description: Übergeordnete Gruppe, gibt alle Exempt-Rechte
+    description: Ãœbergeordnete Gruppe, gibt alle Exempt-Rechte
     default: op
     children:
       pvpmanager.exempt.blockcommands: true
@@ -401,10 +401,10 @@ permissions:
     description: Erlaubt /claim pay <spieler> <anzahl>, um Claim-Slots an andere Spieler zu verschenken
     default: true
   claims.transfer:
-    description: Erlaubt das Übertragen eines eigenen Claims an einen anderen Spieler (im Claim-Menü)
+    description: Erlaubt das Ãœbertragen eines eigenen Claims an einen anderen Spieler (im Claim-MenÃ¼)
     default: true
   claims.admin:
-    description: Alle Admin-Rechte für /staffclaim
+    description: Alle Admin-Rechte fÃ¼r /staffclaim
     default: op
     children:
       claims.admin.addclaims: true
@@ -446,13 +446,13 @@ permissions:
     description: Aktiviert /staffclaim bypass automatisch beim Betreten des Servers
     default: false
   claims.admin.bypass.other:
-    description: Erlaubt /staffclaim bypass <on|off> <spieler> für andere Spieler
+    description: Erlaubt /staffclaim bypass <on|off> <spieler> fÃ¼r andere Spieler
     default: op
   claims.admin.pvpbypass:
-    description: Erlaubt /claimspvpoverride (PvP auf Claims freigeben oder als Admin im Claim kämpfen)
+    description: Erlaubt /claimspvpoverride (PvP auf Claims freigeben oder als Admin im Claim kÃ¤mpfen)
     default: op
   claims.admin.reload:
-    description: /staffclaim reload (lädt config.yml und messages.yml neu)
+    description: /staffclaim reload (lÃ¤dt config.yml und messages.yml neu)
     default: op
 
   # Stoneattack Permissions
@@ -486,17 +486,12 @@ permissions:
     description: Zugriff auf Stonelog-Admin-Befehle
     default: op
 
-  # Stonemute Permissions
-  stonemute.bypass:
-    description: Spieler kann trotz LiteBans-Mute im Voicechat sprechen
-    default: false
-
   # MapControl Permissions
   mapcontrol.admin:
     description: Erlaubt die Nutzung von /mapcontrol-Befehlen
     default: op
   mapcontrol.bypass:
-    description: Umgeht alle Minimap-, Höhlen- und Radar-Einschränkungen
+    description: Umgeht alle Minimap-, HÃ¶hlen- und Radar-EinschrÃ¤nkungen
     default: false
 
   # StoneVoice Permissions
@@ -506,13 +501,13 @@ permissions:
 
   # PlayRewards Permissions
   playrewards.use:
-    description: Öffnet das Belohnungsmenü
+    description: Ã–ffnet das BelohnungsmenÃ¼
     default: true
   playrewards.admin:
     description: Erlaubt das Neuladen und Verwalten von Spielzeit und Streaks
     default: op
   playrewards.streak.saver:
-    description: Gewährt einen Streak-Schutzpunkt (Reset jeden Montag um 0:00 Uhr)
+    description: GewÃ¤hrt einen Streak-Schutzpunkt (Reset jeden Montag um 0:00 Uhr)
     default: op
 
   # DeathChest Permissions
@@ -523,10 +518,10 @@ permissions:
       deathchest.bypass: true
       deathchest.bypass.other: true
   deathchest.bypass:
-    description: Erlaubt /deathchest bypass, um gesperrte Todeskisten trotz Killer-Lock zu öffnen und Items zu entnehmen
+    description: Erlaubt /deathchest bypass, um gesperrte Todeskisten trotz Killer-Lock zu Ã¶ffnen und Items zu entnehmen
     default: op
   deathchest.bypass.other:
-    description: Erlaubt /deathchest bypass <on|off> <spieler> für andere Spieler
+    description: Erlaubt /deathchest bypass <on|off> <spieler> fÃ¼r andere Spieler
     default: op
   deathchest.bypass.join:
     description: "Aktiviert /deathchest bypass automatisch beim Betreten des Servers (Standard: aus)"
@@ -592,7 +587,7 @@ permissions:
     description: Erlaubt das Setzen auf andere Spieler per Rechtsklick
     default: true
   stonesit.kick.*:
-    description: Erlaubt das Kicken sitzender/liegenden Spieler von Blöcken
+    description: Erlaubt das Kicken sitzender/liegenden Spieler von BlÃ¶cken
     default: op
     children:
       stonesit.kick.sit: true
@@ -604,7 +599,7 @@ permissions:
     description: Erlaubt das Kicken eines liegenden Spielers (/lay, /legsup) von seinem Block
     default: op
   stonesit.bypass.*:
-    description: Umgeht alle StoneSit-Einschränkungen und schützt vor Sneak-Abwurf vom Kopf
+    description: Umgeht alle StoneSit-EinschrÃ¤nkungen und schÃ¼tzt vor Sneak-Abwurf vom Kopf
     default: op
     children:
       stonesit.bypass.sneakeject: true
@@ -615,13 +610,13 @@ permissions:
     description: Verhindert, dass man als Admin durch Sneaken vom Kopf eines Spielers gekickt werden kann
     default: op
   stonesit.bypass.command:
-    description: Umgeht die Command-Blacklist während des Sitzens/Liegens
+    description: Umgeht die Command-Blacklist wÃ¤hrend des Sitzens/Liegens
     default: op
   stonesit.bypass.world:
     description: Umgeht die World-Blacklist/Whitelist
     default: op
   stonesit.bypass.region:
-    description: Umgeht Regions-/Claim-Einschränkungen beim Sitzen/Liegen
+    description: Umgeht Regions-/Claim-EinschrÃ¤nkungen beim Sitzen/Liegen
     default: op
   stonesit.reload:
     description: Erlaubt das Neuladen der StoneSit-Konfiguration (/stonesitreload)
@@ -638,7 +633,7 @@ permissions:
     description: Erlaubt /dragonegg bypass, um Glowing, permanentes PvP und Claim-Sperren des Dracheneis zu umgehen
     default: op
   dragonegg.bypass.other:
-    description: Erlaubt /dragonegg bypass <on|off> <spieler> für andere Spieler
+    description: Erlaubt /dragonegg bypass <on|off> <spieler> fÃ¼r andere Spieler
     default: op
   dragonegg.bypass.join:
     description: "Aktiviert /dragonegg bypass automatisch beim Betreten des Servers (Standard: aus)"

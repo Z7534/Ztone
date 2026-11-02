@@ -36,7 +36,6 @@ dependencies {
     }
     compileOnly("net.dmulloy2:ProtocolLib:5.4.0")
     compileOnly("de.maxhenkel.voicechat:voicechat-api:2.6.24")
-    compileOnly("litebans:api:0.6.1")
     compileOnly("org.geysermc.floodgate:api:2.2.3-SNAPSHOT")
 
     implementation("com.zaxxer:HikariCP:5.1.0") {

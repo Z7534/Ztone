@@ -26,7 +26,6 @@ public class ConfigManager {
     private boolean claimsEnabled = true;
     private boolean stoneattackEnabled = true;
     private boolean stonelogEnabled = true;
-    private boolean stonemuteEnabled = true;
     private boolean mapcontrolEnabled = true;
     private boolean stonevoiceEnabled = true;
     private boolean playrewardsEnabled = true;
@@ -178,7 +177,6 @@ public class ConfigManager {
             this.claimsEnabled = modules.getBoolean("claims", true);
             this.stoneattackEnabled = modules.getBoolean("stoneattack", true);
             this.stonelogEnabled = modules.getBoolean("stonelog", true);
-            this.stonemuteEnabled = modules.getBoolean("stonemute", true);
             this.mapcontrolEnabled = modules.getBoolean("mapcontrol", true);
             this.stonevoiceEnabled = modules.getBoolean("stonevoice", true);
             this.playrewardsEnabled = modules.getBoolean("playrewards", true);
@@ -193,7 +191,6 @@ public class ConfigManager {
             this.claimsEnabled = globalConfig.getBoolean("modules.claims", true);
             this.stoneattackEnabled = globalConfig.getBoolean("modules.stoneattack", true);
             this.stonelogEnabled = globalConfig.getBoolean("modules.stonelog", true);
-            this.stonemuteEnabled = globalConfig.getBoolean("modules.stonemute", true);
             this.mapcontrolEnabled = globalConfig.getBoolean("modules.mapcontrol", true);
             this.stonevoiceEnabled = globalConfig.getBoolean("modules.stonevoice", true);
             this.playrewardsEnabled = globalConfig.getBoolean("modules.playrewards", true);
@@ -435,9 +432,6 @@ public class ConfigManager {
         return stonelogEnabled;
     }
 
-    public boolean isStonemuteEnabled() {
-        return stonemuteEnabled;
-    }
 
     public boolean isMapcontrolEnabled() {
         return mapcontrolEnabled;
@@ -485,9 +479,6 @@ public class ConfigManager {
         }
         if ("stonelog".equalsIgnoreCase(module)) {
             return stonelogEnabled;
-        }
-        if ("stonemute".equalsIgnoreCase(module)) {
-            return stonemuteEnabled;
         }
         if ("mapcontrol".equalsIgnoreCase(module) || "map".equalsIgnoreCase(module)) {
             return mapcontrolEnabled;

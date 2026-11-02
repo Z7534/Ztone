@@ -56,7 +56,7 @@ public class Deathchest {
         }
         if (deathChestManager != null) {
             deathChestManager.stop();
-            deathChestManager.saveActiveChests();
+            deathChestManager.saveActiveChests(true);
             deathChestManager.removeAllHolograms();
         }
         plugin.getLogger().info("Deathchest-Modul wurde deaktiviert.");

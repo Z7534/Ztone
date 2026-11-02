@@ -1,6 +1,6 @@
 # 🛡️ Ztone – All-in-One Server-System
 
-Willkommen in der offiziellen Dokumentation für **Ztone** (Version 1.1.3).  
+Willkommen in der offiziellen Dokumentation für **Ztone** (Version 1.1.5).  
 Ztone ist eine hochgradig optimierte, modulare All-in-One-Lösung für Minecraft Paper-, Purpur- und Leaf-Server (kompatibel mit Java 21 & Java 25).
 
 ---
@@ -15,7 +15,7 @@ Ztone ist eine hochgradig optimierte, modulare All-in-One-Lösung für Minecraft
 7. [ClearLag (Item-Bereinigung)](#6-clearlag-item-bereinigung)
 8. [PlayRewards (Spielzeit & Streak-Belohnungen)](#7-playrewards-spielzeit--streak-belohnungen)
 9. [StoneVoice (VoiceChat-Admin-Tools)](#8-stonevoice-voicechat-admin-tools)
-10. [Stonemute (LiteBans VoiceChat-Sync)](#9-stonemute-litebans-voicechat-sync)
+10. [Stonemute (Eigenständiges Plugin)](#9-stonemute-eigenständiges-plugin)
 11. [MapControl (Minimap- & Radar-Steuerung)](#10-mapcontrol-minimap--radar-steuerung)
 12. [Stonelog & Hauptverwaltung](#11-stonelog--hauptverwaltung)
 13. [StoneSit (Sitzen, Hinlegen & Spielerstapeln)](#12-stonesit-sitzen-hinlegen--spielerstapeln)
@@ -24,6 +24,7 @@ Ztone ist eine hochgradig optimierte, modulare All-in-One-Lösung für Minecraft
 16. [Kompilierung & Entwicklung](#15-kompilierung--entwicklung)
 17. [Changelog v1.1.2](#16-changelog-v112)
 18. [Changelog v1.1.3](#17-changelog-v113)
+19. [Changelog v1.1.5](#18-changelog-v115)
 
 ---
 
@@ -37,7 +38,7 @@ Ztone bündelt alle wichtigen Core-Features für moderne Survival- und SMP-Netzw
 * **DeathChest:** Sichere Todeskisten mit Restart-Persistenz, Anti-Rollback, automatischer Hologramm-Bereinigung, Killer-Lock-Bypass und Echtzeit-Chatbenachrichtigung beim Plündern.
 * **ClearLag:** Intelligente Boden-Item-Bereinigung mit Countdown-Warnungen und Actionbar.
 * **PlayRewards:** Tägliche Belohnungen, Playtime-Tracking und Streak-System mit Schutzpunkten.
-* **StoneVoice & Stonemute:** SimpleVoiceChat-Gruppenüberwachung für Admins sowie automatischer Mute-Sync über LiteBans.
+* **StoneVoice:** SimpleVoiceChat-Gruppenüberwachung für Admins (*Hinweis: Stonemute wurde als eigenständiges Plugin nach C:\Stonemute ausgelagert*).
 * **MapControl:** Erzwingen von Fairplay-Regeln für Client-Minimaps (Xaero, JourneyMap, VoxelMap).
 * **Stonelog:** Hochperformantes Discord-Audit-Logging mit automatischem Multi-Embed-Batching (bis zu 10 Embeds/Request) und parallelen URL-Queues.
 * **StoneSit:** Hochperformantes Sit-, Lay-, LegsUp-, Spin- & PlayerSit-System (1:1 nach GSit für Paper 26.2 optimiert, mit 360° Rotations-Animation, Bett-Schlaf-Logik ohne Respawn-Punkt und Admin-Schutz vor Sneak-Abwurf vom Kopf).
@@ -317,11 +318,10 @@ Ermöglicht Moderatoren und Admins die diskrete Überwachung von Simple Voice Ch
 
 ---
 
-## 9. Stonemute (LiteBans VoiceChat-Sync)
+## 9. Stonemute (Eigenständiges Plugin)
 
-Verknüpft LiteBans direkt mit dem Simple Voice Chat:
-* Wenn ein Spieler über LiteBans stummgeschaltet (`/mute`) wird, wird er synchron auch im VoiceChat gemutet.
-* `stonemute.bypass`: Erlaubt es Teammitgliedern, trotz LiteBans-Mute im VoiceChat zu sprechen.
+> [!NOTE]
+> Das Modul **Stonemute** wurde mit Version 1.1.5 vollständig aus dem Ztone-Kern ausgelagert und steht nun als eigenständiges Paper-Plugin unter **[`C:\Stonemute`](file:///C:/Stonemute)** zur Verfügung. Es verknüpft LiteBans direkt mit SimpleVoiceChat, unterstützt netzwerkweite Mutes sowie LuckPerms-Bypass und besitzt ein eigenes Konfigurations- und Reload-System.
 
 ---
 
@@ -414,7 +414,7 @@ Ztone verfügt über ein integriertes **Auto-Sync-System** (`ConfigUtil`):
 * Beim Starten oder Neuladen des Plugins gleicht Ztone alle physischen `.yml`-Dateien auf der Festplatte mit den neuesten Standarddateien aus der JAR ab.
 * **Kein Verlust bestehender Werte:** Bereits vorhandene Benutzereinstellungen, geänderte Texte oder Zahlen werden niemals überschrieben.
 * **Automatische Ergänzung:** Neu hinzugekommene Optionen, Untersektionen und Standard-Kommentare werden automatisch in die Datei auf der Festplatte eingefügt.
-* **Gilt für alle Configs:** Hauptkonfiguration (`config.yml`), Clan-System (`clansystem/`), PvPManager (`pvpmanager/`), Claims (`claims/`), DeathChest (`deathchest/`), ClearLag (`clearlag/`), StoneAttack (`stoneattack/`), StoneLog (`stonelog/`), StoneMute (`stonemute/`), MapControl (`mapcontrol/`), PlayRewards (`playrewards/`) und StoneSit (`stonesit/`).
+* **Gilt für alle Configs:** Hauptkonfiguration (`config.yml`), Clan-System (`clansystem/`), PvPManager (`pvpmanager/`), Claims (`claims/`), DeathChest (`deathchest/`), ClearLag (`clearlag/`), StoneAttack (`stoneattack/`), StoneLog (`stonelog/`), MapControl (`mapcontrol/`), PlayRewards (`playrewards/`) und StoneSit (`stonesit/`).
 
 ### ⚙️ Modul-Aktivierung (`plugins/Ztone/config.yml`)
 In der zentralen Konfigurationsdatei können alle Submodule einzeln de-/aktiviert werden:
@@ -426,7 +426,6 @@ modules:
   claims: true
   stoneattack: true
   stonelog: true
-  stonemute: true
   mapcontrol: true
   stonevoice: true
   playrewards: true
@@ -575,3 +574,23 @@ Die fertige Server-JAR befindet sich im Verzeichnis `build/libs/Ztone-1.1.3.jar`
   * Es wurde behoben, dass bei Verwendung von `/lay` oder `/legsup` die gesamte Rüstung und gehaltene Gegenstände für andere Spieler unsichtbar wurden.
   * Rüstungspakete werden nun bereits im Spawn-Bundle des Fake-Bett-NPCs mitgesendet und beim Aufstehen zuverlässig vor dem Bereinigen der Viewer-Referenzen wiederhergestellt.
   * Ein ungültiger Reflexionsaufruf auf NMS-Inventarmethoden wurde durch direkte Abfrage der NMS-Ausrüstungsslots ersetzt.
+
+---
+
+## 18. Changelog v1.1.5
+
+### 🛠️ Admin & System
+* **Versionierung:**
+  * Plugin-Version, Build-System und alle Schnittstellen auf Version `1.1.5` angehoben.
+* **Modulare Auslagerung des Stonemute-Moduls:**
+  * Das Stonemute-Modul (LiteBans zu SimpleVoiceChat Mute-Synchronisation) wurde vollständig aus dem Ztone-Kern entfernt.
+  * Stonemute steht ab sofort als eigenständiges, hochperformantes Paper-Plugin unter `C:\Stonemute` bereit.
+  * Sämtliche Abhängigkeiten zu LiteBans (`litebans:api`), Soft-Depends und Permissions wurden aus Ztone entfernt.
+  * Spürbare Entlastung des Hauptplugins und schlankere Jar-Dateigröße.
+
+### 🐛 Behobene Fehler
+* **DeathChest Endlosschleife / StackOverflowError bei Parallel World Ticking:**
+  * Behoben: Auf Server-Cores mit aktivem Parallel World Ticking (Leaf, SparklyPaper) führte das Schließen einer Todeskiste durch Scheduler-Verzögerung (`runTask`) und zirkuläre `closeInventory()`-Aufrufe in `saveActiveChests()` zu einem unmittelbaren `StackOverflowError` und Server-Crash.
+  * `saveActiveChests()` schließt im laufenden Serverbetrieb keine Spieler-Inventare mehr zwangsweise (`saveActiveChests(false)`).
+  * Schließvorgänge in `DeathChestManager` werden nun über ein `closingPlayers`-Set vor zirkulären Aufrufen geschützt.
+  * `DeathChestListener` führt das Speichern und Aufräumen von Kisten beim Schließen nun direkt synchron aus, wodurch Race-Conditions mit weltbezogenen Ticking-Threads ausgeschlossen sind.

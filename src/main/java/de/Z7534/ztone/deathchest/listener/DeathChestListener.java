@@ -11,6 +11,7 @@ import org.bukkit.Sound;
 import org.bukkit.block.Block;
 import org.bukkit.block.Chest;
 import org.bukkit.block.DoubleChest;
+import org.bukkit.entity.HumanEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.TextDisplay;
 import org.bukkit.event.EventHandler;
@@ -354,21 +355,32 @@ public class DeathChestListener implements Listener {
         DeathChestData chest = deathChestManager.getDeathChestByInventory(inv);
         if (chest == null) return;
 
+        final UUID closingPlayerUuid = event.getPlayer().getUniqueId();
+        if (deathChestManager.isPlayerClosing(closingPlayerUuid)) {
+            return;
+        }
+
         if (event.getPlayer() instanceof Player p) {
             p.playSound(chest.getPrimaryLocation(), Sound.BLOCK_CHEST_CLOSE, 0.5f, 1.0f);
         }
 
-        // Ansatz A (1-Tick Delay) + Ansatz B (Skip current closing player to avoid circular closeInventory calls)
-        final UUID closingPlayerUuid = event.getPlayer().getUniqueId();
-        Bukkit.getScheduler().runTask(plugin, () -> {
-            if (inv.getViewers().isEmpty()) {
-                activeChestSnapshots.remove(chest.getId());
+        boolean noOtherViewers = true;
+        for (HumanEntity viewer : inv.getViewers()) {
+            if (!viewer.getUniqueId().equals(closingPlayerUuid)) {
+                noOtherViewers = false;
+                break;
             }
-            if (deathChestManager.isInventoryEmpty(inv)) {
-                deathChestManager.removeDeathChest(chest, true, closingPlayerUuid);
-            }
-            deathChestManager.saveActiveChests();
-        });
+        }
+        if (noOtherViewers) {
+            activeChestSnapshots.remove(chest.getId());
+        }
+
+        if (deathChestManager.isInventoryEmpty(inv)) {
+            activeChestSnapshots.remove(chest.getId());
+            deathChestManager.removeDeathChest(chest, true, closingPlayerUuid);
+        }
+
+        deathChestManager.saveActiveChests(false);
     }
 
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)

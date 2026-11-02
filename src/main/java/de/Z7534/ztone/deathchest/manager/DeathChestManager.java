@@ -54,6 +54,7 @@ public class DeathChestManager {
 
     private final Map<UUID, DeathChestData> chestsById = new ConcurrentHashMap<>();
     private final Map<BlockPos, DeathChestData> chestsByPos = new ConcurrentHashMap<>();
+    private final Set<UUID> closingPlayers = ConcurrentHashMap.newKeySet();
 
     private BukkitTask updateTask;
 
@@ -359,9 +360,14 @@ public class DeathChestManager {
                 if (skipViewerUuid != null && viewer.getUniqueId().equals(skipViewerUuid)) {
                     continue; // Skip the player who is currently in the close event
                 }
-                try {
-                    viewer.closeInventory();
-                } catch (Throwable ignored) {}
+                if (closingPlayers.add(viewer.getUniqueId())) {
+                    try {
+                        viewer.closeInventory();
+                    } catch (Throwable ignored) {
+                    } finally {
+                        closingPlayers.remove(viewer.getUniqueId());
+                    }
+                }
             }
             inv.clear();
         }
@@ -631,11 +637,24 @@ public class DeathChestManager {
     }
 
     public void saveActiveChests() {
-        for (DeathChestData chest : chestsById.values()) {
-            Inventory inv = chest.getInventory();
-            if (inv != null && !inv.getViewers().isEmpty()) {
-                for (org.bukkit.entity.HumanEntity viewer : new ArrayList<>(inv.getViewers())) {
-                    viewer.closeInventory();
+        saveActiveChests(false);
+    }
+
+    public void saveActiveChests(boolean closeViewers) {
+        if (closeViewers) {
+            for (DeathChestData chest : chestsById.values()) {
+                Inventory inv = chest.getInventory();
+                if (inv != null && !inv.getViewers().isEmpty()) {
+                    for (org.bukkit.entity.HumanEntity viewer : new ArrayList<>(inv.getViewers())) {
+                        if (closingPlayers.add(viewer.getUniqueId())) {
+                            try {
+                                viewer.closeInventory();
+                            } catch (Throwable ignored) {
+                            } finally {
+                                closingPlayers.remove(viewer.getUniqueId());
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -796,5 +815,9 @@ public class DeathChestManager {
     }
 
     public Map<UUID, DeathChestData> getChestsById() { return chestsById; }
+    public boolean isPlayerClosing(UUID uuid) {
+        return uuid != null && closingPlayers.contains(uuid);
+    }
+
     public DeathChestConfig getConfig() { return config; }
 }

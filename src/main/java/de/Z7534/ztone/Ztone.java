@@ -25,7 +25,6 @@ import de.Z7534.ztone.playrewards.PlayReward;
 import de.Z7534.ztone.pvpmanager.Pvpmanager;
 import de.Z7534.ztone.stoneattack.Stoneattack;
 import de.Z7534.ztone.stonelog.Stonelog;
-import de.Z7534.ztone.stonemute.Stonemute;
 import de.Z7534.ztone.stonevoice.StoneVoice;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
@@ -65,7 +64,6 @@ public class Ztone extends JavaPlugin {
     private Claims claims;
     private Stoneattack stoneattack;
     private Stonelog stonelog;
-    private Stonemute stonemute;
     private MapControl mapControl;
     private StoneVoice stoneVoice;
     private PlayReward playReward;
@@ -142,7 +140,6 @@ public class Ztone extends JavaPlugin {
         boolean claimsEnabled = configManager.isClaimsEnabled();
         boolean stoneattackEnabled = configManager.isStoneattackEnabled();
         boolean stonelogEnabled = configManager.isStonelogEnabled();
-        boolean stonemuteEnabled = configManager.isStonemuteEnabled();
         boolean mapcontrolEnabled = configManager.isMapcontrolEnabled();
         boolean stonevoiceEnabled = configManager.isStonevoiceEnabled();
         boolean playrewardsEnabled = configManager.isPlayrewardsEnabled();
@@ -158,7 +155,6 @@ public class Ztone extends JavaPlugin {
         getLogger().info("  - PvPManager:  " + (pvpmanagerEnabled ? "§aAktiviert" : "§cDeaktiviert"));
         getLogger().info("  - StoneAttack: " + (stoneattackEnabled ? "§aAktiviert" : "§cDeaktiviert"));
         getLogger().info("  - Stonelog:    " + (stonelogEnabled ? "§aAktiviert" : "§cDeaktiviert"));
-        getLogger().info("  - Stonemute:   " + (stonemuteEnabled ? "§aAktiviert" : "§cDeaktiviert"));
         getLogger().info("  - MapControl:  " + (mapcontrolEnabled ? "§aAktiviert" : "§cDeaktiviert"));
         getLogger().info("  - StoneVoice:  " + (stonevoiceEnabled ? "§aAktiviert" : "§cDeaktiviert"));
         getLogger().info("  - PlayRewards: " + (playrewardsEnabled ? "§aAktiviert" : "§cDeaktiviert"));
@@ -284,24 +280,6 @@ public class Ztone extends JavaPlugin {
             }
         }
 
-        // 6. Stonemute Modul initialisieren
-        if (stonemuteEnabled) {
-            boolean vc = Bukkit.getPluginManager().isPluginEnabled("voicechat");
-            boolean lb = Bukkit.getPluginManager().isPluginEnabled("LiteBans");
-            if (!vc || !lb) {
-                String missing = !vc && !lb ? "SimpleVoiceChat & LiteBans" : (!vc ? "SimpleVoiceChat" : "LiteBans");
-                getLogger().severe("Stonemute-Modul wird übersprungen (benötigte Abhängigkeit fehlt: " + missing + ")!");
-                this.stonemute = null;
-            } else {
-                try {
-                    this.stonemute = new Stonemute(this);
-                    this.stonemute.onEnable();
-                } catch (Throwable t) {
-                    handleModuleInitError("Stonemute", t);
-                    this.stonemute = null;
-                }
-            }
-        }
 
         // 7. MapControl Modul initialisieren
         if (mapcontrolEnabled) {
@@ -511,13 +489,6 @@ public class Ztone extends JavaPlugin {
             }
         }
 
-        if (stonemute != null) {
-            try {
-                stonemute.onDisable();
-            } catch (Throwable t) {
-                getLogger().warning("Fehler beim Deaktivieren von Stonemute: " + t.getMessage());
-            }
-        }
 
         if (pvpManager != null && configManager != null && configManager.isPvpmanagerEnabled()) {
             try {
@@ -613,9 +584,6 @@ public class Ztone extends JavaPlugin {
         }
         if (stonelog != null && configManager.isStonelogEnabled()) {
             stonelog.reload();
-        }
-        if (stonemute != null && configManager.isStonemuteEnabled()) {
-            stonemute.reload();
         }
         if (mapControl != null && configManager.isMapcontrolEnabled()) {
             mapControl.getPluginConfig().load();
@@ -877,9 +845,6 @@ public class Ztone extends JavaPlugin {
         return stonelog;
     }
 
-    public Stonemute getStonemute() {
-        return stonemute;
-    }
 
     public MapControl getMapControl() {
         return mapControl;
