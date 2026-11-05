@@ -1,6 +1,6 @@
-# 🛡️ Ztone – All-in-One Server-System
+﻿# 🛡️ Ztone – All-in-One Server-System
 
-Willkommen in der offiziellen Dokumentation für **Ztone** (Version 1.1.5).  
+Willkommen in der offiziellen Dokumentation für **Ztone** (Version 1.1.6).  
 Ztone ist eine hochgradig optimierte, modulare All-in-One-Lösung für Minecraft Paper-, Purpur- und Leaf-Server (kompatibel mit Java 21 & Java 25).
 
 ---
@@ -38,10 +38,10 @@ Ztone bündelt alle wichtigen Core-Features für moderne Survival- und SMP-Netzw
 * **DeathChest:** Sichere Todeskisten mit Restart-Persistenz, Anti-Rollback, automatischer Hologramm-Bereinigung, Killer-Lock-Bypass und Echtzeit-Chatbenachrichtigung beim Plündern.
 * **ClearLag:** Intelligente Boden-Item-Bereinigung mit Countdown-Warnungen und Actionbar.
 * **PlayRewards:** Tägliche Belohnungen, Playtime-Tracking und Streak-System mit Schutzpunkten.
-* **StoneVoice:** SimpleVoiceChat-Gruppenüberwachung für Admins (*Hinweis: Stonemute wurde als eigenständiges Plugin nach C:\Stonemute ausgelagert*).
+* **StoneVoice:** SimpleVoiceChat-Gruppenüberwachung für Admins inkl. Beitritts-Alerts (*Hinweis: Stonemute wurde als eigenständiges Plugin nach C:\Stonemute ausgelagert*).
 * **MapControl:** Erzwingen von Fairplay-Regeln für Client-Minimaps (Xaero, JourneyMap, VoxelMap).
-* **Stonelog:** Hochperformantes Discord-Audit-Logging mit automatischem Multi-Embed-Batching (bis zu 10 Embeds/Request) und parallelen URL-Queues.
-* **StoneSit:** Hochperformantes Sit-, Lay-, LegsUp-, Spin- & PlayerSit-System (1:1 nach GSit für Paper 26.2 optimiert, mit 360° Rotations-Animation, Bett-Schlaf-Logik ohne Respawn-Punkt und Admin-Schutz vor Sneak-Abwurf vom Kopf).
+* **Stonelog:** Hochperformantes Discord-Audit-Logging mit automatischem Multi-Embed-Batching (bis zu 10 Embeds/Request), parallelen URL-Queues und Exempt-Berechtigung.
+* **StoneSit:** Hochperformantes Sit-, Lay-, LegsUp-, Spin- & PlayerSit-System (1:1 nach GSit für Paper 26.2 optimiert, mit 360° Rotations-Animation, Bett-Schlaf-Logik ohne Respawn-Punkt und lautlosem Admin-Schutz vor Sneak-Abwurf im Vanish).
 * **Auto-Config-Sync:** Automatisches Ergänzen neuer Funktionen und Konfigurationsoptionen bei Versionsupdates direkt in bestehende `.yml`-Dateien.
 
 ---
@@ -243,7 +243,7 @@ Ztone 1.1.3 ersetzt die alte pauschale Regionenblockade durch ein natives WorldG
 > **Hierarchie der Kampfbeschränkungen:**
 > 1. **Unclaimed Terrain (Wildnis):**  
 >    * In nicht-forcierten Welten entscheidet der persönliche Spielerstatus (`/pvp on/off`). Haben beide Spieler `/pvp on`, können sie kämpfen.  
->    * Hat ein Spieler `/pvp off`, kann er weder andere angreifen noch von ihnen angegriffen werden.  
+>    * Hat ein Spieler ``/pvp off``, kann er weder andere angreifen noch von ihnen angegriffen werden.  
 >    * Bei forcierten Dimensionen (`--force`) greift der globale Dimensions-Status zwingend für alle Spieler ohne Ausnahmerechte.  
 > 2. **Claims:**  
 >    * PvP ist auf Claims standardmäßig **vollständig deaktiviert**, unabhängig vom `/pvp`-Status der Spieler.  
@@ -315,6 +315,7 @@ Ermöglicht Moderatoren und Admins die diskrete Überwachung von Simple Voice Ch
   * `[speak]`: Kann sprechen und hören.
   * `[hidden]`: Ist in der Gruppenliste für andere Spieler unsichtbar.
   * `[FullMuted]`: Weder hören noch sprechen (reines Ghosting).
+* **Beitritts-Alerts (`adminjoinvoice.alert`):** Teammitglieder mit dieser Permission (Standard: `op`) im selben Sprachkanal erhalten eine formatierte Benachrichtigung, wenn ein Admin per `/adminjoinvoice` beitritt (inkl. Modus-Angabe).
 
 ---
 
@@ -350,6 +351,7 @@ Sendet standardisierte Plugin-Nachrichten an VoxelMap, Xaero's Minimap und Journ
   * **Multi-Embed-Batching:** Bis zu 10 Embeds (Chat, Befehle, Tode, Joins) werden automatisch in einem einzigen HTTP-POST-Request gebündelt versendet.
   * **Parallele Queues:** Jeder Webhook-URL besitzt eine eigene Queue und einen eigenen Worker im 4-Thread-Pool. Ein Rate-Limit (429) auf einer Webhook-URL blockiert niemals andere Kanäle.
   * **Kein Queue-Überlauf:** Die 5000-Nachrichten-Queue läuft selbst bei extremem Chat- oder Befehls-Spam nicht mehr voll.
+* **Exempt-Berechtigung (`stonelog.exempt`):** Spieler mit der Permission `stonelog.exempt` (oder `stonelogs.exempt`, Standard: `op`) werden vollständig aus allen Logs (Chat, Befehle, Joins/Leaves, Tode) ausgeschlossen.
 
 ---
 
@@ -377,7 +379,7 @@ Hochperformantes Sit-, Pose- (`/lay` & `/legsup`), Spin- (`/spin`) und PlayerSit
   * Beendigung per Schleichen (Shift/Sneak), Schaden, Teleportation oder erneute Ausführung von `/spin`.
 * **Spieler-Stapeln (PlayerSit) & Admin-Kopfsitz-Schutz:**
   * Spieler können sich per Rechtsklick mit leerer Hand auf den Kopf anderer Spieler setzen.
-  * **Admin-Schutz (`stonesit.bypass.sneakeject`):** Sitzt ein Admin mit dieser Permission auf dem Kopf eines Spielers (oder weiter oben im Stapel), kann der untere Spieler ihn **nicht** durch Sneaken (Schleichen) vom Kopf werfen!
+  * **Admin-Schutz (`stonesit.bypass.sneakeject`):** Sitzt ein Admin mit dieser Permission auf dem Kopf eines Spielers (oder weiter oben im Stapel), kann der untere Spieler ihn **nicht** durch Sneaken (Schleichen) vom Kopf werfen! Befindet sich der Admin im Vanish, wird die Warnmeldung an den Träger lautlos unterdrückt.
 
 ### 🔹 Alle StoneSit-Permissions im Überblick
 | Permission | Standard | Beschreibung |
@@ -594,3 +596,31 @@ Die fertige Server-JAR befindet sich im Verzeichnis `build/libs/Ztone-1.1.3.jar`
   * `saveActiveChests()` schließt im laufenden Serverbetrieb keine Spieler-Inventare mehr zwangsweise (`saveActiveChests(false)`).
   * Schließvorgänge in `DeathChestManager` werden nun über ein `closingPlayers`-Set vor zirkulären Aufrufen geschützt.
   * `DeathChestListener` führt das Speichern und Aufräumen von Kisten beim Schließen nun direkt synchron aus, wodurch Race-Conditions mit weltbezogenen Ticking-Threads ausgeschlossen sind.
+
+---
+
+## 19. Changelog v1.1.6
+
+### 🛠️ Admin & System
+* **Versionierung:**
+  * Plugin-Version, Build-System und alle Schnittstellen auf Version `1.1.6` angehoben.
+* **StoneVoice VC-Beitrittsbenachrichtigung (`adminjoinvoice.alert`):**
+  * Teammitglieder mit der Berechtigung `adminjoinvoice.alert` (Standard: `op`), die sich im selben VoiceChat-Gruppenraum befinden, erhalten eine formatierte Chat-Benachrichtigung im Small-Caps-Design mit Modus-Badge (`Normal`, `Muted`, `Hidden`, `FullMuted`), sobald ein Admin den Kanal per `/adminjoinvoice` betritt.
+* **Stonelog Exempt-Berechtigung (`stonelog.exempt`):**
+  * Neue Berechtigung `stonelog.exempt` (sowie Alias `stonelogs.exempt`, Standard: `op`) implementiert.
+  * Spieler mit dieser Berechtigung werden vollständig aus sämtlichen Discord-Audit-Logs (Chat, Befehle, Joins/Leaves, Tode) ausgeschlossen.
+* **StoneSit Vanish-Erkennung für Admin-Kopfsitz-Schutz:**
+  * Vollständig entkoppelte Vanish-Erkennung über `VanishUtil` (unterstützt Bukkit-Metadaten `vanished`/`vanish` und dynamische Reflection für `StoneSMPCore`'s `VanishManager`).
+  * Sitzt ein Admin im Vanish auf dem Kopf eines Spielers, ist er weiterhin vor dem Abwurf durch Schleichen geschützt (`stonesit.bypass.sneakeject`), die Warnung an den Träger wird jedoch lautlos unterdrückt, um den Vanish-Status nicht preiszugeben.
+
+### 🐛 Behobene Fehler
+* **Claims Elytra-Sturzflug / Combat- & Bann-Bypass behoben:**
+  * Behoben: Spieler im Combat (bei Grundstücken mit `pvp: false`) oder mit aktivem Claim-Bann konnten bei hoher Fluggeschwindigkeit mit der Elytra im Sturzflug von der Seite in geschützte Grundstücke eindringen.
+  * Forciertes Beenden des Gleitflugs (`setGliding(false)`) und Zurücksetzen der Bewegungsvektoren (`setVelocity(0,0,0)` bzw. gezielter Rückstoß weg von der Grundstücksgrenze) beim versuchten Betreten gesperrter Claims.
+  * Sofortige synchrone Eviction und Flugabbruch selbst dann, wenn der Client-Positionsvektor bereits innerhalb des Grundstücks registriert wurde (`origin == target`).
+  * Neues `EntityToggleGlideEvent` verhindert das erneute Zünden/Aktivieren der Elytra innerhalb von gesperrten oder gebannten Claims.
+  * Doppelte Absicherung der Bewegungsvektoren und des Gleitstatus in `BanEnforcer.evict()`.
+* **PvP/Combat Hunger- & Sättigungs-Bug bei deaktiviertem PvP behoben:**
+  * Behoben: Wenn PvP ausgeschaltet war (auf Claims, durch `/pvp off` oder Admin-Force), regenerierte der schlagende Angreifer durch Schläge Hunger/Sättigung und das geschlagene Opfer verlor rasant Hungerkeulen.
+  * `CombatListener` fängt Angriffe bei deaktiviertem PvP nun auf `EventPriority.LOWEST` ab, setzt Schaden auf 0 und bricht das Event vor nachgelagerten Plugins und Enchants ab.
+  * Ein neuer `FoodLevelChangeEvent`-Listener auf Priorität `HIGHEST` fängt und blockiert unberechtigte Hunger- und Sättigungsänderungen von Angreifer und Opfer im Zeitfenster von abgewehrten Schlägen.

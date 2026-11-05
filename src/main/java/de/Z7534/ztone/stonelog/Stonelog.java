@@ -110,4 +110,9 @@ public class Stonelog {
     public DiscordWebhookSender getWebhookSender() {
         return webhookSender;
     }
+
+    public boolean isExempt(org.bukkit.entity.Player player) {
+        if (player == null) return false;
+        return player.hasPermission("stonelog.exempt") || player.hasPermission("stonelogs.exempt");
+    }
 }

@@ -1,5 +1,5 @@
 ﻿name: Ztone
-version: '1.1.5'
+version: '1.1.6'
 main: de.Z7534.ztone.Ztone
 api-version: '26.2'
 authors: [Z7534]
@@ -347,9 +347,15 @@ permissions:
   pvpmanager.command.pvpdimensiontoggle:
     description: Schaltet das Standard-PvP fÃ¼r eine Dimension ein/aus
     default: op
+  stonelog.exempt:
+    description: Schließt den Spieler vollständig aus allen Stonelog-Aufzeichnungen aus
+    default: op
 
   pvpmanager.feature.recycling:
     description: Zugriff auf das Item-Recycling-Feature
+    default: op
+  adminjoinvoice.alert:
+    description: Erhält eine Chat-Benachrichtigung, wenn ein Admin per /adminjoinvoice dem eigenen VC beitritt
     default: op
 
   pvpmanager.bypass.lootprotection:

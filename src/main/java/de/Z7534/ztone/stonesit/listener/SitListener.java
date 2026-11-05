@@ -428,7 +428,9 @@ public final class SitListener implements Listener {
         // Admin-Schutz: Wenn ein Admin mit stonesit.bypass.sneakeject auf dem Kopf sitzt,
         // kann er durch Sneaken NICHT vom Kopf geworfen werden!
         if (sitManager.hasSneakEjectProtectedPassenger(player)) {
-            config.sendMessage(player, "action-playersit-admin-protected");
+            if (sitManager.hasVisibleSneakEjectProtectedPassenger(player)) {
+                config.sendMessage(player, "action-playersit-admin-protected");
+            }
             return;
         }
 

@@ -30,6 +30,7 @@ public class CommandListener implements Listener {
         if (!entry.isEnabled()) return;
 
         Player player = event.getPlayer();
+        if (plugin.isExempt(player)) return;
         String command = event.getMessage();
 
         Map<String, String> placeholders = Map.of(

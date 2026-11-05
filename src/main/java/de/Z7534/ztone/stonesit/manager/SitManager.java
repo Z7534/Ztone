@@ -717,6 +717,38 @@ public final class SitManager {
             }
             currentUuid = topUuid;
         }
+        for (org.bukkit.entity.Entity p : bottomPlayer.getPassengers()) {
+            if (p instanceof Player topPlayer && isSneakEjectProtected(topPlayer)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Prüft, ob ein geschützter Admin sichtbar (nicht im Vanish) auf dem Kopf sitzt.
+     * Wenn alle geschützten Admins im Vanish sind, soll keine Benachrichtigung gesendet werden,
+     * damit der Vanish-Status des Admins vor dem Spieler geheim bleibt.
+     */
+    public boolean hasVisibleSneakEjectProtectedPassenger(Player bottomPlayer) {
+        if (bottomPlayer == null) return false;
+        UUID currentUuid = bottomPlayer.getUniqueId();
+        int safety = 0;
+        while (currentUuid != null && safety++ < 64) {
+            Map.Entry<UUID, List<UUID>> entry = bottomToTopStacks.get(currentUuid);
+            if (entry == null) break;
+            UUID topUuid = entry.getKey();
+            Player topPlayer = Bukkit.getPlayer(topUuid);
+            if (topPlayer != null && isSneakEjectProtected(topPlayer) && !de.Z7534.ztone.util.VanishUtil.isVanished(topPlayer)) {
+                return true;
+            }
+            currentUuid = topUuid;
+        }
+        for (org.bukkit.entity.Entity p : bottomPlayer.getPassengers()) {
+            if (p instanceof Player topPlayer && isSneakEjectProtected(topPlayer) && !de.Z7534.ztone.util.VanishUtil.isVanished(topPlayer)) {
+                return true;
+            }
+        }
         return false;
     }
 

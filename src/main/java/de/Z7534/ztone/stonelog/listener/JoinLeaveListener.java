@@ -40,7 +40,7 @@ public class JoinLeaveListener implements Listener {
 
     private void send(Player player, boolean joined) {
         ConfigManager.WebhookEntry entry = plugin.getConfigManager().getJoinLeave();
-        if (!entry.isEnabled()) return;
+        if (!entry.isEnabled() || player == null || plugin.isExempt(player)) return;
 
         String dimension = DimensionUtil.of(player.getWorld());
         Location loc = player.getLocation();

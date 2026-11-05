@@ -30,10 +30,94 @@ import org.bukkit.potion.PotionEffectType;
 import java.util.ArrayList;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import org.bukkit.event.entity.FoodLevelChangeEvent;
 
 public class CombatListener implements Listener {
 
     private final Pvpmanager plugin;
+    private final Map<UUID, Long> recentBlockedPvpTime = new ConcurrentHashMap<>();
+
+    private void markPvpBlocked(Player attacker, Player victim) {
+        long now = System.currentTimeMillis();
+        if (attacker != null) {
+            recentBlockedPvpTime.put(attacker.getUniqueId(), now);
+        }
+        if (victim != null) {
+            recentBlockedPvpTime.put(victim.getUniqueId(), now);
+        }
+    }
+
+    public boolean isRecentlyPvpBlocked(UUID playerId) {
+        Long time = recentBlockedPvpTime.get(playerId);
+        return time != null && (System.currentTimeMillis() - time) < 300L;
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    public void onFoodLevelChange(FoodLevelChangeEvent event) {
+        if (event.getEntity() instanceof Player player) {
+            if (isRecentlyPvpBlocked(player.getUniqueId())) {
+                event.setCancelled(true);
+            }
+        }
+    }
+
+    @EventHandler(priority = EventPriority.LOWEST)
+    public void onDamageLowest(EntityDamageByEntityEvent event) {
+        if (!(event.getEntity() instanceof Player victim)) {
+            return;
+        }
+
+        Player attacker = resolveAttacker(event);
+        if (attacker == null || attacker.equals(victim)) {
+            return;
+        }
+
+        if (plugin.getOverrideManager().isOverriding(attacker.getUniqueId())) {
+            return;
+        }
+
+        if (plugin.getConfigManager().config().getStringList("General Settings.World Exclusions").contains(victim.getWorld().getName())) {
+            event.setCancelled(true);
+            event.setDamage(0);
+            markPvpBlocked(attacker, victim);
+            return;
+        }
+
+        WorldGuardHook.PvpState worldGuardState =
+                plugin.getHookManager().worldGuard().queryPvpState(victim.getLocation());
+        if (worldGuardState == WorldGuardHook.PvpState.DENY) {
+            event.setCancelled(true);
+            event.setDamage(0);
+            markPvpBlocked(attacker, victim);
+            return;
+        }
+
+        if (!isPvpAllowedAtLocations(attacker, victim)) {
+            event.setCancelled(true);
+            event.setDamage(0);
+            markPvpBlocked(attacker, victim);
+            return;
+        }
+
+        if (plugin.getRespawnProtectionManager().isProtected(victim.getUniqueId())
+                || plugin.getRespawnProtectionManager().isProtected(attacker.getUniqueId())) {
+            event.setCancelled(true);
+            event.setDamage(0);
+            markPvpBlocked(attacker, victim);
+            return;
+        }
+
+        boolean atWar = warForcesPvP(attacker, victim);
+        boolean attackerCanPvP = atWar || plugin.canPvP(attacker);
+        boolean victimCanPvP = atWar || plugin.canPvP(victim);
+
+        if (!victimCanPvP || !attackerCanPvP) {
+            event.setCancelled(true);
+            event.setDamage(0);
+            markPvpBlocked(attacker, victim);
+        }
+    }
 
     public CombatListener(Pvpmanager plugin) {
         this.plugin = plugin;
@@ -115,6 +199,7 @@ public class CombatListener implements Listener {
 
         // Wurde das Event bereits durch Claim-Schutz, WorldGuard etc. abgebrochen -> KEIN COMBAT TAG!
         if (event.isCancelled()) {
+            markPvpBlocked(attacker, victim);
             return;
         }
 
@@ -164,6 +249,7 @@ public class CombatListener implements Listener {
         // Claims PvP-Pruefung: In Claims ist PvP komplett deaktiviert, ausser durch /claimspvpoverride freigegeben
         if (!isPvpAllowedAtLocations(attacker, victim)) {
             event.setCancelled(true);
+            markPvpBlocked(attacker, victim);
             return; // KEIN COMBAT TAG! KEIN COMBAT MODE!
         }
 
@@ -193,12 +279,14 @@ public class CombatListener implements Listener {
 
         if (!victimCanPvP) {
             event.setCancelled(true);
+            markPvpBlocked(attacker, victim);
             plugin.getMessageDispatcher().send(victim, "Attack_Denied_You");
             plugin.getMessageDispatcher().send(attacker, "Attack_Denied_Other", Map.of("player", victim.getName()));
             return;
         }
         if (!attackerCanPvP) {
             event.setCancelled(true);
+            markPvpBlocked(attacker, victim);
             plugin.getMessageDispatcher().send(attacker, "Attack_Denied_You");
             return;
         }

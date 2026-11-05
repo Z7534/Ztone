@@ -80,6 +80,10 @@ public final class BanEnforcer {
         if (online.isInsideVehicle()) {
             online.leaveVehicle();
         }
+        if (online.isGliding()) {
+            online.setGliding(false);
+        }
+        online.setVelocity(new org.bukkit.util.Vector(0, 0, 0));
         try {
             var stoneSit = de.Z7534.ztone.Ztone.getInstance().getStoneSit();
             if (stoneSit != null && stoneSit.getSitManager() != null) {
@@ -88,7 +92,15 @@ public final class BanEnforcer {
         } catch (Throwable ignored) {}
 
         safeSpotFinder.findSafeSpot(online.getLocation(), claim, config.banSafeSpotRadius())
-                .ifPresentOrElse(online::teleport, () -> online.teleport(online.getWorld().getSpawnLocation()));
+                .ifPresentOrElse(loc -> {
+                    online.teleport(loc);
+                    online.setVelocity(new org.bukkit.util.Vector(0, 0, 0));
+                    online.setGliding(false);
+                }, () -> {
+                    online.teleport(online.getWorld().getSpawnLocation());
+                    online.setVelocity(new org.bukkit.util.Vector(0, 0, 0));
+                    online.setGliding(false);
+                });
         online.sendMessage(Text.line(config.prefix() + config.message("banned-teleported")));
     }
 }

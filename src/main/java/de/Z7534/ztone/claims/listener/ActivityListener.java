@@ -17,6 +17,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
+import org.bukkit.event.entity.EntityToggleGlideEvent;
 import org.bukkit.event.player.*;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -188,6 +189,22 @@ public final class ActivityListener implements Listener {
         activityManager.checkEntryHint(player, e.getTo());
     }
 
+    private void stopElytraGliding(Player player, Location from, Location to) {
+        if (player.isGliding()) {
+            player.setGliding(false);
+        }
+        if (from != null && to != null) {
+            org.bukkit.util.Vector diff = from.toVector().subtract(to.toVector());
+            if (diff.lengthSquared() > 0.0001) {
+                org.bukkit.util.Vector push = diff.normalize().multiply(0.8);
+                push.setY(Math.max(0.1, push.getY()));
+                player.setVelocity(push);
+                return;
+            }
+        }
+        player.setVelocity(new org.bukkit.util.Vector(0, 0, 0));
+    }
+
     private boolean enforceBan(PlayerMoveEvent e) {
         Player player = e.getPlayer();
         Claim target = claimManager.getClaimAt(e.getTo());
@@ -196,10 +213,14 @@ public final class ActivityListener implements Listener {
 
         Claim origin = claimManager.getClaimAt(e.getFrom());
         if (origin == target) {
-            Bukkit.getScheduler().runTask(plugin, () -> evictIfRestricted(player));
-            return false;
+            stopElytraGliding(player, null, null);
+            e.setCancelled(true);
+            evictIfRestricted(player);
+            sendBanMessage(player);
+            return true;
         }
 
+        stopElytraGliding(player, e.getFrom(), e.getTo());
         e.setCancelled(true);
         sendBanMessage(player);
         return true;
@@ -214,9 +235,14 @@ public final class ActivityListener implements Listener {
 
         Claim origin = claimManager.getClaimAt(e.getFrom());
         if (origin == target) {
-            return false;
+            stopElytraGliding(player, null, null);
+            e.setCancelled(true);
+            evictIfRestricted(player);
+            sendCombatMessage(player);
+            return true;
         }
 
+        stopElytraGliding(player, e.getFrom(), e.getTo());
         e.setCancelled(true);
         sendCombatMessage(player);
         return true;
@@ -232,10 +258,14 @@ public final class ActivityListener implements Listener {
 
         Claim origin = claimManager.getClaimAt(e.getFrom());
         if (origin == target) {
-            Bukkit.getScheduler().runTask(plugin, () -> evictIfRestricted(player));
-            return false;
+            stopElytraGliding(player, null, null);
+            e.setCancelled(true);
+            evictIfRestricted(player);
+            sendEggMessage(player);
+            return true;
         }
 
+        stopElytraGliding(player, e.getFrom(), e.getTo());
         e.setCancelled(true);
         sendEggMessage(player);
         return true;
@@ -262,9 +292,16 @@ public final class ActivityListener implements Listener {
         Claim claim = claimManager.getClaimAt(player.getLocation());
         if (claim == null) return;
 
-        if (claim.isBanned(player.getUniqueId())) {
+        boolean banned = claim.isBanned(player.getUniqueId());
+        boolean combatBlocked = isCombatBlocked(player, claim);
+        boolean eggBlocked = isDragonEggBlocked(player);
+
+        if (banned) {
             banEnforcer.evict(player, claim);
-        } else if (isDragonEggBlocked(player)) {
+        } else if (combatBlocked) {
+            banEnforcer.evict(player, claim);
+            sendCombatMessage(player);
+        } else if (eggBlocked) {
             banEnforcer.evict(player, claim);
             sendEggMessage(player);
         }
@@ -296,5 +333,20 @@ public final class ActivityListener implements Listener {
         if (last != null && now - last < MESSAGE_COOLDOWN_MS) return;
         lastEggMessage.put(player.getUniqueId(), now);
         player.sendMessage(Text.line(config.prefix() + "<red>Du trägst das gesicherte Drachenei und darfst keine Claims betreten!</red>"));
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    public void onToggleGlide(EntityToggleGlideEvent e) {
+        if (!(e.getEntity() instanceof Player player)) return;
+        if (!e.isGliding()) return;
+        if (bypass.isActive(player)) return;
+
+        Claim claim = claimManager.getClaimAt(player.getLocation());
+        if (claim == null) return;
+
+        if (claim.isBanned(player.getUniqueId()) || isCombatBlocked(player, claim) || isDragonEggBlocked(player)) {
+            e.setCancelled(true);
+            stopElytraGliding(player, null, null);
+        }
     }
 }

@@ -79,6 +79,34 @@ public class AdminVoiceManager {
                 .append(Component.text(" (", NamedTextColor.GRAY))
                 .append(modesJoined)
                 .append(Component.text(")", NamedTextColor.GRAY)));
+
+        alertChannelMembers(player, group, modesJoined);
+    }
+
+    private void alertChannelMembers(Player admin, Group group, Component modesJoined) {
+        if (plugin.getVoicechatPlugin() == null || plugin.getVoicechatPlugin().getServerApi() == null) {
+            return;
+        }
+        var api = plugin.getVoicechatPlugin().getServerApi();
+        Component alertMessage = Component.text("[StoneVoice] ", NamedTextColor.BLUE)
+                .append(Component.text(admin.getName(), NamedTextColor.GOLD))
+                .append(Component.text(" ist per AdminJoinVoice deinem VC beigetreten! (Modus: ", NamedTextColor.YELLOW))
+                .append(modesJoined)
+                .append(Component.text(")", NamedTextColor.YELLOW));
+
+        for (Player member : Bukkit.getOnlinePlayers()) {
+            if (member.equals(admin)) {
+                continue;
+            }
+            if (!member.hasPermission("adminjoinvoice.alert")) {
+                continue;
+            }
+            VoicechatConnection conn = api.getConnectionOf(member.getUniqueId());
+            if (conn != null && conn.isInGroup() && conn.getGroup() != null
+                    && conn.getGroup().getId().equals(group.getId())) {
+                send(member, alertMessage);
+            }
+        }
     }
 
     /**

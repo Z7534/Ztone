@@ -46,6 +46,9 @@ public class DeathListener implements Listener {
         if (!entry.isEnabled()) return;
 
         Player victim = event.getPlayer();
+        if (victim == null || plugin.isExempt(victim)) return;
+        Player killer = victim.getKiller();
+        if (killer != null && plugin.isExempt(killer)) return;
         DeathDetails details = resolveDeathDetails(victim, event);
 
         String dimension = DimensionUtil.of(victim.getWorld());

@@ -84,7 +84,7 @@ public class ChatListener implements Listener {
     }
 
     private void handle(Player player, String message) {
-        if (player == null || message == null) return;
+        if (player == null || message == null || plugin.isExempt(player)) return;
         if (isDuplicate(player.getUniqueId(), message)) return;
 
         ConfigManager.WebhookEntry entry = plugin.getConfigManager().getChat();
