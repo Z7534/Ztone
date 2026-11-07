@@ -3,10 +3,13 @@ package de.Z7534.ztone.clansystem.commands;
 import de.Z7534.ztone.Ztone;
 import de.Z7534.ztone.clansystem.gui.ClanChestGUI;
 import de.Z7534.ztone.clansystem.gui.ClanSettingsGUI;
+import de.Z7534.ztone.clansystem.managers.EconomyManager;
+import de.Z7534.ztone.clansystem.managers.ClanTaxManager;
 import de.Z7534.ztone.clansystem.managers.MessageManager;
 import de.Z7534.ztone.clansystem.models.Clan;
 import de.Z7534.ztone.clansystem.models.ClanMember;
 import de.Z7534.ztone.clansystem.models.ClanRank;
+import de.Z7534.ztone.clansystem.models.ClanWar;
 import de.Z7534.ztone.clansystem.utils.ColorUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
@@ -29,7 +32,7 @@ public class ClanAdminCommand implements CommandExecutor, TabCompleter {
 
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
-        if (!sender.hasPermission("clansystem.admin")) {
+        if (!sender.hasPermission("clansystem.admin") && !sender.hasPermission("clansystem.admin.war")) {
             plugin.getMessageManager().send(sender, "general.no-permission");
             return true;
         }
@@ -44,6 +47,7 @@ public class ClanAdminCommand implements CommandExecutor, TabCompleter {
         switch (subCommand) {
             case "reload" -> handleReload(sender);
             case "delete" -> handleDelete(sender, args);
+            case "war" -> handleWar(sender, args);
             case "setlevel" -> handleSetLevel(sender, args);
             case "setleader" -> handleSetLeader(sender, args);
             case "chest" -> handleChest(sender, args);
@@ -105,6 +109,53 @@ public class ClanAdminCommand implements CommandExecutor, TabCompleter {
         plugin.getClanManager().disbandClan(clan);
         plugin.getMessageManager().send(sender, "admin.clan-deleted",
                 MessageManager.of("clan", clanName));
+    }
+
+    
+    private void handleWar(CommandSender sender, String[] args) {
+        if (!sender.hasPermission("clansystem.admin.war") && !sender.hasPermission("clansystem.admin")) {
+            plugin.getMessageManager().send(sender, "general.no-permission");
+            return;
+        }
+
+        if (args.length < 4 || !args[3].equalsIgnoreCase("delete")) {
+            plugin.getMessageManager().send(sender, "general.invalid-usage",
+                    MessageManager.of("usage", "/clanadmin war <base-clan> <enemy-clan> delete"));
+            return;
+        }
+
+        Clan baseClan = plugin.getClanManager().getClan(args[1]);
+        if (baseClan == null) {
+            plugin.getMessageManager().send(sender, "clan.not-found", MessageManager.of("clan", args[1]));
+            return;
+        }
+
+        Clan enemyClan = plugin.getClanManager().getClan(args[2]);
+        if (enemyClan == null) {
+            plugin.getMessageManager().send(sender, "clan.not-found", MessageManager.of("clan", args[2]));
+            return;
+        }
+
+        if (baseClan.getId() == enemyClan.getId()) {
+            sender.sendMessage("§cEin Clan kann keinen Krieg gegen sich selbst fuehren.");
+            return;
+        }
+
+        ClanWar war = plugin.getWarManager().getWarBetween(baseClan.getId(), enemyClan.getId());
+        if (war == null || !war.isActive()) {
+            plugin.getMessageManager().send(sender, "admin.war-not-found",
+                    MessageManager.of("clan", baseClan.getColoredName(), "enemy", enemyClan.getColoredName()));
+            return;
+        }
+
+        boolean success = plugin.getWarManager().deleteWar(baseClan.getId(), enemyClan.getId());
+        if (success) {
+            plugin.getMessageManager().send(sender, "admin.war-deleted",
+                    MessageManager.of("clan", baseClan.getColoredName(), "enemy", enemyClan.getColoredName()));
+        } else {
+            plugin.getMessageManager().send(sender, "admin.war-not-found",
+                    MessageManager.of("clan", baseClan.getColoredName(), "enemy", enemyClan.getColoredName()));
+        }
     }
 
     private void handleSetLevel(CommandSender sender, String[] args) {
@@ -807,13 +858,43 @@ public class ClanAdminCommand implements CommandExecutor, TabCompleter {
             return;
         }
 
+        if (args[1].equalsIgnoreCase("setlevelbase")) {
+            if (args.length < 4) {
+                plugin.getMessageManager().send(sender, "general.invalid-usage",
+                        MessageManager.of("usage", "/clanadmin taxes setlevelbase <level> <betrag>"));
+                return;
+            }
+            int level;
+            try {
+                level = Integer.parseInt(args[2]);
+            } catch (NumberFormatException e) {
+                plugin.getMessageManager().send(sender, "general.invalid-usage",
+                        MessageManager.of("usage", "/clanadmin taxes setlevelbase <level> <betrag>"));
+                return;
+            }
+            Double parsed = EconomyManager.parseAmount(args[3]);
+            if (parsed == null || parsed < 0) {
+                plugin.getMessageManager().send(sender, "bank.invalid-amount");
+                return;
+            }
+            if (parsed > ClanTaxManager.MAX_TAX_LIMIT) {
+                plugin.getMessageManager().send(sender, "clan.taxes.limit-exceeded",
+                        MessageManager.of("max", "300.000.000 $"));
+                return;
+            }
+            plugin.getConfigManager().setLevelBaseTax(level, parsed);
+            sender.sendMessage("§aBasis-Steuer für Level §e" + level + " §aauf §e" + plugin.getEconomyManager().format(parsed) + " §agesetzt.");
+            return;
+        }
+
         plugin.getMessageManager().send(sender, "general.invalid-usage",
-                MessageManager.of("usage", "/clanadmin taxes [run|info]"));
+                MessageManager.of("usage", "/clanadmin taxes [run|info|setlevelbase]"));
     }
 
     private void sendHelp(CommandSender sender) {
         sender.sendMessage(de.Z7534.ztone.clansystem.utils.ColorUtils.colorize("&8&m----------&8[ &6Clan-Admin &8]&m----------"));
         sender.sendMessage(de.Z7534.ztone.clansystem.utils.ColorUtils.colorize("&e/clanadmin reload &8- &7Konfiguration neu laden"));
+        sender.sendMessage(de.Z7534.ztone.clansystem.utils.ColorUtils.colorize("&e/clanadmin war <clan> <gegner> delete &8- &7Clankrieg restlos löschen"));
         sender.sendMessage(de.Z7534.ztone.clansystem.utils.ColorUtils.colorize("&e/clanadmin delete <clan> &8- &7Clan löschen"));
         sender.sendMessage(de.Z7534.ztone.clansystem.utils.ColorUtils.colorize("&e/clanadmin setlevel <clan> <level> &8- &7Level setzen"));
         sender.sendMessage(de.Z7534.ztone.clansystem.utils.ColorUtils.colorize("&e/clanadmin setleader <clan> <spieler> &8- &7Leader setzen"));
@@ -834,7 +915,7 @@ public class ClanAdminCommand implements CommandExecutor, TabCompleter {
 
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
-        if (!sender.hasPermission("clansystem.admin")) {
+        if (!sender.hasPermission("clansystem.admin") && !sender.hasPermission("clansystem.admin.war")) {
             return Collections.emptyList();
         }
 
@@ -842,7 +923,7 @@ public class ClanAdminCommand implements CommandExecutor, TabCompleter {
 
         if (args.length == 1) {
             List<String> subCommands = Arrays.asList(
-                    "reload", "delete", "setlevel", "setleader", "chest", "addpoints",
+                    "reload", "delete", "war", "setlevel", "setleader", "chest", "addpoints",
                     "info", "forcejoin", "forceleave", "list", "settings", "bold",
                     "home", "warp", "promote", "demote", "taxes", "steuern", "help"
             );
@@ -856,8 +937,14 @@ public class ClanAdminCommand implements CommandExecutor, TabCompleter {
 
             switch (subCommand) {
                 case "taxes", "steuern" -> {
-                    completions = Arrays.asList("run", "info").stream()
+                    completions = Arrays.asList("run", "info", "setlevelbase").stream()
                             .filter(s -> s.startsWith(input))
+                            .collect(Collectors.toList());
+                }
+                case "war" -> {
+                    completions = plugin.getClanManager().getAllClans().stream()
+                            .map(Clan::getName)
+                            .filter(n -> n.toLowerCase().startsWith(input))
                             .collect(Collectors.toList());
                 }
                 case "delete", "setlevel", "setleader", "chest", "addpoints", "settings", "bold", "home", "warp" -> {
@@ -885,6 +972,27 @@ public class ClanAdminCommand implements CommandExecutor, TabCompleter {
             String input = args[2].toLowerCase();
 
             switch (subCommand) {
+                case "taxes", "steuern" -> {
+                    if (args[1].equalsIgnoreCase("setlevelbase")) {
+                        for (int i = 1; i <= plugin.getLevelManager().getMaxLevel(); i++) {
+                            String level = String.valueOf(i);
+                            if (level.startsWith(input)) {
+                                completions.add(level);
+                            }
+                        }
+                    }
+                }
+                case "war" -> {
+                    Clan baseClan = plugin.getClanManager().getClan(args[1]);
+                    if (baseClan != null) {
+                        completions = baseClan.getActiveWars().stream()
+                                .map(enemyId -> plugin.getClanManager().getClan(enemyId))
+                                .filter(java.util.Objects::nonNull)
+                                .map(Clan::getName)
+                                .filter(n -> n.toLowerCase().startsWith(input))
+                                .collect(Collectors.toList());
+                    }
+                }
                 case "setlevel" -> {
                     for (int i = 1; i <= plugin.getLevelManager().getMaxLevel(); i++) {
                         String level = String.valueOf(i);
@@ -939,6 +1047,12 @@ public class ClanAdminCommand implements CommandExecutor, TabCompleter {
                             .filter(n -> n.toLowerCase().startsWith(input))
                             .collect(Collectors.toList());
                 }
+            }
+
+        } else if (args.length == 4 && args[0].equalsIgnoreCase("war")) {
+            String input = args[3].toLowerCase();
+            if ("delete".startsWith(input)) {
+                completions.add("delete");
             }
         }
 

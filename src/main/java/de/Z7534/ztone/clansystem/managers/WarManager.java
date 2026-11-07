@@ -5,7 +5,14 @@ import de.Z7534.ztone.clansystem.models.Clan;
 import de.Z7534.ztone.clansystem.models.ClanMember;
 import de.Z7534.ztone.clansystem.models.ClanWar;
 import de.Z7534.ztone.clansystem.models.Permission;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.title.Title;
+import org.bukkit.Bukkit;
+import org.bukkit.Sound;
+import org.bukkit.entity.Player;
+import org.bukkit.scheduler.BukkitTask;
 
+import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -14,16 +21,30 @@ public class WarManager {
     private final Ztone plugin;
     private final Map<Integer, ClanWar> activeWars;
     private final Map<String, ClanWar> warsByClanPair;
+    private final Map<Integer, BukkitTask> preparationTasks;
 
     public WarManager(Ztone plugin) {
         this.plugin = plugin;
         this.activeWars = new ConcurrentHashMap<>();
         this.warsByClanPair = new ConcurrentHashMap<>();
+        this.preparationTasks = new ConcurrentHashMap<>();
     }
 
     public void registerWar(ClanWar war) {
         activeWars.put(war.getId(), war);
         warsByClanPair.put(getWarKey(war.getAttackerClanId(), war.getDefenderClanId()), war);
+
+        if (war.isInPreparation()) {
+            int prepSeconds = plugin.getConfigManager().getWarPreparationTimeSeconds();
+            long finishTime = war.getPvpStartTime() > 0 ? war.getPvpStartTime() : (war.getStartedAt() + (prepSeconds * 1000L));
+            long remainingMillis = finishTime - System.currentTimeMillis();
+            if (remainingMillis > 0) {
+                long ticks = Math.max(1L, remainingMillis / 50L);
+                schedulePvpActivation(war.getId(), ticks);
+            } else {
+                activateWarPvP(war.getId());
+            }
+        }
     }
 
     private String getWarKey(int clanIdA, int clanIdB) {
@@ -48,7 +69,18 @@ public class WarManager {
         if (!attacker.isWarsEnabled() || !defender.isWarsEnabled()) {
             return null;
         }
+
         ClanWar war = new ClanWar(attacker.getId(), defender.getId());
+        int prepSeconds = plugin.getConfigManager().getWarPreparationTimeSeconds();
+        if (prepSeconds > 0) {
+            war.setStatus(ClanWar.WarStatus.PREPARATION);
+            war.setPvpActive(false);
+            war.setPvpStartTime(System.currentTimeMillis() + (prepSeconds * 1000L));
+        } else {
+            war.setStatus(ClanWar.WarStatus.ACTIVE);
+            war.setPvpActive(true);
+            war.setPvpStartTime(System.currentTimeMillis());
+        }
 
         int warId = plugin.getDatabaseManager().createWar(war).join();
         if (warId == -1) {
@@ -66,7 +98,74 @@ public class WarManager {
         attacker.broadcastMessage(declaredMessage);
         defender.broadcastMessage(declaredMessage);
 
+        if (prepSeconds > 0) {
+            String prepMessage = plugin.getMessageManager().get("war.preparation-started",
+                    MessageManager.of("time", String.valueOf(prepSeconds), "clan", attacker.getColoredName(), "enemy", defender.getColoredName()));
+            attacker.broadcastMessage(prepMessage);
+            defender.broadcastMessage(prepMessage);
+
+            schedulePvpActivation(warId, prepSeconds * 20L);
+        }
+
         return war;
+    }
+
+    public void schedulePvpActivation(int warId, long ticks) {
+        BukkitTask existing = preparationTasks.remove(warId);
+        if (existing != null) {
+            existing.cancel();
+        }
+
+        BukkitTask task = Bukkit.getScheduler().runTaskLater(plugin, () -> activateWarPvP(warId), ticks);
+        preparationTasks.put(warId, task);
+    }
+
+    public void activateWarPvP(int warId) {
+        BukkitTask task = preparationTasks.remove(warId);
+        if (task != null) {
+            task.cancel();
+        }
+
+        ClanWar war = activeWars.get(warId);
+        if (war == null || war.getStatus() == ClanWar.WarStatus.ENDED) {
+            return;
+        }
+
+        war.setStatus(ClanWar.WarStatus.ACTIVE);
+        war.setPvpActive(true);
+        war.setPvpStartTime(System.currentTimeMillis());
+        plugin.getDatabaseManager().updateWar(war);
+
+        Clan clanA = plugin.getClanManager().getClan(war.getAttackerClanId());
+        Clan clanB = plugin.getClanManager().getClan(war.getDefenderClanId());
+
+        String activatedMsg = plugin.getMessageManager().get("war.pvp-activated",
+                MessageManager.of("clan", clanA != null ? clanA.getColoredName() : "?",
+                        "enemy", clanB != null ? clanB.getColoredName() : "?"));
+
+        if (clanA != null) {
+            clanA.broadcastMessage(activatedMsg);
+            broadcastWarStartEffects(clanA);
+        }
+        if (clanB != null) {
+            clanB.broadcastMessage(activatedMsg);
+            broadcastWarStartEffects(clanB);
+        }
+    }
+
+    private void broadcastWarStartEffects(Clan clan) {
+        for (ClanMember member : clan.getMembers().values()) {
+            Player p = Bukkit.getPlayer(member.getUuid());
+            if (p != null && p.isOnline()) {
+                p.playSound(p.getLocation(), Sound.ENTITY_ENDER_DRAGON_GROWL, 1.0f, 1.0f);
+                Title title = Title.title(
+                        Component.text("§c§lKRIEG GESTARTET!"),
+                        Component.text("§ePvP ist ab sofort aktiv!"),
+                        Title.Times.times(Duration.ofMillis(500), Duration.ofMillis(3000), Duration.ofMillis(1000))
+                );
+                p.showTitle(title);
+            }
+        }
     }
 
     public void endWar(int clanIdA, int clanIdB, Integer winnerId) {
@@ -75,6 +174,11 @@ public class WarManager {
 
         if (war == null || !war.isActive()) {
             return;
+        }
+
+        BukkitTask task = preparationTasks.remove(war.getId());
+        if (task != null) {
+            task.cancel();
         }
 
         war.end(winnerId);
@@ -141,6 +245,62 @@ public class WarManager {
         }
     }
 
+    public boolean deleteWar(int clanIdA, int clanIdB) {
+        String key = getWarKey(clanIdA, clanIdB);
+        ClanWar war = warsByClanPair.remove(key);
+        if (war == null) {
+            for (ClanWar w : activeWars.values()) {
+                if (w.involves(clanIdA) && w.involves(clanIdB)) {
+                    war = w;
+                    break;
+                }
+            }
+        }
+        if (war == null) {
+            return false;
+        }
+
+        activeWars.remove(war.getId());
+        warsByClanPair.remove(key);
+
+        BukkitTask task = preparationTasks.remove(war.getId());
+        if (task != null) {
+            task.cancel();
+        }
+
+        plugin.getDatabaseManager().deleteWar(war.getId());
+
+        Clan clanA = plugin.getClanManager().getClan(clanIdA);
+        Clan clanB = plugin.getClanManager().getClan(clanIdB);
+
+        if (clanA != null) {
+            clanA.removeWar(clanIdB);
+            plugin.getClanManager().updateClanInDatabase(clanA);
+            if (plugin.getGlowManager() != null) {
+                plugin.getGlowManager().refresh(clanA);
+            }
+        }
+        if (clanB != null) {
+            clanB.removeWar(clanIdA);
+            plugin.getClanManager().updateClanInDatabase(clanB);
+            if (plugin.getGlowManager() != null) {
+                plugin.getGlowManager().refresh(clanB);
+            }
+        }
+
+        String adminDeletedMsg = plugin.getMessageManager().get("war.admin-deleted",
+                MessageManager.of("clan", clanA != null ? clanA.getColoredName() : "?",
+                        "enemy", clanB != null ? clanB.getColoredName() : "?"));
+        if (clanA != null) {
+            clanA.broadcastMessage(adminDeletedMsg);
+        }
+        if (clanB != null) {
+            clanB.broadcastMessage(adminDeletedMsg);
+        }
+
+        return true;
+    }
+
     public void surrender(Clan surrendering, Clan opponent) {
         ClanWar war = getWarBetween(surrendering.getId(), opponent.getId());
         if (war == null) {
@@ -159,9 +319,14 @@ public class WarManager {
         return war != null && war.isActive();
     }
 
+    public boolean isWarPvpActive(int clanIdA, int clanIdB) {
+        ClanWar war = getWarBetween(clanIdA, clanIdB);
+        return war != null && war.isPvpActive();
+    }
+
     public void recordKill(UUID killerUuid, UUID victimUuid, int killerClanId, int victimClanId) {
         ClanWar war = getWarBetween(killerClanId, victimClanId);
-        if (war == null || !war.isActive()) {
+        if (war == null || !war.isPvpActive()) {
             return;
         }
 
@@ -217,6 +382,7 @@ public class WarManager {
     }
 
     public Collection<ClanWar> getAllActiveWars() {
-        return Collections.unmodifiableCollection(activeWars.values());
+        Collections.unmodifiableCollection(activeWars.values());
+        return activeWars.values();
     }
 }

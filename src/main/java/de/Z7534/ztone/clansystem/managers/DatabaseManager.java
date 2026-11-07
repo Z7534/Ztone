@@ -1167,6 +1167,24 @@ public class DatabaseManager {
             }
         }, dbExecutor);
     }
+    public CompletableFuture<Void> deleteWar(int warId) {
+        return CompletableFuture.runAsync(() -> {
+            try (Connection conn = getConnection()) {
+                try (PreparedStatement ps = conn.prepareStatement("DELETE FROM " + tablePrefix + "war_kills WHERE war_id = ?")) {
+                    ps.setInt(1, warId);
+                    ps.executeUpdate();
+                }
+                try (PreparedStatement ps = conn.prepareStatement("DELETE FROM " + tablePrefix + "wars WHERE id = ?")) {
+                    ps.setInt(1, warId);
+                    ps.executeUpdate();
+                }
+            } catch (SQLException e) {
+                plugin.getLogger().severe("Fehler beim restlosen Loeschen des Krieges: " + e.getMessage());
+                e.printStackTrace();
+            }
+        }, dbExecutor);
+    }
+
 
     public CompletableFuture<Void> addWarKill(int warId, UUID killerUuid, UUID victimUuid, int killerClanId, int points) {
         return CompletableFuture.runAsync(() -> {
@@ -1213,7 +1231,7 @@ public class DatabaseManager {
 
     public List<ClanWar> loadActiveWars() {
         List<ClanWar> wars = new ArrayList<>();
-        String sql = "SELECT * FROM " + tablePrefix + "wars WHERE status = 'ACTIVE'";
+        String sql = "SELECT * FROM " + tablePrefix + "wars WHERE status = 'ACTIVE' OR status = 'PREPARATION' OR status = 'PREPARATION'";
 
         try (Connection conn = getConnection();
              PreparedStatement ps = conn.prepareStatement(sql);

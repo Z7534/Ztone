@@ -4,46 +4,38 @@ import de.Z7534.ztone.stoneattack.Stoneattack;
 import net.kyori.adventure.text.Component;
 import org.bukkit.Color;
 import org.bukkit.Location;
+import org.bukkit.Material;
+import org.bukkit.NamespacedKey;
 import org.bukkit.World;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.Display;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Interaction;
+import org.bukkit.entity.ItemDisplay;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.TextDisplay;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.util.Transformation;
 import org.joml.AxisAngle4f;
 import org.joml.Vector3f;
 
+import java.lang.reflect.Method;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 import java.util.function.Consumer;
 
 /**
- * Erzeugt die Hologramm-Bausteine (TextDisplay / Interaction) ueber die
- * normale Paper-API.
- *
- * Alle Displays haben Billboard FIXED: Sie drehen sich NIE mit dem Blick des
- * Spielers, sondern zeigen konstant in die Richtung, in die ihr Yaw (aus dem
- * {@link BoardFrame}) zeigt.
- *
- * Geteilte Entities (Platten, Beschriftungen ...) sind standardmaessig fuer
- * alle sichtbar. Entities, die nur fuer einen Spieler sind, werden mit
- * {@code visibleByDefault = false} gespawnt und per {@link Player#showEntity}
- * genau diesem einen Spieler gezeigt.
- *
- * Alle Methoden muessen auf dem Main-Thread aufgerufen werden.
+ * Erzeugt die Hologramm-Bausteine (TextDisplay / ItemDisplay / Interaction) über die Paper-API.
  */
 public class DisplayFactory {
 
     public static final String ENTITY_TAG = "stoneattack_hologram";
 
     private final Stoneattack plugin;
-
-    /** Entity-ID -> Entity (alle von dieser Factory erzeugten). */
     private final Map<Integer, Entity> entities = new HashMap<>();
-    /** Zuletzt gesetzter Inhalt je Entity, damit Unveraendertes nicht jede Sekunde neu gesendet wird. */
     private final Map<Integer, Object> lastState = new HashMap<>();
 
     public DisplayFactory(Stoneattack plugin) {
@@ -70,7 +62,6 @@ public class DisplayFactory {
         return entity;
     }
 
-    /** Gemeinsame Einstellungen aller Displays (Ausrichtung fix, Sichtweite, Helligkeit). */
     private void applyCommon(Display display, float scaleX, float scaleY, float scaleZ) {
         FileConfiguration cfg = plugin.getConfigManager().get();
         display.setBillboard(Display.Billboard.FIXED);
@@ -82,149 +73,265 @@ public class DisplayFactory {
                 new Vector3f(scaleX, scaleY, scaleZ), new AxisAngle4f()));
     }
 
-    /** Die Sichtweite eines Displays wird in Vielfachen von 64 Bloecken angegeben; die Config gibt Bloecke an. */
     private float viewRange(FileConfiguration cfg) {
         double blocks = cfg.getDouble("leaderboard.render.view-distance-blocks", 32);
         return (float) Math.max(1.0, blocks / 64.0);
     }
 
     /**
-     * Ein Text-Display (Drehpunkt = Mitte der Unterkante) OHNE eigenen Hintergrund. Der Text wird mit
-     * {@link #setText} gesetzt. Zeilen werden nie umgebrochen.
+     * Ein Text-Display mit garantiert 100% transparentem Hintergrund (Color.fromARGB(0, 0, 0, 0)),
+     * damit niemals graue Vanilla-Boxen vor oder hinter Custom-PNG-Texturen erscheinen.
      */
     public TextDisplay spawnText(Location loc, Player viewer, boolean visibleByDefault, float scale) {
+        return spawnText(loc, viewer, visibleByDefault, scale, TextDisplay.TextAlignment.CENTER);
+    }
+
+    /**
+     * Ein Text-Display mit expliziter Textausrichtung (LEFT für Eintragszeilen, CENTER für Titel/Buttons).
+     */
+    public TextDisplay spawnText(Location loc, Player viewer, boolean visibleByDefault, float scale, TextDisplay.TextAlignment alignment) {
         boolean shadow = plugin.getConfigManager().get().getBoolean("leaderboard.render.text-shadow", true);
         return spawn(loc, TextDisplay.class, viewer, visibleByDefault, d -> {
             applyCommon(d, scale, scale, scale);
             d.setSeeThrough(false);
             d.setDefaultBackground(false);
-            d.setBackgroundColor(Color.fromARGB(0));
+            d.setBackgroundColor(Color.fromARGB(0, 0, 0, 0));
             d.setShadowed(shadow);
-            d.setAlignment(TextDisplay.TextAlignment.CENTER);
+            d.setAlignment(alignment);
             d.setLineWidth(2000);
         });
     }
 
     /**
-     * Eine einfarbige Rechteck-Flaeche. Technik: Der Hintergrund eines Text-Displays mit dem Text " " ist bei
-     * Skalierung 1 genau 5 x 10 Pixel gross (= 0,125 x 0,25 Bloecke) und reicht von -2 bis +3 Pixel um den
-     * Drehpunkt und von 0 bis 10 Pixel nach oben. Mit der Skalierung (8*breite, 4*hoehe) entsteht daraus
-     * exakt ein Rechteck in Blockgroesse.
-     *
-     * @param pivot Position der Mitte-Unterkante MIT dem Versatz von 0,4 * Breite nach rechts
-     *              (siehe {@link HologramManager}, dort wird das umgerechnet)
+     * Ein Item-Display für Custom-Model-Data (z. B. Custom-Textur Buttons oder Hintergründe).
      */
-    public TextDisplay spawnRect(Location pivot, double width, double height, int argb, boolean visibleByDefault) {
-        return spawnRectInternal(pivot, width, height, argb, null, visibleByDefault);
+    public ItemDisplay spawnItem(Location loc, Player viewer, boolean visibleByDefault,
+                                 Material mat, int customModelData, String itemModelKey,
+                                 float scaleX, float scaleY, float scaleZ) {
+        return spawn(loc, ItemDisplay.class, viewer, visibleByDefault, d -> {
+            applyCommon(d, scaleX, scaleY, scaleZ);
+            ItemStack item = new ItemStack(mat);
+            ItemMeta meta = item.getItemMeta();
+            if (meta != null) {
+                applyModel(meta, customModelData, itemModelKey);
+                item.setItemMeta(meta);
+            }
+            d.setItemStack(item);
+            d.setItemDisplayTransform(ItemDisplay.ItemDisplayTransform.FIXED);
+        });
+    }
+
+    public ItemDisplay spawnBackgroundDisplay(Location loc, Material mat, int customModelData, String itemModelKey) {
+        return spawnBackgroundDisplay(loc, mat, customModelData, itemModelKey, 3.0f, 3.0f);
+    }
+
+    /** Ein Hintergrund-Stueck mit exakter Breite/Hoehe in Bloecken (flache Z-Achse). */
+    public ItemDisplay spawnBackgroundDisplay(Location loc, Material mat, int customModelData, String itemModelKey,
+                                              float widthBlocks, float heightBlocks) {
+        return spawn(loc, ItemDisplay.class, null, true, d -> {
+            applyCommon(d, widthBlocks, heightBlocks, 0.05f);
+            ItemStack item = new ItemStack(mat);
+            ItemMeta meta = item.getItemMeta();
+            if (meta != null) {
+                applyModel(meta, customModelData, itemModelKey);
+                item.setItemMeta(meta);
+            }
+            d.setItemStack(item);
+            d.setItemDisplayTransform(ItemDisplay.ItemDisplayTransform.FIXED);
+        });
+    }
+
+    private void applyModel(ItemMeta meta, int customModelData, String itemModelKey) {
+        if (customModelData > 0) {
+            meta.setCustomModelData(customModelData);
+        }
+        if (itemModelKey != null && !itemModelKey.trim().isEmpty()) {
+            String keyStr = itemModelKey.trim();
+            String ns = "stoneattack";
+            String path = keyStr;
+            if (keyStr.contains(":")) {
+                String[] parts = keyStr.split(":", 2);
+                ns = parts[0];
+                path = parts[1];
+            }
+            if (path.startsWith("item/")) {
+                path = path.substring(5);
+            } else if (path.startsWith("items/")) {
+                path = path.substring(6);
+            }
+            try {
+                NamespacedKey key = NamespacedKey.fromString(ns.toLowerCase(Locale.ROOT) + ":" + path.toLowerCase(Locale.ROOT));
+                if (key != null) {
+                    Method m = meta.getClass().getMethod("setItemModel", NamespacedKey.class);
+                    m.invoke(meta, key);
+                }
+            } catch (Throwable ignored) {
+            }
+        }
     }
 
     /**
-     * Wie {@link #spawnRect}, aber NUR fuer einen einzelnen Spieler sichtbar (fuer alle anderen unsichtbar).
-     * Gedacht fuer Hover-Effekte: jeder Spieler bekommt seine eigenen Flaechen und kann sie unabhaengig
-     * von den anderen animieren.
+     * Ein prozedurales Rechteck für den Fallback-Modus ohne Resourcepack.
      */
-    public TextDisplay spawnRectFor(Player viewer, Location pivot, double width, double height, int argb) {
-        return spawnRectInternal(pivot, width, height, argb, viewer, false);
-    }
+    public TextDisplay spawnRect(Location loc, double widthBlocks, double heightBlocks, int argbColor,
+                                 boolean visibleByDefault) {
+        float scaleX = (float) (widthBlocks * 40.0);
+        float scaleY = (float) (heightBlocks * 40.0);
+        float scaleZ = 0.05f;
 
-    private TextDisplay spawnRectInternal(Location pivot, double width, double height, int argb, Player viewer,
-                                          boolean visibleByDefault) {
-        return spawn(pivot, TextDisplay.class, viewer, visibleByDefault, d -> {
-            applyCommon(d, (float) (8.0 * width), (float) (4.0 * height), 1f);
+        return spawn(loc, TextDisplay.class, null, visibleByDefault, d -> {
+            applyCommon(d, scaleX, scaleY, scaleZ);
             d.setSeeThrough(false);
             d.setDefaultBackground(false);
-            d.setShadowed(false);
-            d.setAlignment(TextDisplay.TextAlignment.CENTER);
-            d.setLineWidth(2000);
+            d.setBackgroundColor(Color.fromARGB(argbColor));
             d.text(Component.text(" "));
-            d.setBackgroundColor(Color.fromARGB(argb));
+            d.setShadowed(false);
         });
     }
 
-    /**
-     * Unsichtbare Klick-Flaeche. Die Hitbox einer Interaction waechst von ihrer Position NACH OBEN
-     * (Position = Mitte der Unterkante); die Breite gilt fuer beide waagerechten Achsen.
-     */
     public Interaction spawnInteraction(Location loc, float width, float height) {
         return spawn(loc, Interaction.class, null, true, i -> {
             i.setInteractionWidth(width);
             i.setInteractionHeight(height);
+            i.setResponsive(true);
         });
     }
 
     // ----------------------------------------------------------------
-    // Aktualisieren
+    // Laufende Updates
     // ----------------------------------------------------------------
+
+    public void setItemModel(ItemDisplay display, int customModelData, String itemModelKey) {
+        setItemModel(display, Material.PAPER, customModelData, itemModelKey);
+    }
+
+    public void setItemModel(ItemDisplay display, Material material, int customModelData, String itemModelKey) {
+        if (display == null || !display.isValid()) {
+            return;
+        }
+        Object old = lastState.get(display.getEntityId());
+        String stateKey = customModelData + "|" + itemModelKey;
+        if (stateKey.equals(old)) {
+            return;
+        }
+        lastState.put(display.getEntityId(), stateKey);
+
+        ItemStack item = display.getItemStack();
+        if (item == null || (material != null && item.getType() != material)) {
+            item = new ItemStack(material != null ? material : Material.PAPER);
+        }
+        ItemMeta meta = item.getItemMeta();
+        if (meta != null) {
+            applyModel(meta, customModelData, itemModelKey);
+            item.setItemMeta(meta);
+        }
+        display.setItemStack(item);
+    }
+
+    public void setBackground(TextDisplay display, int argb) {
+        if (display == null || !display.isValid()) {
+            return;
+        }
+        Object old = lastState.get(display.getEntityId());
+        if (old instanceof Integer i && i == argb) {
+            return;
+        }
+        lastState.put(display.getEntityId(), argb);
+        display.setBackgroundColor(Color.fromARGB(argb));
+    }
 
     public void setText(TextDisplay display, Component text) {
         if (display == null || !display.isValid()) {
             return;
         }
-        if (text.equals(lastState.get(display.getEntityId()))) {
+        Object old = lastState.get(display.getEntityId());
+        if (text != null && text.equals(old)) {
             return;
         }
         lastState.put(display.getEntityId(), text);
         display.text(text);
     }
 
-    /**
-     * Setzt eine neue Transformation und laesst den Client sie ueber {@code durationTicks} Ticks weich
-     * anfahren (Position, Groesse - der Client rechnet die Zwischenbilder selbst). 0 = sofort.
-     * Wird mitten in einer Animation ein neues Ziel gesetzt, startet die Bewegung vom aktuell
-     * gezeigten Zwischenstand aus.
-     */
-    public void transform(Display display, Transformation transformation, int durationTicks) {
+    public void transform(Display display, Transformation transformation) {
+        transform(display, transformation, 0);
+    }
+
+    public void transform(Display display, Transformation transformation, int interpolationDuration) {
         if (display == null || !display.isValid()) {
             return;
         }
-        display.setInterpolationDuration(Math.max(0, durationTicks));
+        Transformation cur = display.getTransformation();
+        if (cur.equals(transformation)) {
+            return;
+        }
+        display.setInterpolationDuration(interpolationDuration);
         display.setInterpolationDelay(0);
         display.setTransformation(transformation);
     }
 
-    /** Aendert nur die Hintergrundfarbe (inkl. Alpha) eines Rechteck-Displays. */
-    public void setBackground(TextDisplay display, int argb) {
+    /**
+     * Sanfte Skalierungs- & Z-Offset-Animation auf einem ItemDisplay mit flacher Z-Achse (0.05f).
+     */
+    public void applyScaleAndOffset(ItemDisplay display, float baseWidth, float baseHeight, float baseDepth,
+                                    float scaleFactor, float offsetX, float offsetY, float offsetZ,
+                                    int interpolationDuration) {
         if (display == null || !display.isValid()) {
             return;
         }
-        display.setBackgroundColor(Color.fromARGB(argb));
+        Transformation t = new Transformation(
+                new Vector3f(offsetX, offsetY, offsetZ),
+                new AxisAngle4f(),
+                new Vector3f(baseWidth * scaleFactor, baseHeight * scaleFactor, baseDepth),
+                new AxisAngle4f()
+        );
+        transform(display, t, interpolationDuration);
     }
 
     // ----------------------------------------------------------------
-    // Sichtbarkeit pro Spieler
+    // Aufraeumen
     // ----------------------------------------------------------------
 
-    public void show(Player viewer, Collection<? extends Entity> targets) {
-        for (Entity entity : targets) {
-            if (entity.isValid()) {
-                viewer.showEntity(plugin.getPlugin(), entity);
-            }
+    public void destroy(Entity entity) {
+        if (entity == null) {
+            return;
         }
-    }
-
-    public void hide(Player viewer, Collection<? extends Entity> targets) {
-        for (Entity entity : targets) {
-            if (entity.isValid()) {
-                viewer.hideEntity(plugin.getPlugin(), entity);
-            }
-        }
-    }
-
-    // ----------------------------------------------------------------
-    // Entfernen
-    // ----------------------------------------------------------------
-
-    public void destroy(Collection<? extends Entity> targets) {
-        for (Entity entity : targets) {
-            entities.remove(entity.getEntityId());
-            lastState.remove(entity.getEntityId());
+        entities.remove(entity.getEntityId());
+        lastState.remove(entity.getEntityId());
+        if (entity.isValid()) {
             entity.remove();
         }
     }
 
-    public void removeAll() {
-        for (Entity entity : entities.values()) {
-            entity.remove();
+    public void destroy(Collection<? extends Entity> list) {
+        for (Entity e : list) {
+            destroy(e);
+        }
+    }
+
+    public void destroyAll() {
+        for (Entity e : entities.values()) {
+            if (e != null && e.isValid()) {
+                e.remove();
+            }
+        }
+        entities.clear();
+        lastState.clear();
+    }
+
+    /**
+     * Bereinigt restlos alle verwaisten Hologramm-Entities auf dem Server
+     * (auch nach Reloads, Abstürzen oder /kill).
+     */
+    public void purgeStaleEntities() {
+        try {
+            for (World world : plugin.getServer().getWorlds()) {
+                for (Entity entity : world.getEntities()) {
+                    if (entity.getScoreboardTags().contains(ENTITY_TAG)) {
+                        entity.remove();
+                    }
+                }
+            }
+        } catch (Throwable ignored) {
         }
         entities.clear();
         lastState.clear();

@@ -12,6 +12,7 @@ import org.bukkit.event.inventory.ClickType;
 import org.bukkit.event.inventory.InventoryAction;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
+import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
@@ -25,6 +26,7 @@ public class ClanChestGUI implements InventoryHolder {
 
     private static final Map<UUID, ClanChestGUI> openChests = new ConcurrentHashMap<>();
     private static final Map<Integer, Inventory> activeClanInventories = new ConcurrentHashMap<>();
+    private static final Map<Integer, ItemStack[]> lastClanSnapshots = new ConcurrentHashMap<>();
 
     private final Ztone plugin;
     private final Player player;
@@ -68,22 +70,21 @@ public class ClanChestGUI implements InventoryHolder {
                 }
             }
             activeClanInventories.put(clan.getId(), shared);
+            lastClanSnapshots.put(clan.getId(), cloneContents(shared.getContents()));
         }
 
         this.inventory = shared;
-
-        ItemStack[] liveContents = inventory.getContents();
-        this.originalContents = new ItemStack[liveContents.length];
-        for (int i = 0; i < liveContents.length; i++) {
-            this.originalContents[i] = liveContents[i] != null ? liveContents[i].clone() : null;
-        }
+        this.originalContents = cloneContents(shared.getContents());
 
         player.openInventory(inventory);
         openChests.put(player.getUniqueId(), this);
     }
 
     public void handleClick(InventoryClickEvent event) {
-        Player clicker = (Player) event.getWhoClicked();
+        if (!(event.getWhoClicked() instanceof Player clicker)) {
+            return;
+        }
+
         boolean allowWithdraw = adminView
                 || (clan.getMember(clicker.getUniqueId()) != null
                 && clan.getMember(clicker.getUniqueId()).hasPermission(Permission.CHEST_WITHDRAW));
@@ -142,8 +143,47 @@ public class ClanChestGUI implements InventoryHolder {
         });
     }
 
+    public void handleDrag(InventoryDragEvent event) {
+        if (!(event.getWhoClicked() instanceof Player clicker)) {
+            return;
+        }
+
+        boolean allowWithdraw = adminView
+                || (clan.getMember(clicker.getUniqueId()) != null
+                && clan.getMember(clicker.getUniqueId()).hasPermission(Permission.CHEST_WITHDRAW));
+
+        int topSize = inventory.getSize();
+        boolean affectsTop = false;
+        for (int rawSlot : event.getRawSlots()) {
+            if (rawSlot < topSize) {
+                affectsTop = true;
+                break;
+            }
+        }
+
+        if (affectsTop && !allowWithdraw) {
+            event.setCancelled(true);
+            plugin.getMessageManager().send(clicker, "chest.no-withdraw-access");
+            return;
+        }
+
+        if (affectsTop) {
+            Bukkit.getScheduler().runTask(plugin, () -> {
+                if (inventory != null) {
+                    ItemStack[] contents = new ItemStack[inventory.getSize()];
+                    for (int i = 0; i < inventory.getSize(); i++) {
+                        ItemStack it = inventory.getItem(i);
+                        contents[i] = it != null ? it.clone() : null;
+                    }
+                    clan.setChestContents(contents);
+                }
+            });
+        }
+    }
+
     public void handleClose(InventoryCloseEvent event) {
         if (inventory == null) return;
+        Player closer = (event.getPlayer() instanceof Player p) ? p : this.player;
 
         // Speicher-Snapshot der aktuellen Inhalte
         ItemStack[] contents = new ItemStack[inventory.getSize()];
@@ -154,22 +194,31 @@ public class ClanChestGUI implements InventoryHolder {
         clan.setChestContents(contents);
         plugin.getClanManager().saveClanChest(clan);
 
-        long itemsBefore = countItems(originalContents);
+        ItemStack[] baseline = lastClanSnapshots.get(clan.getId());
+        if (baseline == null) {
+            baseline = originalContents;
+        }
+        long itemsBefore = countItems(baseline);
         long itemsAfter = countItems(contents);
 
         if (itemsAfter > itemsBefore) {
             clan.broadcastMessage(plugin.getMessageManager().get("chest.deposit",
-                    de.Z7534.ztone.clansystem.managers.MessageManager.of("player", player.getName())));
+                    de.Z7534.ztone.clansystem.managers.MessageManager.of("player", closer.getName())));
         } else if (itemsAfter < itemsBefore) {
             clan.broadcastMessage(plugin.getMessageManager().get("chest.withdraw",
-                    de.Z7534.ztone.clansystem.managers.MessageManager.of("player", player.getName())));
+                    de.Z7534.ztone.clansystem.managers.MessageManager.of("player", closer.getName())));
         }
 
-        openChests.remove(player.getUniqueId());
+        // Basis-Snapshot für den Clan sofort aktualisieren
+        lastClanSnapshots.put(clan.getId(), cloneContents(contents));
+        this.originalContents = cloneContents(contents);
+
+        openChests.remove(closer.getUniqueId());
 
         // Wenn kein Spieler mehr die Truhe dieses Clans offen hat, Cache leeren
         if (inventory.getViewers().size() <= 1) {
             activeClanInventories.remove(clan.getId());
+            lastClanSnapshots.remove(clan.getId());
         }
     }
 
@@ -209,10 +258,20 @@ public class ClanChestGUI implements InventoryHolder {
         }
         activeClanInventories.clear();
         openChests.clear();
+        lastClanSnapshots.clear();
     }
 
     public static void closeAllOpenChests() {
         closeAllOpenChests(null);
+    }
+
+    private static ItemStack[] cloneContents(ItemStack[] items) {
+        if (items == null) return new ItemStack[0];
+        ItemStack[] copy = new ItemStack[items.length];
+        for (int i = 0; i < items.length; i++) {
+            copy[i] = items[i] != null ? items[i].clone() : null;
+        }
+        return copy;
     }
 
     private long countItems(ItemStack[] items) {

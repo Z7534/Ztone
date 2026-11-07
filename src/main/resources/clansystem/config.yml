@@ -77,6 +77,11 @@ pvp:
   # Friendly Fire mit Allianzen deaktivieren?
   disable-ally-fire: true
 
+# Clankrieg-Einstellungen
+war:
+  # Vorbereitungszeit in Sekunden nach Kriegserklärung, bevor PvP aktiv geschaltet wird
+  preparation-time-seconds: 60
+
 # Broadcast-Einstellungen (Server-weite Nachrichten)
 # NUR diese vier Ereignisse sind server-weit sichtbar - alles andere (Kick,
 # Level-Aufstieg, Allianzen, Kriege, ...) ist bewusst nur clan-intern bzw. nur

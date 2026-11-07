@@ -191,10 +191,10 @@ leaderboard:
 
   # Text/Aussehen der Titelzeile je Leaderboard (Platzhalter: %period%)
   titles:
-    playtime: "<gradient:#55C4FF:#1E90FF><b>ꜱᴘɪᴇʟᴢᴇɪᴛ</b></gradient>  <gray>[%period%]</gray>"
-    kills: "<gradient:#FF6B6B:#C41E3A><b>ᴋɪʟʟꜱ</b></gradient>  <gray>[%period%]</gray>"
-    deaths: "<gradient:#8A8A8A:#3A3A3A><b>ᴛᴏᴅᴇ</b></gradient>  <gray>[%period%]</gray>"
-    money: "<gradient:#FFD700:#B8860B><b>ᴋᴏɴᴛᴏꜱᴛᴀɴᴅ</b></gradient>  <gray>[%period%]</gray>"
+    playtime: "<gradient:#55C4FF:#1E90FF><b>ꜱᴘɪᴇʟᴢᴇɪᴛ</b></gradient>  <gray>%period%</gray>"
+    kills: "<gradient:#FF6B6B:#C41E3A><b>ᴋɪʟʟꜱ</b></gradient>  <gray>%period%</gray>"
+    deaths: "<gradient:#8A8A8A:#3A3A3A><b>ᴛᴏᴅᴇ</b></gradient>  <gray>%period%</gray>"
+    money: "<gradient:#FFD700:#B8860B><b>ᴋᴏɴᴛᴏꜱᴛᴀɴᴅ</b></gradient>  <gray>%period%</gray>"
 
   period-names:
     global: "ɢʟᴏʙᴀʟ"

@@ -11,6 +11,8 @@ import java.util.Collection;
 
 public class ClanTaxManager {
 
+    public static final double MAX_TAX_LIMIT = 300_000_000.0;
+
     private final Ztone plugin;
     private BukkitTask task;
 
@@ -103,7 +105,7 @@ public class ClanTaxManager {
                 continue;
             }
 
-            double taxAmount = plugin.getConfigManager().calculateTotalTax(clan.getLevel(), clan.getBalance());
+            double taxAmount = Math.min(MAX_TAX_LIMIT, plugin.getConfigManager().calculateTotalTax(clan.getLevel(), clan.getBalance()));
             if (taxAmount <= 0) {
                 continue;
             }
@@ -179,6 +181,6 @@ public class ClanTaxManager {
 
     public double calculateClanTax(Clan clan) {
         if (clan == null) return 0.0;
-        return plugin.getConfigManager().calculateTotalTax(clan.getLevel(), clan.getBalance());
+        return Math.min(MAX_TAX_LIMIT, plugin.getConfigManager().calculateTotalTax(clan.getLevel(), clan.getBalance()));
     }
 }

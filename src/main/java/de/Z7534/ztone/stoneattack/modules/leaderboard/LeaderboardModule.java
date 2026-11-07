@@ -59,6 +59,9 @@ public class LeaderboardModule {
             HandlerList.unregisterAll(clickListener);
         }
         if (hologramManager != null) {
+            if (hologramManager.getTracker() != null) {
+                HandlerList.unregisterAll(hologramManager.getTracker());
+            }
             hologramManager.stop();
         }
         if (cache != null) {

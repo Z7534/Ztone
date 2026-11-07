@@ -135,18 +135,12 @@ public class ClanBankTransactionsGUI extends AbstractGUI {
             }
 
             plugin.getChatInputManager().request(player, "Gib den Betrag ein, den du einzahlen möchtest:", input -> {
-                double amount;
-                try {
-                    amount = Double.parseDouble(input.replace(",", "."));
-                } catch (NumberFormatException e) {
+                Double parsed = EconomyManager.parseAmount(input);
+                if (parsed == null || parsed <= 0) {
                     plugin.getMessageManager().send(player, "bank.invalid-amount");
                     return;
                 }
-
-                if (amount <= 0) {
-                    plugin.getMessageManager().send(player, "bank.invalid-amount");
-                    return;
-                }
+                double amount = parsed;
 
                 if (!eco.hasBalance(player, amount)) {
                     plugin.getMessageManager().send(player, "bank.insufficient-player-funds");
@@ -202,18 +196,12 @@ public class ClanBankTransactionsGUI extends AbstractGUI {
             }
 
             plugin.getChatInputManager().request(player, "Gib den Betrag ein, den du auszahlen möchtest:", input -> {
-                double amount;
-                try {
-                    amount = Double.parseDouble(input.replace(",", "."));
-                } catch (NumberFormatException e) {
+                Double parsed = EconomyManager.parseAmount(input);
+                if (parsed == null || parsed <= 0) {
                     plugin.getMessageManager().send(player, "bank.invalid-amount");
                     return;
                 }
-
-                if (amount <= 0) {
-                    plugin.getMessageManager().send(player, "bank.invalid-amount");
-                    return;
-                }
+                double amount = parsed;
 
                 if (!clan.hasBalance(amount)) {
                     plugin.getMessageManager().send(player, "bank.insufficient-clan-funds");

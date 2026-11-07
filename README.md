@@ -1,6 +1,6 @@
 ﻿# 🛡️ Ztone – All-in-One Server-System
 
-Willkommen in der offiziellen Dokumentation für **Ztone** (Version 1.1.6).  
+Willkommen in der offiziellen Dokumentation für **Ztone** (Version 1.1.8).  
 Ztone ist eine hochgradig optimierte, modulare All-in-One-Lösung für Minecraft Paper-, Purpur- und Leaf-Server (kompatibel mit Java 21 & Java 25).
 
 ---
@@ -25,6 +25,8 @@ Ztone ist eine hochgradig optimierte, modulare All-in-One-Lösung für Minecraft
 17. [Changelog v1.1.2](#16-changelog-v112)
 18. [Changelog v1.1.3](#17-changelog-v113)
 19. [Changelog v1.1.5](#18-changelog-v115)
+20. [Changelog v1.1.6](#19-changelog-v116)
+21. [Changelog v1.1.8](#20-changelog-v118)
 
 ---
 
@@ -34,7 +36,7 @@ Ztone bündelt alle wichtigen Core-Features für moderne Survival- und SMP-Netzw
 * **Clansystem:** Eigene Clans, Ränge mit detaillierten Rechten, Clankasse mit automatischem Steuersystem (zyklischer Einzug, Kassenstaffeln, 14 Tage Schonfrist) und Zinsen/Schulden (Schuldensperre bei Minus), Clan-Homes, Clan-Warps, Clankriege (12h Cooldown, Max. 1 Krieg, Settings-Toggle ab Level 7) und Allianzen. Einheitlicher Prefix und Small-Caps.
 * **Claims:** Chunk-basiertes Claiming mit interaktiver Karten-GUI, automatischem Claim-Merging für aneinandergrenzende Grundstücke, WorldGuard-Flag-Integration (/rg flag <region> claim allow/deny), granularen Schutzflags, Subclaims, Trusted- und Ban-System sowie Anti-Combat-Fluchtsperre.
 * **PvPManager:** Umfassender Combat-Tag, Spawn-/Respawn-Schutz, Anti-CombatLog, Anti-Kill-Abuse und strenge PvP-Hierarchie (Wildnis: Dimensions- & Spielerstatus; Claims: standardmäßig deaktiviert, außer bei Clankrieg oder Admin-Override).
-* **StoneAttack:** Holographische Leaderboards mit transparentem Display-Design, dynamisches PlayerLimit und TPS/MSPT-Serverüberwachung.
+* **StoneAttack:** Modulare Dual-Mode-Leaderboards (Custom-Resourcepack-UI + automatischer Fallback) mit pixelgenauem 4-Spalten-Layout, dynamischer Höhenskalierung (3–12 Blöcke), automatischer Namens-Skalierung und Instant-Raycast-Buttons sowie dynamisches PlayerLimit und TPS/MSPT-Serverüberwachung.
 * **DeathChest:** Sichere Todeskisten mit Restart-Persistenz, Anti-Rollback, automatischer Hologramm-Bereinigung, Killer-Lock-Bypass und Echtzeit-Chatbenachrichtigung beim Plündern.
 * **ClearLag:** Intelligente Boden-Item-Bereinigung mit Countdown-Warnungen und Actionbar.
 * **PlayRewards:** Tägliche Belohnungen, Playtime-Tracking und Streak-System mit Schutzpunkten.
@@ -262,20 +264,27 @@ Ztone 1.1.3 ersetzt die alte pauschale Regionenblockade durch ein natives WorldG
 ## 4. StoneAttack (Leaderboards, PlayerLimit, Performance)
 
 ### 🔹 Leaderboard-Befehle (`/leaderboard`)
-Verwaltet dynamische Ranglisten-Hologramme für Bestenlisten (Spielzeit, Kills, Tode, Geld).  
-*Design:* Nutzt moderne Paper TextDisplay-Entities mit vollständig transparentem Hintergrund (`Color.fromARGB(0)`), gestochen scharfen Schriftfarben und Rangabzeichen (🥇, 🥈, 🥉) ohne störende dunkle Hintergrundboxen.  
+Verwaltet interaktive, wandgebundene Ranglisten-Hologramme für Bestenlisten (`playtime`, `kills`, `deaths`, `money`).  
+*Design & Technik (v1.1.8):*
+* **Dual-Mode-Rendering:** Spieler mit geladenem Resourcepack sehen das maßgeschneiderte **Custom-Leaderboard-UI** (`stoneattack:leaderboard_bg_top` / `_row` / `_filler` / `_footer`), während Spieler ohne Pack automatisch ein sauberes Dark-Grey/Aqua-Fallback-Panel erhalten.
+* **Modulare Höhenskalierung (3 bis 12 Blöcke):** Der Hintergrund wird im 256-Pixel-pro-Block-Raster aus Kopfstück, beliebig vielen 42px-Reihen-Modulen, Füller und Fußstück gestapelt. Dadurch sitzt jede Zeile bei jeder Board-Höhe (z. B. Höhe 3 = 10 Plätze, Höhe 4 = 16 Plätze, Höhe 5 = 22 Plätze) unverzerrt und pixelgenau in ihrem Slot.
+* **Pixelgenaues 4-Spalten-Layout:** Ränge (`➊`, `➋`, `➌`, `#4`…), Spielernamen, Trennpfeile (`»`) und rechtsbündige Werte/Icons sind in vier exakt vermessenen Spalten ausgerichtet. Überlange Spielernamen werden automatisch kleiner skaliert, statt über den Rand oder in den Pfeil zu ragen.
+* **Instant-Raycast-Buttons:** Umschalten zwischen `GLOBAL`, `MONAT`, `WOCHE` sowie Seitenwechsel (`‹` / `›`) reagieren ohne Verzögerung (0 ms / 1-Tick-Animation) per Direktklick oder Blickrichtungs-Raycast auf bis zu 8 Blöcke Distanz.
+
 *Berechtigung:* `leaderboard.admin`
 
 | Befehl | Beschreibung |
 | :--- | :--- |
-| `/leaderboard place <Typ>` | Platziert ein neues Leaderboard (`playtime`, `kills`, `deaths`, `money`) |
-| `/leaderboard move <ID>` | Verschiebt ein bestehendes Leaderboard an die aktuelle Position |
-| `/leaderboard height <ID> <Offset>` | Passt den Zeilenabstand/Höhe der Hologramme an |
-| `/leaderboard remove <ID>` | Entfernt ein Leaderboard |
+| `/leaderboard place <Typ> [Höhe]` | Platziert ein Leaderboard (`playtime`, `kills`, `deaths`, `money`) an der angeschauten Wand |
+| `/leaderboard move <Typ>` | Verschiebt ein bestehendes Leaderboard an die angeschaute Wandposition |
+| `/leaderboard height <Typ> <3..12>` | Ändert live die Höhe des Boards in Blöcken (skaliert automatisch die Anzahl der angezeigten Plätze) |
+| `/leaderboard remove <Typ>` | Entfernt das Leaderboard eines Typs |
+| `/leaderboard tp <Typ>` | Teleportiert direkt vor das jeweilige Leaderboard |
+| `/leaderboard reload` | Lädt Konfiguration, Positionen und Leaderboard-Cache neu |
 | `/leaderboard removeplayer <Spieler>` | Schließt einen Spieler von allen Leaderboards aus |
 | `/leaderboard addplayer <Spieler>` | Fügt einen zuvor ausgeschlossenen Spieler wieder hinzu |
 | `/leaderboard excluded` | Zeigt alle ausgeschlossenen Spieler |
-| `/leaderboard list` | Listet alle aktiven Leaderboards mit IDs auf |
+| `/leaderboard list` | Listet alle aktiven Leaderboards mit Position, Ausrichtung, Höhe und Platzanzahl auf |
 
 ---
 
@@ -481,7 +490,7 @@ Alle Platzhalter erfordern das installierte Plugin **PlaceholderAPI**.
 # Kompilieren mit Gradle Shadow-Jar
 ./gradlew shadowJar
 ```
-Die fertige Server-JAR befindet sich im Verzeichnis `build/libs/Ztone-1.1.3.jar`.
+Die fertige Server-JAR befindet sich im Verzeichnis `build/libs/Ztone-1.1.8.jar`.
 
 ---
 
@@ -624,3 +633,36 @@ Die fertige Server-JAR befindet sich im Verzeichnis `build/libs/Ztone-1.1.3.jar`
   * Behoben: Wenn PvP ausgeschaltet war (auf Claims, durch `/pvp off` oder Admin-Force), regenerierte der schlagende Angreifer durch Schläge Hunger/Sättigung und das geschlagene Opfer verlor rasant Hungerkeulen.
   * `CombatListener` fängt Angriffe bei deaktiviertem PvP nun auf `EventPriority.LOWEST` ab, setzt Schaden auf 0 und bricht das Event vor nachgelagerten Plugins und Enchants ab.
   * Ein neuer `FoodLevelChangeEvent`-Listener auf Priorität `HIGHEST` fängt und blockiert unberechtigte Hunger- und Sättigungsänderungen von Angreifer und Opfer im Zeitfenster von abgewehrten Schlägen.
+
+---
+
+## 20. Changelog v1.1.8
+
+### 🏆 StoneAttack Leaderboard-Redesign (Modular & Pixel-Perfect)
+* **Modulares Dual-Mode-Hintergrundsystem (Resourcepack + Fallback):**
+  * Automatische Erkennung des Client-Resourcepack-Status über `ResourcePackStatusTracker`.
+  * **Modus A (Resourcepack):** Statt einer statisch gestreckten Einzeltextur wird der Hintergrund modular im exakten 256-Pixel-pro-Block-Raster aus Kopf (`leaderboard_bg_top`, CMD 1004), variablen Reihen-Segmenten (`leaderboard_bg_row`, CMD 1005), Füller (`leaderboard_bg_filler`, CMD 1006) und Fuß (`leaderboard_bg_footer`, CMD 1007) zusammengesetzt.
+  * **Verzerrungsfreie Höhenskalierung (`/leaderboard height <Typ> <3..12>`):** Höhere Boards fügen nahtlos weitere 42px-Slots hinzu (Höhe 3 = 10 Plätze, Höhe 4 = 16 Plätze, Höhe 5 = 22 Plätze), sodass jede Zeile, die `DU`-Leiste, die Seitenanzeige und die Tabs immer exakt in ihren Rahmen sitzen.
+  * **1.21.4+ `item_model` & `CustomModelData` Kompatibilität:** Automatische Pfad-Normalisierung (`stoneattack:leaderboard_bg_...`) in Kombination mit klassischer `CustomModelData` verhindert Missing-Texture-Anzeigen auf allen Client-Versionen.
+  * **Modus B (Fallback ohne Pack):** Automatisches Umschalten auf ein dezentes Dark-Grey/Aqua-Panel ohne störende Roh-Items.
+* **Pixelgenaues 4-Spalten-Layout & Dynamische Namens-Skalierung:**
+  * Jede Zeile (sowie die `DU`-Leiste) ist in 4 präzise ausgerichtete Spalten unterteilt: linksbündige Ränge (`➊`, `➋`, `➌`, `#4`…), linksbündige Spielernamen mit festem Abstand zum Rang, zentrierte Trennpfeile (`»`) und rechtsbündige Werte/Icons.
+  * Exakte Minecraft-Pixelbreitenberechnung (`FormatUtil`) für Standard-Zeichen, Ziffern (`1` = 6px), Fettschrift (`+1px`) und SmallCaps-Glyphen (`ᴀ–ᴢ` = 6px, `ɪ` = 4px, `ʟ/ᴊ` = 5px).
+  * **Automatisches Herunterskalieren langer Namen:** Überschreitet ein Spielername die maximale Spaltenbreite (`NAME_MAX_WIDTH = 0.65` Blöcke), wird seine Schriftgröße automatisch proportional verkleinert und vertikal zentriert, sodass er niemals den `»`-Pfeil berührt oder über den Rand ragt.
+* **Instant-Buttons (0 ms Reaktion) & Raycast-Interaktion:**
+  * Sofortiges Animations-Update im selben Tick des Klicks, 1-Tick-Interpolation (50 ms) und 20-Hz-Hover-Erkennung (`hover-interval-ticks: 1`).
+  * Direkte Raycast-Klick-Erkennung (`tryRaycastClick`) für Links- und Rechtsklicks bis 8 Blöcke Entfernung zusätzlich zu den Interaction-Hitboxen.
+  * Keine überlappenden Button-Hintergrundboxen mehr über den eingezeichneten Kapsel- und Tab-Rahmen der Board-Textur.
+* **Eigenständiges Leaderboard-Resourcepack (`Stoneattack-Leaderboard-Pack.zip`):**
+  * Enthält ausschließlich die Leaderboard-Modelle und -Texturen ohne Beeinflussung von Server-Fonts oder Leerzeichen-Breiten.
+
+### ⚔️ Clansystem & Administration
+* **Clankrieg-Vorbereitungszeit (`war.preparation-time-seconds`):**
+  * Konfigurierbare Vorbereitungsphase (Standard: 60s) vor Kriegsbeginn mit PvP-Schutz und automatischem Start-Countdown.
+* **Neutrales Löschen von Clankriegen (`/clanadmin war <ClanA> <ClanB> delete`):**
+  * Beendet aktive oder in Vorbereitung befindliche Kriege neutral ohne Gewinner/Verlierer, Punkte-, Kassen- oder Cooldown-Änderungen (inkl. dynamischer Tab-Completion).
+* **Clan-Chest Spieler-Tracking Fix:**
+  * Korrekte Zuordnung des handelnden Spielers bei gleichzeitigen Zugriffen mehrerer Clan-Mitglieder auf die Clan-Kiste.
+* **Automatisches SQLite-Hot-Backup & Datenbank-Stabilität:**
+  * Asynchrones Hot-Backup aller Datenbanken alle 5 Minuten (`VACUUM INTO`, max. 50 rollierende Backups) sowie manueller Befehl `/ztone backup`.
+  * Bereinigung alter SQLite-Kompatibilitäts-Views (`DROP VIEW IF EXISTS`) und dauerhafte Persistenz der `pvpmanager_players`-Tabelle.

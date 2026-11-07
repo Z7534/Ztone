@@ -4,14 +4,14 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Zerlegt ein Rechteck mit abgerundeten Ecken in einfache Rechtecke.
+ * Zerlegt ein Rechteck mit abgerundeten Ecken in einfache Rechtecke für das
+ * prozedurale Fallback-Rendering (Modus B ohne Resourcepack).
  *
- * Text-Displays koennen nur Rechtecke zeichnen - die Rundung entsteht aus uebereinander gesetzten,
- * nach aussen hin schmaler werdenden Streifen (Viertelkreis in {@code steps} Stufen). Diese Klasse
- * liefert nur die Geometrie; das Spawnen der Entities macht der Aufrufer (geteilte Board-Flaechen
- * im {@link HologramManager}, pro Spieler sichtbare Hover-Flaechen im {@link HoverAnimator}).
+ * Liefert für Modus B saubere, nicht überlappende Streifen für Hintergrund
+ * und Akzentrahmen (#00e5ff), die für Spieler ohne Resourcepack angezeigt
+ * und für Spieler mit geladenem Pack per {@code player.hideEntity} ausgeblendet werden.
  */
-final class RoundedShape {
+public final class RoundedShape {
 
     private RoundedShape() {
     }
@@ -19,14 +19,15 @@ final class RoundedShape {
     /**
      * @param u0      linke Kante
      * @param v0      untere Kante
-     * @param outline 0 = gefuellt. Groesser 0 = nur ein Rahmen dieser Staerke. Der Rahmen-Modus
-     *                ist bei durchsichtigen Flaechen wichtig: zwei gefuellte Flaechen
-     *                uebereinander addieren ihre Deckkraft, die Mitte waere sonst sichtbar
-     *                weniger durchsichtig als der Rand.
+     * @param width   Gesamtbreite
+     * @param height  Gesamthöhe
+     * @param radius  Eckenradius
+     * @param steps   Stufen des Viertelkreises
+     * @param outline 0 = gefüllt. Größer 0 = nur ein Rahmen dieser Stärke.
      * @return Rechtecke als {@code {u0, v0, breite, hoehe}}
      */
-    static List<double[]> rects(double u0, double v0, double width, double height, double radius, int steps,
-                                double outline) {
+    public static List<double[]> rects(double u0, double v0, double width, double height, double radius, int steps,
+                                       double outline) {
         List<double[]> out = new ArrayList<>();
         double r = Math.min(radius, Math.min(width, height) / 2.0);
         if (r < 0.01) {
@@ -34,12 +35,11 @@ final class RoundedShape {
             return out;
         }
         double step = r / steps;
-        double overlap = 0.002; // Streifen ueberlappen minimal -> keine hellen Fugen dazwischen
+        double overlap = 0.002;
 
         double middleHeight = height - 2 * r;
         if (middleHeight > 0.001) {
             if (outline > 0) {
-                // Im Rahmen-Modus bleibt der gerade Mittelteil hohl: nur links und rechts ein Steg.
                 out.add(new double[]{u0, v0 + r, outline, middleHeight});
                 out.add(new double[]{u0 + width - outline, v0 + r, outline, middleHeight});
             } else {
@@ -54,10 +54,6 @@ final class RoundedShape {
             double bandWidth = width - 2 * inset;
             double bandHeight = step + overlap;
 
-            // Im Rahmen-Modus ist nur der aeusserste Streifen durchgehend (das ist die
-            // Ober-/Unterkante des Rahmens); die restlichen Streifen bekommen nur noch
-            // zwei Seitenstege. Die Stege werden um den Versatz zum vorherigen Streifen
-            // verbreitert, damit in der Rundung keine Treppenluecken entstehen.
             boolean solidBand = outline <= 0 || j * step < outline;
             if (solidBand) {
                 out.add(new double[]{u0 + inset, v0 + j * step, bandWidth, bandHeight});

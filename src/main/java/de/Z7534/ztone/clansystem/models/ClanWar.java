@@ -7,6 +7,7 @@ import java.util.UUID;
 public class ClanWar {
 
     public enum WarStatus {
+        PREPARATION,
         ACTIVE,
         ENDED
     }
@@ -18,6 +19,9 @@ public class ClanWar {
     private long startedAt;
     private long endedAt;
     private Integer winnerClanId;
+
+    private long pvpStartTime;
+    private boolean pvpActive;
 
     private Map<UUID, Integer> attackerKills;
     private Map<UUID, Integer> defenderKills;
@@ -35,6 +39,8 @@ public class ClanWar {
         this.startedAt = startedAt;
         this.endedAt = endedAt;
         this.winnerClanId = winnerClanId;
+        this.pvpActive = (status == WarStatus.ACTIVE);
+        this.pvpStartTime = 0;
         this.attackerKills = new HashMap<>();
         this.defenderKills = new HashMap<>();
         this.participantDeaths = new HashMap<>();
@@ -69,6 +75,11 @@ public class ClanWar {
 
     public void setStatus(WarStatus status) {
         this.status = status;
+        if (status == WarStatus.ACTIVE) {
+            this.pvpActive = true;
+        } else if (status == WarStatus.PREPARATION) {
+            this.pvpActive = false;
+        }
     }
 
     public long getStartedAt() {
@@ -91,8 +102,28 @@ public class ClanWar {
         this.winnerClanId = winnerClanId;
     }
 
+    public long getPvpStartTime() {
+        return pvpStartTime;
+    }
+
+    public void setPvpStartTime(long pvpStartTime) {
+        this.pvpStartTime = pvpStartTime;
+    }
+
+    public boolean isPvpActive() {
+        return pvpActive && status == WarStatus.ACTIVE;
+    }
+
+    public void setPvpActive(boolean pvpActive) {
+        this.pvpActive = pvpActive;
+    }
+
+    public boolean isInPreparation() {
+        return status == WarStatus.PREPARATION;
+    }
+
     public boolean isActive() {
-        return status == WarStatus.ACTIVE;
+        return status == WarStatus.ACTIVE || status == WarStatus.PREPARATION;
     }
 
     public boolean involves(int clanId) {
@@ -173,6 +204,7 @@ public class ClanWar {
 
     public void end(Integer winnerId) {
         this.status = WarStatus.ENDED;
+        this.pvpActive = false;
         this.endedAt = System.currentTimeMillis();
         this.winnerClanId = winnerId;
     }

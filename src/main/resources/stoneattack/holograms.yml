@@ -1,24 +1,43 @@
+# ==============================================================================
+#            STONEATTACK LEADERBOARD - RESOURCEPACK & DUAL-MODE
+# ==============================================================================
+resourcepack:
+  enabled: true
+  fallback-on-decline: true
+  bedrock-mode: "AUTO"
+  bedrock-safe-text: true
+  max-width-blocks: 3.0
+  models:
+    background: 1000
+    button-idle: 1001
+    button-hover: 1002
+    button-active: 1003
+    background-key: "stoneattack:item/leaderboard_bg"
+    button-idle-key: "stoneattack:item/button_idle"
+    button-hover-key: "stoneattack:item/button_hover"
+    button-active-key: "stoneattack:item/button_active"
+
 playtime:
   world: world
   x: 16
   y: 204
   z: -23
   facing: SOUTH
-  height: 5.0
+  height: 3.0
 kills:
   world: world
   x: 24
   y: 203
   z: -15
   facing: WEST
-  height: 4.0
+  height: 3.0
 deaths:
   world: world
   x: 24
   y: 203
   z: -11
   facing: WEST
-  height: 4.0
+  height: 3.0
 money:
   world: world
   x: 19

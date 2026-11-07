@@ -73,7 +73,7 @@ public class PvPListener implements Listener {
         // Clankriege finden NIEMALS auf Claims statt: Kills in/aus einem Claim zaehlen nicht als Kriegs-Kill.
         boolean inClaim = plugin.isInAnyClaim(victim.getLocation()) || plugin.isInAnyClaim(killer.getLocation());
 
-        if (!inClaim && plugin.getWarManager().areAtWar(killerClan.getId(), victimClan.getId())) {
+        if (!inClaim && plugin.getWarManager().isWarPvpActive(killerClan.getId(), victimClan.getId())) {
 
             plugin.getWarManager().recordKill(killer.getUniqueId(), victim.getUniqueId(),
                     killerClan.getId(), victimClan.getId());

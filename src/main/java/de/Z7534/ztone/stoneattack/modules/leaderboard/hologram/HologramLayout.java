@@ -3,223 +3,263 @@ package de.Z7534.ztone.stoneattack.modules.leaderboard.hologram;
 import org.bukkit.configuration.file.FileConfiguration;
 
 /**
- * Alle Masse des Boards in BLOECKEN im Board-Koordinatensystem (siehe
- * {@link BoardFrame}: u = rechts, v = hoch, Ursprung = Mitte des Boards).
+ * Alle Maße des Boards in BLÖCKEN im Board-Koordinatensystem (siehe
+ * {@link BoardFrame}: u = rechts, v = hoch, Ursprung = Mitte des angeklickten Blocks).
  *
- * Aufbau von oben nach unten:
+ * Das Board ist modular in der Höhe (3.0 bis 12.0 Blöcke).
+ * Standard: 3.0 x 3.0 Blöcke groß.
+ *
+ * Koordinaten:
+ * Ein Block reicht von v = -0.5 bis +0.5.
+ * Die Unterkante des Blocks ist v = -0.5.
+ * Das Panel sitzt mit seiner Unterkante bei v = -0.5 (Unterkante des Zielblocks) und wächst nach oben.
+ *
+ * Textur-Raster (leaderboard_bg.png, 768 x 768 px = 3 x 3 Blöcke, 256 px pro Block):
  * <pre>
- *   +-------------------------------+
- *   |            Titel              |   <- ein einziger Screen (Panel)
- *   |  ------------------------     |
- *   |  1. Name  »  Wert             |
- *   |  2. Name  »  Wert             |
- *   |  ...                          |
- *   |  ------------------------     |
- *   |            Du                 |
- *   +-------------------------------+
- *   [ < ]        [ 1/10 ]        [ > ]      <- Blaettern (unten links/rechts)
- *   [ Global ]  [ Monat ]  [ Woche ]        <- die 3 Modi zusammen
+ *   y   0 .. 227  Kopf  (Titel, Leuchtlinie, Reihe 1-3 Gold/Silber/Bronze)
+ *   y 227 .. 269  Reihe (ein normaler Slot inkl. 3 px Abstand oben/unten, Raster 42 px)
+ *   y 268 .. 269  Füller (1 px Slot-Zwischenraum, wird bei Resthöhe gestreckt)
+ *   y 521 .. 768  Fuß   (Du-Leiste, Seitenumschalter, Modus-Tabs)
  * </pre>
- *
- * <h2>Hoehe</h2>
- * Die GESAMTHOEHE wird pro Leaderboard vorgegeben ({@code /leaderboard height ...},
- * Standard {@value #DEFAULT_HEIGHT} Bloecke) und ist immer eine GANZE Blockzahl.
- * Das Board sitzt mit seiner Unterkante auf der unteren Kante des angeklickten
- * Blocks und waechst nach oben. Alles andere - Schriftgroesse,
- * Buttonhoehen, Raender - bleibt dabei unveraendert; aus der zusaetzlichen Hoehe
- * entstehen ausschliesslich MEHR ZEILEN in der Spielerliste. Bleibt ein Rest
- * uebrig, der fuer keine ganze Zeile mehr reicht, wird er gleichmaessig auf
- * oberen/unteren Innenrand des Panels verteilt, damit das Board exakt auf der
- * gewuenschten Blockzahl endet.
- *
- * Die Breite ist immer {@value #BOARD_WIDTH} Bloecke.
+ * Das Plugin stapelt Kopf + N Reihen + Füller + Fuß, sodass jede Text-Reihe
+ * exakt in ihrem Textur-Slot liegt - unabhängig von der eingestellten Höhe.
  */
 public final class HologramLayout {
 
     public static final double BOARD_WIDTH = 3.0;
+    public static final double BACKGROUND_WIDTH = 3.0;
+    public static final double BACKGROUND_HEIGHT = 3.0;
+
+    public static final int SLOT_COUNT = 10;
     public static final double DEFAULT_HEIGHT = 3.0;
     public static final double MIN_HEIGHT = 3.0;
     public static final double MAX_HEIGHT = 12.0;
 
+    // ---- Textur-Raster in Pixeln (256 px = 1 Block) ----
+    public static final double PX_PER_BLOCK = 256.0;
+    /** Kopf inkl. der drei Top-Reihen (Gold/Silber/Bronze). */
+    public static final double BG_TOP_PX = 227.0;
+    /** Raster eines Slots (36 px Slot + 6 px Abstand). */
+    public static final double BG_ROW_PX = 42.0;
+    /** Fuß: Du-Leiste, Pager, Modus-Tabs. */
+    public static final double BG_FOOTER_PX = 247.0;
+    /** Anzahl der Reihen, die bereits im Kopfstück enthalten sind. */
+    public static final int BG_TOP_ROWS = 3;
+    /** Mitte des ersten Slots, gemessen von der Oberkante. */
+    public static final double BG_FIRST_ROW_CENTER_PX = 122.0;
+
     static final double MARGIN = 0.03;
-    static final double PADDING = 0.10;
-    static final double GAP = 0.07;
-    /** Platz, den eine Trennlinie inkl. Luft nach oben/unten belegt. */
-    static final double SEPARATOR_SPACE = 0.13;
-    static final double SEPARATOR_THICKNESS = 0.010;
-    static final double PAGER_HEIGHT = 0.34;
-    static final double MODE_HEIGHT = 0.40;
-    static final double ARROW_WIDTH = 0.62;
-    static final double PILL_WIDTH = 1.30;
-    static final double MODE_GAP = 0.08;
+    static final double PADDING = 0.08;
+
+    /** Button-Maße: 4:1 Seitenverhältnis entsprechend 256x64 Textur */
+    public static final double MODE_WIDTH = 0.8515;
+    public static final double MODE_HEIGHT = 0.2109;
+
+    public static final double ARROW_WIDTH = 58.0 / 256.0;
+    public static final double ARROW_HEIGHT = 38.0 / 256.0;
+
+    public static final double PAGER_HEIGHT = 0.22;
 
     /**
-     * Zeilenabstand eines Text-Displays bei Skalierung 1, in Bloecken.
-     *
-     * Ein Textpixel ist 1/40 Block. Eine Zeile belegt in der Textbox 10 Pixel
-     * (8 px Zeichen + 2 px Abstand) -> 10/40 = 0,25 Bloecke. Da die komplette
-     * Eintragsliste EIN Text-Display mit mehreren Zeilen ist, MUSS der
-     * Zeilenabstand des Layouts exakt dieser Wert sein: ist er zu klein,
-     * wandert jede weitere Zeile ein Stueck nach oben aus ihrem Feld heraus -
-     * bei wenigen Zeilen kaum sichtbar, bei vielen Zeilen landet der erste
-     * Platz irgendwann im Titel.
+     * Spalten-Koordinaten für 100% pixelgenaue Ausrichtung innerhalb der Slots:
+     * Boardbreite = 3.0 (-1.5 bis +1.5). Die Slotbreite beträgt ~2.77 (-1.385 bis +1.385).
+     * Mit 17 Textur-Pixeln Randabstand liegen alle Inhalte garantiert sauber im Slot.
      */
-    private static final double DEFAULT_LINE_HEIGHT = 0.25;
+    public static final double COL_RANK_LEFT = -1.24;   // Alle Ränge (➊, ➋, ➌, #4, #10) starten exakt hier
+    public static final double COL_NAME_LEFT = -0.78;   // Alle Spielernamen starten exakt hier (mit klarem Abstand zum Rang)
+    public static final double COL_ARROW_CENTER = 0.14; // Alle Trennpfeile » sind hier zentriert
+    public static final double COL_VAL_RIGHT = 1.24;    // Alle Werte/Icons enden exakt hier rechtsbündig
+    public static final double NAME_MAX_WIDTH = 0.65;   // Maximalbreite für Namen vor dem Pfeil (mit deutlichem Abstand zu »)
 
-    /**
-     * Hoehe der Textmitte ueber dem Ankerpunkt eines Text-Displays (bei Skalierung 1).
-     *
-     * Ein Text-Display haengt am UNTEREN Rand seiner Textbox. Die unterste Zeile
-     * belegt dort die Pixel 1 bis 9 -> geometrische Mitte = 5 px = 0,125 Bloecke.
-     * Grossbuchstaben und Small Caps nutzen die Unterlaenge nicht, sitzen also
-     * optisch einen halben Pixel hoeher: 5,5 px = 0,1375 Bloecke. Genau dieser
-     * Wert sorgt dafuer, dass Trennlinien und Buttons mittig zum Text sitzen.
-     */
-    private static final double DEFAULT_TEXT_CENTER_OFFSET = 0.1375;
+    private static final double DEFAULT_TEXT_CENTER_OFFSET = 0.1125;
 
     private final double textCenterOffset;
-    /** Die per Command gesetzte Wunschhoehe - dient zum Erkennen von Aenderungen. */
     private final double requestedHeight;
 
-    /** Wie viele Eintraege auf eine Seite passen - ergibt sich aus der Hoehe. */
     public final int perPage;
     public final float textScale;
-    final float buttonTextScale;
-    final float pagerTextScale;
-    final float arrowTextScale;
-    /** Zeilenabstand des Listentexts in Bloecken. */
-    final double line;
+    public final float rowTextScale;
+    public final float buttonTextScale;
+    public final float pagerTextScale;
+    public final float arrowTextScale;
+    public final float selfTextScale;
 
-    /** Linke Kante und Breite des nutzbaren Bereichs (u). */
+    final double line;
     final double left;
     final double width;
 
-    /** Tatsaechliche Gesamthoehe (== gewuenschte Hoehe, solange sie nicht unter das Minimum faellt). */
     final double totalHeight;
-    final double panelBottom;
-    final double panelHeight;
-    final double pagerBottom;
-    final double modeBottom;
+    public final double panelBottom;
+    public final double panelHeight;
+    public final double panelCenter;
+    public final double panelTop;
+    public final double pagerBottom;
+    public final double modeBottom;
+    public final double pagerCenter;
+    public final double modeCenter;
 
-    final double titleCenter;
-    final double separatorTopCenter;
-    final double separatorBottomCenter;
-    final double selfCenter;
-    private final double rowsTop;
+    public final double titleCenter;
+    public final double selfCenter;
 
-    /** Mitte des Listentexts (u) - seit dem Wegfall der Spielerkoepfe genau mittig. */
+    /** Höhe des Füllstücks zwischen letzter Reihe und Fuß (in Pixeln, 0 .. 42). */
+    public final double fillerPx;
+
     final double listU;
 
     public HologramLayout(FileConfiguration cfg, double requestedHeight) {
-        textScale = (float) clamp(cfg.getDouble("leaderboard.layout.text-scale", 0.85), 0.4, 1.5);
-        buttonTextScale = (float) clamp(cfg.getDouble("leaderboard.layout.button-text-scale", 0.62), 0.3, 1.2);
-        pagerTextScale = (float) clamp(cfg.getDouble("leaderboard.layout.pager-text-scale", 0.62), 0.3, 1.2);
-        arrowTextScale = (float) clamp(cfg.getDouble("leaderboard.layout.arrow-text-scale", 0.80), 0.3, 1.2);
-        textCenterOffset = clamp(cfg.getDouble("leaderboard.layout.text-center-offset", DEFAULT_TEXT_CENTER_OFFSET),
-                0.0, 0.3);
-        int maxEntries = (int) clamp(cfg.getInt("leaderboard.layout.max-entries-per-page", 50), 1, 60);
-        double lineHeight = clamp(cfg.getDouble("leaderboard.layout.line-height", DEFAULT_LINE_HEIGHT), 0.15, 0.4);
-
         this.requestedHeight = requestedHeight;
 
-        line = lineHeight * textScale;
+        textScale = (float) clamp(cfg.getDouble("leaderboard.layout.text-scale", 0.85), 0.4, 1.5);
+        rowTextScale = 0.52f;
+        selfTextScale = 0.52f;
+        buttonTextScale = (float) clamp(cfg.getDouble("leaderboard.layout.button-text-scale", 0.55), 0.3, 1.2);
+        pagerTextScale = (float) clamp(cfg.getDouble("leaderboard.layout.pager-text-scale", 0.55), 0.3, 1.2);
+        arrowTextScale = (float) clamp(cfg.getDouble("leaderboard.layout.arrow-text-scale", 0.70), 0.3, 1.2);
+        textCenterOffset = clamp(cfg.getDouble("leaderboard.layout.text-center-offset", DEFAULT_TEXT_CENTER_OFFSET), 0.0, 0.3);
+
         left = -(BOARD_WIDTH / 2.0 - MARGIN);
         width = BOARD_WIDTH - 2 * MARGIN;
         listU = 0.0;
+        line = BG_ROW_PX / PX_PER_BLOCK;
 
-        // Alles, was unabhaengig von der Zeilenzahl immer da ist.
-        double fixed = 2 * MARGIN                       // Rand oben/unten
-                + 2 * PADDING                           // Innenrand des Panels
-                + line                                  // Titelzeile
-                + SEPARATOR_SPACE                       // obere Trennlinie
-                + SEPARATOR_SPACE                       // untere Trennlinie
-                + line                                  // "Du"-Zeile
-                + GAP + PAGER_HEIGHT                    // Blaetter-Leiste
-                + GAP + MODE_HEIGHT;                    // Modus-Leiste
+        totalHeight = clamp(requestedHeight, MIN_HEIGHT, MAX_HEIGHT);
 
-        double height = clamp(requestedHeight, MIN_HEIGHT, MAX_HEIGHT);
-        int rows = (int) Math.floor((height - fixed) / line);
-        rows = (int) clamp(rows, 1, maxEntries);
-        perPage = rows;
+        // Das Panel wächst dynamisch mit totalHeight (Standard: 3.0 Blöcke)
+        panelHeight = totalHeight;
+        panelBottom = -0.5;
+        panelTop = panelBottom + panelHeight;
+        panelCenter = panelBottom + panelHeight / 2.0;
 
-        // Board nie kleiner machen als das, was tatsaechlich hineinpasst, und immer
-        // auf VOLLE BLOECKE aufrunden - sonst haengt es zwischen zwei Blockkanten.
-        double needed = fixed + rows * line;
-        totalHeight = Math.ceil(Math.max(height, needed) - 0.0001);
-        // Rest, der fuer keine weitere Zeile reicht -> als Luft ins Panel (oben/unten gleich viel).
-        double slack = Math.max(0.0, totalHeight - needed) / 2.0;
+        // Kopf ist an der Oberkante verankert, Fuß an der Unterkante.
+        titleCenter = panelTop - 0.1973;
+        selfCenter = panelBottom + (768.0 - 557.0) / PX_PER_BLOCK;   // 0.3242
+        pagerCenter = panelBottom + (768.0 - 624.0) / PX_PER_BLOCK;  // 0.0625
+        pagerBottom = pagerCenter - PAGER_HEIGHT / 2.0;
+        modeCenter = panelBottom + (768.0 - 695.0) / PX_PER_BLOCK;   // -0.2148
+        modeBottom = modeCenter - MODE_HEIGHT / 2.0;
 
-        panelHeight = 2 * PADDING + 2 * slack + line + SEPARATOR_SPACE + rows * line + SEPARATOR_SPACE + line;
-
-        // Der angeklickte Block ist der UNTERSTE Block des Boards: die Unterkante
-        // liegt genau auf seiner unteren Blockkante (v = -0,5 relativ zur Blockmitte),
-        // gewachsen wird ausschliesslich nach oben. Zusammen mit der immer ganzzahligen
-        // Gesamthoehe sitzt das Board dadurch exakt im Blockraster.
-        double bottom = -0.5;
-        double top = bottom + totalHeight;
-        double panelTop = top - MARGIN;
-        panelBottom = panelTop - panelHeight;
-        pagerBottom = panelBottom - GAP - PAGER_HEIGHT;
-        modeBottom = pagerBottom - GAP - MODE_HEIGHT;
-
-        double innerTop = panelTop - PADDING - slack;
-        titleCenter = innerTop - line / 2.0;
-        separatorTopCenter = innerTop - line - SEPARATOR_SPACE / 2.0;
-        rowsTop = innerTop - line - SEPARATOR_SPACE;
-        double rowsBottom = rowsTop - rows * line;
-        separatorBottomCenter = rowsBottom - SEPARATOR_SPACE / 2.0;
-        selfCenter = rowsBottom - SEPARATOR_SPACE - line / 2.0;
+        perPage = rowsForHeight(totalHeight);
+        double usedPx = BG_TOP_PX + (perPage - BG_TOP_ROWS) * BG_ROW_PX + BG_FOOTER_PX;
+        fillerPx = Math.max(0.0, totalHeight * PX_PER_BLOCK - usedPx);
     }
 
-    /** Breite eines der drei Modus-Buttons. */
-    double modeWidth() {
-        return (width - 2 * MODE_GAP) / 3.0;
+    /** Anzahl der Slots, die bei dieser Höhe exakt in das Textur-Raster passen. */
+    private static int rowsForHeight(double clampedHeight) {
+        double middlePx = clampedHeight * PX_PER_BLOCK - BG_TOP_PX - BG_FOOTER_PX;
+        int extra = (int) Math.floor(middlePx / BG_ROW_PX + 1e-6);
+        return BG_TOP_ROWS + Math.max(0, extra);
     }
 
-    /** Linke Kante des Modus-Buttons {@code index} (0 = Global, 1 = Monat, 2 = Woche). */
-    double modeLeft(int index) {
-        return left + index * (modeWidth() + MODE_GAP);
+    /** Anzahl der normalen (wiederholten) Reihen-Stücke unterhalb des Kopfes. */
+    public int middleRowCount() {
+        return Math.max(0, perPage - BG_TOP_ROWS);
     }
 
-    /** Hoehe der Textmitte ueber dem Ankerpunkt eines Text-Displays bei Skalierung 1. */
+    /** Absolutes v-Zentrum eines der Slots im Board-Koordinatensystem */
+    public double slotCenter(int slot) {
+        return panelTop - (BG_FIRST_ROW_CENTER_PX + slot * BG_ROW_PX) / PX_PER_BLOCK;
+    }
+
+    // ---- Hintergrund-Stücke (v-Zentrum und Höhe in Blöcken) ----
+
+    public double bgTopCenter() {
+        return panelTop - BG_TOP_PX / 2.0 / PX_PER_BLOCK;
+    }
+
+    public double bgTopHeight() {
+        return BG_TOP_PX / PX_PER_BLOCK;
+    }
+
+    /** v-Zentrum des normalen Reihen-Stücks index (0 = erste Reihe unter dem Kopf, also Slot #4). */
+    public double bgRowCenter(int index) {
+        return panelTop - (BG_TOP_PX + index * BG_ROW_PX + BG_ROW_PX / 2.0) / PX_PER_BLOCK;
+    }
+
+    public double bgRowHeight() {
+        return BG_ROW_PX / PX_PER_BLOCK;
+    }
+
+    public double bgFillerCenter() {
+        double startPx = BG_TOP_PX + middleRowCount() * BG_ROW_PX;
+        return panelTop - (startPx + fillerPx / 2.0) / PX_PER_BLOCK;
+    }
+
+    public double bgFillerHeight() {
+        return fillerPx / PX_PER_BLOCK;
+    }
+
+    public double bgFooterCenter() {
+        return panelBottom + BG_FOOTER_PX / 2.0 / PX_PER_BLOCK;
+    }
+
+    public double bgFooterHeight() {
+        return BG_FOOTER_PX / PX_PER_BLOCK;
+    }
+
+    public double modeWidth() {
+        return MODE_WIDTH;
+    }
+
+    /** Horizontales Zentrum des Modus-Buttons index (0 = Global, 1 = Monat, 2 = Woche) */
+    public double modeCenter(int index) {
+        return switch (index) {
+            case 0 -> -0.9336;
+            case 1 -> 0.0;
+            case 2 -> 0.9336;
+            default -> 0.0;
+        };
+    }
+
+    public double modeLeft(int index) {
+        return modeCenter(index) - MODE_WIDTH / 2.0;
+    }
+
+    public double arrowLeftCenter() {
+        return -0.6875;
+    }
+
+    public double arrowRightCenter() {
+        return 0.6875;
+    }
+
     double centerOffset() {
         return textCenterOffset;
     }
 
-    /** Die tatsaechliche Gesamthoehe in (immer ganzen) Bloecken. */
     public double effectiveHeight() {
         return totalHeight;
     }
 
-    /** Die Hoehe, mit der dieses Layout angefordert wurde (vor dem Begrenzen auf Min/Max). */
     public double requestedHeight() {
         return requestedHeight;
     }
 
-    /**
-     * Wie viele Eintraege bei der gegebenen Hoehe angezeigt werden koennen -
-     * fuer die Rueckmeldung von {@code /leaderboard height}.
-     */
     public static int entriesForHeight(FileConfiguration cfg, double height) {
-        return new HologramLayout(cfg, height).perPage;
+        return rowsForHeight(clamp(height, MIN_HEIGHT, MAX_HEIGHT));
     }
 
-    /** Mitte der Zeile {@code index} (0 = oberste) der Eintragsliste. */
     double rowCenter(int index) {
-        return rowsTop - line * (index + 0.5);
+        return slotCenter(index);
     }
 
     double pagerCenter() {
-        return pagerBottom + PAGER_HEIGHT / 2.0;
+        return pagerCenter;
     }
 
     double modeCenter() {
-        return modeBottom + MODE_HEIGHT / 2.0;
+        return modeCenter;
     }
 
-    /** v-Position (Ankerpunkt) eines Text-Displays, dessen unterste Zeile bei {@code lineCenter} liegen soll. */
     double textPivot(double lineCenter, double scale) {
         return lineCenter - textCenterOffset * scale;
+    }
+
+    public int maxLinePixelWidth() {
+        return 2000;
+    }
+
+    public int getExactPixelWidth(float scale) {
+        return 2000;
     }
 
     private static double clamp(double value, double min, double max) {

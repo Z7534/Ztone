@@ -8,6 +8,7 @@ import de.Z7534.ztone.stoneattack.modules.leaderboard.hologram.HologramDefinitio
 import de.Z7534.ztone.stoneattack.modules.leaderboard.hologram.HologramLayout;
 import de.Z7534.ztone.stoneattack.util.ColorUtil;
 import org.bukkit.Bukkit;
+import org.bukkit.Location;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.World;
 import org.bukkit.block.Block;
@@ -18,23 +19,28 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabCompleter;
 import org.bukkit.entity.Player;
 import org.bukkit.util.RayTraceResult;
+import org.bukkit.util.StringUtil;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+/**
+ * Befehl /leaderboard zum Platzieren, Verschieben, Hoehe einstellen und Verwalten.
+ */
 public class LeaderboardCommand implements CommandExecutor, TabCompleter {
 
-    private static final List<String> SUBCOMMANDS = List.of("place", "move", "height", "remove", "removeplayer",
-            "addplayer", "excluded", "list", "tp", "reload", "reset");
-    private static final List<String> TYPES = List.of("playtime", "kills", "deaths", "money");
-    private static final List<String> TYPES_WITH_ALL = List.of("playtime", "kills", "deaths", "money", "all");
-    private static final List<String> DIRECTIONS = List.of("north", "south", "east", "west");
+    private static final List<String> SUBCOMMANDS = List.of(
+            "place", "move", "height", "remove", "removeplayer", "addplayer", "list", "tp", "reload", "reset"
+    );
 
-    /** Wandblock + Seite, an der das Leaderboard haengen soll. */
-    private record WallTarget(World world, int x, int y, int z, BlockFace face) {
-    }
+    private static final List<String> TYPES = Arrays.stream(LeaderboardType.values())
+            .map(LeaderboardType::key)
+            .toList();
+
+    private static final List<String> FACINGS = List.of("north", "south", "east", "west");
 
     private final Stoneattack plugin;
 
@@ -44,34 +50,35 @@ public class LeaderboardCommand implements CommandExecutor, TabCompleter {
 
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
-        if (!sender.hasPermission("leaderboard.admin")) {
+        if (!sender.hasPermission("stoneattack.admin")) {
             plugin.getMessagesManager().send(sender, "general.no-permission");
             return true;
         }
+
         LeaderboardModule module = plugin.getLeaderboardModule();
         if (module == null) {
-            sender.sendMessage(ColorUtil.parse("<red>Das Leaderboard-Modul ist deaktiviert (siehe config.yml).</red>"));
-            return true;
-        }
-        if (args.length == 0) {
-            sender.sendMessage(ColorUtil.parse("<red>Nutzung: /leaderboard <place|move|height|remove|removeplayer|addplayer|excluded|list|tp|reload|reset></red>"));
+            sender.sendMessage(ColorUtil.parse("<red>Das Leaderboard-Modul ist auf diesem Server deaktiviert.</red>"));
             return true;
         }
 
-        switch (args[0].toLowerCase()) {
+        if (args.length == 0) {
+            sendHelp(sender);
+            return true;
+        }
+
+        String sub = args[0].toLowerCase();
+        switch (sub) {
             case "place" -> handlePlace(sender, module, args);
             case "move" -> handleMove(sender, module, args);
             case "height" -> handleHeight(sender, module, args);
             case "remove" -> handleRemove(sender, module, args);
-            case "removeplayer" -> handleExcludeChange(sender, module, args, true);
-            case "addplayer" -> handleExcludeChange(sender, module, args, false);
-            case "excluded" -> handleExcludedList(sender, module, args);
+            case "removeplayer" -> handleRemovePlayer(sender, module, args);
+            case "addplayer" -> handleAddPlayer(sender, module, args);
             case "list" -> handleList(sender, module);
-            case "tp" -> handleTeleport(sender, module, args);
+            case "tp" -> handleTp(sender, module, args);
             case "reload" -> handleReload(sender, module);
             case "reset" -> handleReset(sender, module, args);
-            default -> plugin.getMessagesManager().send(sender, "general.unknown-subcommand",
-                    Map.of("usage", "/leaderboard <place|move|height|remove|removeplayer|addplayer|excluded|list|tp|reload|reset>"));
+            default -> sendHelp(sender);
         }
         return true;
     }
@@ -90,31 +97,37 @@ public class LeaderboardCommand implements CommandExecutor, TabCompleter {
         WallTarget target;
         if (args.length >= 7) {
             target = parseWorldTarget(sender, args, 2);
-        } else if (sender instanceof Player player) {
-            target = targetedWall(player);
+        } else if (args.length == 6 && sender instanceof Player inWorld) {
+            target = parseCoords(sender, inWorld.getWorld(), args, 2);
+        } else if (sender instanceof Player self) {
+            target = targetedWall(self);
         } else {
-            plugin.getMessagesManager().send(sender, "leaderboard.console-needs-coords");
+            sender.sendMessage(ColorUtil.parse("<red>Konsole muss Koordinaten angeben: /leaderboard place <lb> <welt> <x> <y> <z> <dir></red>"));
             return;
         }
         if (target == null) {
             return;
         }
 
-        HologramDefinition previous = module.getPositionStore().get(type);
-        double height = previous != null ? previous.getHeightBlocks() : module.getPositionStore().defaultHeight();
-
+        double defaultHeight = plugin.getConfigManager().get().getDouble("leaderboard.default-height-blocks", 3.0);
         HologramDefinition def = new HologramDefinition(type, target.world().getName(),
-                target.x(), target.y(), target.z(), target.face(), height);
+                target.x(), target.y(), target.z(), target.face(), defaultHeight);
+
         module.getPositionStore().set(type, def);
         module.getHologramManager().reload();
+
         plugin.getMessagesManager().send(sender, "leaderboard.place-success", Map.of(
                 "leaderboard", type.key(),
+                "world", target.world().getName(),
+                "x", String.valueOf(target.x()),
+                "y", String.valueOf(target.y()),
+                "z", String.valueOf(target.z()),
                 "direction", target.face().name().toLowerCase()));
     }
 
     private void handleMove(CommandSender sender, LeaderboardModule module, String[] args) {
         if (args.length < 3) {
-            sender.sendMessage(ColorUtil.parse("<red>Nutzung: /leaderboard move <leaderboard> movetoplayer | [<welt>] <x> <y> <z> <north|south|east|west></red>"));
+            sender.sendMessage(ColorUtil.parse("<red>Nutzung: /leaderboard move <leaderboard> movetoplayer | [<welt>] <x> <y> <z> <north|south|east|west>]</red>"));
             return;
         }
         LeaderboardType type = LeaderboardType.fromKey(args[1]);
@@ -138,9 +151,9 @@ public class LeaderboardCommand implements CommandExecutor, TabCompleter {
         } else if (args.length >= 7) {
             target = parseWorldTarget(sender, args, 2);
         } else if (args.length == 6 && sender instanceof Player inWorld) {
-            target = parseBlockTarget(sender, inWorld.getWorld(), args, 2);
+            target = parseCoords(sender, inWorld.getWorld(), args, 2);
         } else {
-            plugin.getMessagesManager().send(sender, "leaderboard.console-needs-coords");
+            sender.sendMessage(ColorUtil.parse("<red>Nutzung: /leaderboard move <lb> movetoplayer  oder  /leaderboard move <lb> [<welt>] <x> <y> <z> <dir></red>"));
             return;
         }
         if (target == null) {
@@ -152,12 +165,16 @@ public class LeaderboardCommand implements CommandExecutor, TabCompleter {
         module.getHologramManager().reload();
         plugin.getMessagesManager().send(sender, "leaderboard.move-success", Map.of(
                 "leaderboard", type.key(),
+                "world", target.world().getName(),
+                "x", String.valueOf(target.x()),
+                "y", String.valueOf(target.y()),
+                "z", String.valueOf(target.z()),
                 "direction", target.face().name().toLowerCase()));
     }
 
     private void handleHeight(CommandSender sender, LeaderboardModule module, String[] args) {
         if (args.length < 3) {
-            sender.sendMessage(ColorUtil.parse("<red>Nutzung: /leaderboard height <leaderboard> <ganze bloecke></red>"));
+            sender.sendMessage(ColorUtil.parse("<red>Nutzung: /leaderboard height <leaderboard> <hoehe-in-bloecken></red>"));
             return;
         }
         LeaderboardType type = LeaderboardType.fromKey(args[1]);
@@ -176,14 +193,13 @@ public class LeaderboardCommand implements CommandExecutor, TabCompleter {
             height = Double.parseDouble(args[2].replace(',', '.'));
         } catch (NumberFormatException e) {
             plugin.getMessagesManager().send(sender, "leaderboard.height-invalid", Map.of(
-                    "input", args[2],
                     "min", trim(HologramLayout.MIN_HEIGHT),
                     "max", trim(HologramLayout.MAX_HEIGHT)));
             return;
         }
+
         if (height < HologramLayout.MIN_HEIGHT || height > HologramLayout.MAX_HEIGHT) {
             plugin.getMessagesManager().send(sender, "leaderboard.height-invalid", Map.of(
-                    "input", args[2],
                     "min", trim(HologramLayout.MIN_HEIGHT),
                     "max", trim(HologramLayout.MAX_HEIGHT)));
             return;
@@ -216,6 +232,13 @@ public class LeaderboardCommand implements CommandExecutor, TabCompleter {
                     Map.of("distance", String.valueOf((int) reach)));
             return null;
         }
+        if (face == BlockFace.UP) {
+            BlockFace facing = player.getFacing().getOppositeFace();
+            if (!HologramDefinition.isWallFace(facing)) {
+                facing = BlockFace.SOUTH;
+            }
+            return new WallTarget(block.getWorld(), block.getX(), block.getY() + 1, block.getZ(), facing);
+        }
         if (!HologramDefinition.isWallFace(face)) {
             plugin.getMessagesManager().send(player, "leaderboard.place-not-a-wall");
             return null;
@@ -229,27 +252,31 @@ public class LeaderboardCommand implements CommandExecutor, TabCompleter {
             sender.sendMessage(ColorUtil.parse("<red>Unbekannte Welt: " + args[start] + "</red>"));
             return null;
         }
-        return parseBlockTarget(sender, world, args, start + 1);
+        return parseCoords(sender, world, args, start + 1);
     }
 
-    private WallTarget parseBlockTarget(CommandSender sender, World world, String[] args, int start) {
-        BlockFace face;
+    private WallTarget parseCoords(CommandSender sender, World world, String[] args, int start) {
         try {
-            face = BlockFace.valueOf(args[start + 3].toUpperCase());
-        } catch (IllegalArgumentException e) {
-            face = null;
-        }
-        if (face == null || !HologramDefinition.isWallFace(face)) {
-            plugin.getMessagesManager().send(sender, "leaderboard.invalid-direction", Map.of("input", args[start + 3]));
+            int x = Integer.parseInt(args[start]);
+            int y = Integer.parseInt(args[start + 1]);
+            int z = Integer.parseInt(args[start + 2]);
+            BlockFace face = parseFace(args[start + 3]);
+            if (face == null) {
+                sender.sendMessage(ColorUtil.parse("<red>Ungueltige Richtung: " + args[start + 3] + " (erlaubt: north, south, east, west)</red>"));
+                return null;
+            }
+            return new WallTarget(world, x, y, z, face);
+        } catch (Exception e) {
+            sender.sendMessage(ColorUtil.parse("<red>Ungueltige Koordinaten. Bitte ganze Zahlen angeben.</red>"));
             return null;
         }
+    }
+
+    private BlockFace parseFace(String name) {
         try {
-            int x = (int) Math.floor(Double.parseDouble(args[start]));
-            int y = (int) Math.floor(Double.parseDouble(args[start + 1]));
-            int z = (int) Math.floor(Double.parseDouble(args[start + 2]));
-            return new WallTarget(world, x, y, z, face);
-        } catch (NumberFormatException e) {
-            sender.sendMessage(ColorUtil.parse("<red>Ungueltige Koordinaten.</red>"));
+            BlockFace f = BlockFace.valueOf(name.toUpperCase());
+            return HologramDefinition.isWallFace(f) ? f : null;
+        } catch (IllegalArgumentException e) {
             return null;
         }
     }
@@ -268,86 +295,97 @@ public class LeaderboardCommand implements CommandExecutor, TabCompleter {
             plugin.getMessagesManager().send(sender, "leaderboard.remove-not-found", Map.of("leaderboard", type.key()));
             return;
         }
-        module.getHologramManager().despawnType(type);
         module.getPositionStore().remove(type);
+        module.getHologramManager().removeBoard(type);
         plugin.getMessagesManager().send(sender, "leaderboard.remove-success", Map.of("leaderboard", type.key()));
     }
 
-    private void handleExcludeChange(CommandSender sender, LeaderboardModule module, String[] args, boolean exclude) {
-        if (args.length < 3) {
-            sender.sendMessage(ColorUtil.parse("<red>Nutzung: /leaderboard " + args[0] + " <spieler> <leaderboard|all></red>"));
+    private void handleRemovePlayer(CommandSender sender, LeaderboardModule module, String[] args) {
+        if (args.length < 2) {
+            sender.sendMessage(ColorUtil.parse("<red>Nutzung: /leaderboard removeplayer <spieler> [<leaderboard>]</red>"));
             return;
         }
-        OfflinePlayer target = resolveKnownPlayer(args[1]);
+        UUID target = resolvePlayer(args[1]);
         if (target == null) {
-            plugin.getMessagesManager().send(sender, "general.player-not-found", Map.of("player", args[1]));
+            plugin.getMessagesManager().send(sender, "leaderboard.player-not-found", Map.of("player", args[1]));
             return;
         }
-        if (args[2].equalsIgnoreCase("all")) {
-            if (exclude) module.getExclusionService().excludeFromAll(target.getUniqueId());
-            else module.getExclusionService().includeInAll(target.getUniqueId());
-        } else {
-            LeaderboardType type = LeaderboardType.fromKey(args[2]);
-            if (type == null) {
-                plugin.getMessagesManager().send(sender, "leaderboard.invalid-type-with-all", Map.of("input", args[2]));
-                return;
-            }
-            if (exclude) module.getExclusionService().exclude(target.getUniqueId(), type);
-            else module.getExclusionService().include(target.getUniqueId(), type);
+        LeaderboardType type = args.length >= 3 ? LeaderboardType.fromKey(args[2]) : null;
+        if (args.length >= 3 && type == null) {
+            plugin.getMessagesManager().send(sender, "leaderboard.invalid-type", Map.of("input", args[2]));
+            return;
         }
 
-        String messageKey = exclude ? "leaderboard.excluded-add-success" : "leaderboard.excluded-remove-success";
-        plugin.getMessagesManager().send(sender, messageKey, Map.of(
-                "player", target.getName() != null ? target.getName() : args[1],
-                "leaderboard", args[2].toLowerCase()
-        ));
+        module.getExclusionService().exclude(target, type);
+        module.getCache().forceRefresh();
+        module.getHologramManager().reload();
+
+        String lbName = type == null ? "alle" : type.key();
+        plugin.getMessagesManager().send(sender, "leaderboard.exclude-success", Map.of(
+                "player", args[1],
+                "leaderboard", lbName));
     }
 
-    private void handleExcludedList(CommandSender sender, LeaderboardModule module, String[] args) {
+    private void handleAddPlayer(CommandSender sender, LeaderboardModule module, String[] args) {
         if (args.length < 2) {
-            sender.sendMessage(ColorUtil.parse("<red>Nutzung: /leaderboard excluded <leaderboard></red>"));
+            sender.sendMessage(ColorUtil.parse("<red>Nutzung: /leaderboard addplayer <spieler> [<leaderboard>]</red>"));
             return;
         }
-        LeaderboardType type = LeaderboardType.fromKey(args[1]);
-        if (type == null) {
-            plugin.getMessagesManager().send(sender, "leaderboard.invalid-type", Map.of("input", args[1]));
+        UUID target = resolvePlayer(args[1]);
+        if (target == null) {
+            plugin.getMessagesManager().send(sender, "leaderboard.player-not-found", Map.of("player", args[1]));
             return;
         }
-        var excluded = module.getExclusionService().getExcluded(type);
-        plugin.getMessagesManager().send(sender, "leaderboard.excluded-list-header", Map.of("leaderboard", type.key()));
-        if (excluded.isEmpty()) {
-            plugin.getMessagesManager().send(sender, "leaderboard.excluded-list-empty");
+        LeaderboardType type = args.length >= 3 ? LeaderboardType.fromKey(args[2]) : null;
+        if (args.length >= 3 && type == null) {
+            plugin.getMessagesManager().send(sender, "leaderboard.invalid-type", Map.of("input", args[2]));
             return;
         }
-        for (UUID uuid : excluded) {
-            OfflinePlayer p = Bukkit.getOfflinePlayer(uuid);
-            sender.sendMessage(plugin.getMessagesManager().get("leaderboard.excluded-list-entry",
-                    Map.of("player", p.getName() != null ? p.getName() : uuid.toString())));
+
+        module.getExclusionService().include(target, type);
+        module.getCache().forceRefresh();
+        module.getHologramManager().reload();
+
+        String lbName = type == null ? "alle" : type.key();
+        plugin.getMessagesManager().send(sender, "leaderboard.include-success", Map.of(
+                "player", args[1],
+                "leaderboard", lbName));
+    }
+
+    private UUID resolvePlayer(String name) {
+        Player online = Bukkit.getPlayerExact(name);
+        if (online != null) {
+            return online.getUniqueId();
         }
+        OfflinePlayer offline = Bukkit.getOfflinePlayer(name);
+        if (offline.hasPlayedBefore() || offline.isOnline()) {
+            return offline.getUniqueId();
+        }
+        return null;
     }
 
     private void handleList(CommandSender sender, LeaderboardModule module) {
+        Map<LeaderboardType, HologramDefinition> all = module.getPositionStore().all();
+        if (all.isEmpty()) {
+            plugin.getMessagesManager().send(sender, "leaderboard.list-empty");
+            return;
+        }
         plugin.getMessagesManager().send(sender, "leaderboard.list-header");
-        for (LeaderboardType type : LeaderboardType.values()) {
-            HologramDefinition def = module.getPositionStore().get(type);
-            if (def == null) {
-                sender.sendMessage(plugin.getMessagesManager().get("leaderboard.list-entry-none", Map.of("leaderboard", type.key())));
-            } else {
-                sender.sendMessage(plugin.getMessagesManager().get("leaderboard.list-entry", Map.of(
-                        "leaderboard", type.key(),
-                        "world", def.getWorldName(),
-                        "x", String.valueOf(def.getX()),
-                        "y", String.valueOf(def.getY()),
-                        "z", String.valueOf(def.getZ()),
-                        "direction", def.getFacing().name().toLowerCase(),
-                        "height", trim(module.getHologramManager().effectiveHeight(def.getHeightBlocks())),
-                        "entries", String.valueOf(module.getHologramManager().entriesForHeight(def.getHeightBlocks()))
-                )));
-            }
+        for (Map.Entry<LeaderboardType, HologramDefinition> e : all.entrySet()) {
+            HologramDefinition def = e.getValue();
+            plugin.getMessagesManager().send(sender, "leaderboard.list-entry", Map.of(
+                    "leaderboard", e.getKey().key(),
+                    "world", def.getWorldName(),
+                    "x", String.valueOf(def.getX()),
+                    "y", String.valueOf(def.getY()),
+                    "z", String.valueOf(def.getZ()),
+                    "direction", def.getFacing().name().toLowerCase(),
+                    "height", trim(module.getHologramManager().effectiveHeight(def.getHeightBlocks())),
+                    "entries", String.valueOf(module.getHologramManager().entriesForHeight(def.getHeightBlocks()))));
         }
     }
 
-    private void handleTeleport(CommandSender sender, LeaderboardModule module, String[] args) {
+    private void handleTp(CommandSender sender, LeaderboardModule module, String[] args) {
         if (!(sender instanceof Player player)) {
             plugin.getMessagesManager().send(sender, "general.player-only");
             return;
@@ -361,83 +399,104 @@ public class LeaderboardCommand implements CommandExecutor, TabCompleter {
             plugin.getMessagesManager().send(sender, "leaderboard.invalid-type", Map.of("input", args[1]));
             return;
         }
-        if (module.getPositionStore().get(type) == null) {
-            plugin.getMessagesManager().send(sender, "leaderboard.tp-not-found", Map.of("leaderboard", type.key()));
+        HologramDefinition def = module.getPositionStore().get(type);
+        if (def == null) {
+            plugin.getMessagesManager().send(sender, "leaderboard.remove-not-found", Map.of("leaderboard", type.key()));
             return;
         }
-        module.getHologramManager().teleportPlayer(player, type);
+        Location target = def.frame().standingSpot();
+        player.teleport(target);
         plugin.getMessagesManager().send(sender, "leaderboard.tp-success", Map.of("leaderboard", type.key()));
     }
 
     private void handleReload(CommandSender sender, LeaderboardModule module) {
-        plugin.getConfigManager().reload();
-        plugin.getMessagesManager().reload();
-        module.reload();
+        module.getHologramManager().reload();
         plugin.getMessagesManager().send(sender, "leaderboard.reload-success");
     }
 
     private void handleReset(CommandSender sender, LeaderboardModule module, String[] args) {
-        if (args.length < 2 || (!args[1].equalsIgnoreCase("week") && !args[1].equalsIgnoreCase("month"))) {
-            plugin.getMessagesManager().send(sender, "leaderboard.reset-invalid-period");
+        if (args.length < 2) {
+            sender.sendMessage(ColorUtil.parse("<red>Nutzung: /leaderboard reset <all|woche|monat></red>"));
             return;
         }
-        TimePeriod period = args[1].equalsIgnoreCase("week") ? TimePeriod.WEEK : TimePeriod.MONTH;
-        Bukkit.getScheduler().runTaskAsynchronously(plugin.getPlugin(), () -> {
-            module.getPeriodResetManager().manualReset(period);
-            Bukkit.getScheduler().runTask(plugin.getPlugin(), () -> {
-                module.getCache().forceRefresh();
-                plugin.getMessagesManager().send(sender, "leaderboard.reset-success", Map.of("period", period.key()));
-            });
-        });
+        String periodArg = args[1].toLowerCase();
+        if (periodArg.equals("all")) {
+            module.getPeriodResetManager().manualReset(TimePeriod.WEEK);
+            module.getPeriodResetManager().manualReset(TimePeriod.MONTH);
+            module.getCache().forceRefresh();
+            module.getHologramManager().reload();
+            plugin.getMessagesManager().send(sender, "leaderboard.reset-all-success");
+            return;
+        }
+        TimePeriod period = null;
+        if (periodArg.equals("woche") || periodArg.equals("week")) {
+            period = TimePeriod.WEEK;
+        } else if (periodArg.equals("monat") || periodArg.equals("month")) {
+            period = TimePeriod.MONTH;
+        }
+        if (period == null || period == TimePeriod.GLOBAL) {
+            sender.sendMessage(ColorUtil.parse("<red>Gueltige Zeitraeume: woche, monat, all</red>"));
+            return;
+        }
+        module.getPeriodResetManager().manualReset(period);
+        module.getCache().forceRefresh();
+        module.getHologramManager().reload();
+        plugin.getMessagesManager().send(sender, "leaderboard.reset-type-success", Map.of("leaderboard", period.key()));
     }
 
-    // ------------------------------------------------------------
-
-    private OfflinePlayer resolveKnownPlayer(String name) {
-        for (OfflinePlayer p : Bukkit.getOfflinePlayers()) {
-            if (name.equalsIgnoreCase(p.getName())) {
-                return p;
-            }
-        }
-        Player online = Bukkit.getPlayerExact(name);
-        return online;
+    private void sendHelp(CommandSender sender) {
+        sender.sendMessage(ColorUtil.parse("<gradient:#00e5ff:#00a3cc><b>Stoneattack Leaderboard</b></gradient>"));
+        sender.sendMessage(ColorUtil.parse("<gray>/leaderboard place <lb> [<welt> <x> <y> <z> <dir>]</gray> <dark_gray>-</dark_gray> <white>Platzieren</white>"));
+        sender.sendMessage(ColorUtil.parse("<gray>/leaderboard move <lb> movetoplayer | [<welt>] <x> <y> <z> <dir></gray> <dark_gray>-</dark_gray> <white>Verschieben</white>"));
+        sender.sendMessage(ColorUtil.parse("<gray>/leaderboard height <lb> <bloecke></gray> <dark_gray>-</dark_gray> <white>Hoehe aendern</white>"));
+        sender.sendMessage(ColorUtil.parse("<gray>/leaderboard remove <lb></gray> <dark_gray>-</dark_gray> <white>Entfernen</white>"));
+        sender.sendMessage(ColorUtil.parse("<gray>/leaderboard removeplayer <spieler> [<lb>]</gray> <dark_gray>-</dark_gray> <white>Ausschliessen</white>"));
+        sender.sendMessage(ColorUtil.parse("<gray>/leaderboard addplayer <spieler> [<lb>]</gray> <dark_gray>-</dark_gray> <white>Wieder aufnehmen</white>"));
+        sender.sendMessage(ColorUtil.parse("<gray>/leaderboard list</gray> <dark_gray>-</dark_gray> <white>Alle Boards auflisten</white>"));
+        sender.sendMessage(ColorUtil.parse("<gray>/leaderboard tp <lb></gray> <dark_gray>-</dark_gray> <white>Hin teleportieren</white>"));
+        sender.sendMessage(ColorUtil.parse("<gray>/leaderboard reload</gray> <dark_gray>-</dark_gray> <white>Config & Displays neu laden</white>"));
+        sender.sendMessage(ColorUtil.parse("<gray>/leaderboard reset <all|woche|monat></gray> <dark_gray>-</dark_gray> <white>Statistiken zuruecksetzen</white>"));
     }
 
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
+        if (!sender.hasPermission("stoneattack.admin")) {
+            return List.of();
+        }
         if (args.length == 1) {
-            return CommandUtil.filterStartingWith(SUBCOMMANDS, args[0]);
+            return StringUtil.copyPartialMatches(args[0], SUBCOMMANDS, new ArrayList<>());
         }
         String sub = args[0].toLowerCase();
         if (args.length == 2) {
             return switch (sub) {
-                case "place", "move", "height", "remove", "excluded", "tp" -> CommandUtil.filterStartingWith(TYPES, args[1]);
-                case "removeplayer", "addplayer" -> new ArrayList<>();
-                case "reset" -> CommandUtil.filterStartingWith(List.of("week", "month"), args[1]);
+                case "place", "move", "height", "remove", "tp" -> StringUtil.copyPartialMatches(args[1], TYPES, new ArrayList<>());
+                case "reset" -> {
+                    List<String> list = List.of("all", "woche", "monat");
+                    yield StringUtil.copyPartialMatches(args[1], list, new ArrayList<>());
+                }
+                case "removeplayer", "addplayer" -> null; // Online-Spieler
                 default -> List.of();
             };
         }
         if (args.length == 3 && sub.equals("height")) {
-            return CommandUtil.filterStartingWith(List.of("3", "4", "5", "6", "7", "8"), args[2]);
-        }
-        if (args.length == 3 && (sub.equals("removeplayer") || sub.equals("addplayer"))) {
-            return CommandUtil.filterStartingWith(TYPES_WITH_ALL, args[2]);
+            return StringUtil.copyPartialMatches(args[2], List.of("3", "4", "5", "6", "7", "8", "9", "10", "11", "12"), new ArrayList<>());
         }
         if (args.length == 3 && sub.equals("move")) {
-            List<String> options = new ArrayList<>(List.of("movetoplayer"));
-            Bukkit.getWorlds().forEach(w -> options.add(w.getName()));
-            return CommandUtil.filterStartingWith(options, args[2]);
+            return StringUtil.copyPartialMatches(args[2], List.of("movetoplayer"), new ArrayList<>());
         }
         if (args.length == 3 && sub.equals("place")) {
-            List<String> options = new ArrayList<>();
-            Bukkit.getWorlds().forEach(w -> options.add(w.getName()));
-            return CommandUtil.filterStartingWith(options, args[2]);
+            return StringUtil.copyPartialMatches(args[2], Bukkit.getWorlds().stream().map(World::getName).toList(), new ArrayList<>());
+        }
+        if (args.length == 3 && (sub.equals("removeplayer") || sub.equals("addplayer"))) {
+            return StringUtil.copyPartialMatches(args[2], TYPES, new ArrayList<>());
         }
         // Richtung als letztes Argument: place <lb> <welt> <x> <y> <z> <dir>  bzw. move <lb> [<welt>] <x> <y> <z> <dir>
         if ((sub.equals("place") && args.length == 7)
                 || (sub.equals("move") && (args.length == 6 || args.length == 7))) {
-            return CommandUtil.filterStartingWith(DIRECTIONS, args[args.length - 1]);
+            return StringUtil.copyPartialMatches(args[args.length - 1], FACINGS, new ArrayList<>());
         }
         return List.of();
     }
+
+    private record WallTarget(World world, int x, int y, int z, BlockFace face) {}
 }

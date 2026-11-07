@@ -100,6 +100,8 @@ clan:
   debt-lock-settings: "&cDein Clan hat Schulden! Clan-Einstellungen sind gesperrt."
   debt-cleared: "&aDie Schulden des Clans wurden beglichen! Alle Clan-Aktionen sind wieder freigeschaltet."
   cannot-withdraw-debt: "&cDein Clan hat Schulden! Du kannst kein Geld abheben."
+  taxes:
+    limit-exceeded: "&cDas Steuer-Limit von maximal &e%max% &cdarf nicht überschritten werden!"
 
 # Rang-Nachrichten
 rank:
@@ -179,6 +181,9 @@ alliance:
 
 # Kriegs-Nachrichten
 war:
+  preparation-started: "&8[&6Krieg&8] &eDie Vorbereitungszeit läuft! PvP zwischen &c%clan% &eund &c%enemy% &ewird in &c%time% Sekunden &eaktiviert!"
+  pvp-activated: "&8[&6Krieg&8] &c&lDie Vorbereitungszeit ist vorbei! PvP zwischen &e%clan% &cund &e%enemy% &cist ab sofort AKTIV!"
+  admin-deleted: "&8[&6Krieg&8] &eDer Clankrieg zwischen &c%clan% &eund &c%enemy% &ewurde von einem Administrator gelöscht!"
   declared: "&c%clan% &7hat &c%enemy% &7den Krieg erklärt!"
   clan-in-debt: "&cDein Clan ist mit &e-%debt%$ &cim Minus! Clan-Kriege sind gesperrt, bis die Schulden per &e/clan deposit &cbeglichen wurden!"
   target-in-debt: "&cDer gegnerische Clan &e%clan% &chat Schulden (&e-%debt%$&c)! Du kannst diesem Clan keinen Krieg erklären."
@@ -285,6 +290,8 @@ broadcast:
 
 # Admin-Nachrichten
 admin:
+  war-deleted: "&aDer Clankrieg zwischen &e%clan% &aund &e%enemy% &awurde restlos gelöscht."
+  war-not-found: "&cEs existiert kein aktiver Clankrieg zwischen &e%clan% &cund &e%enemy%&c."
   clan-deleted: "&aDer Clan &e%clan% &awurde gelöscht."
   level-set: "&aDas Level von &e%clan% &awurde auf &e%level% &agesetzt."
   points-added: "&a%points% Punkte wurden &e%clan% &ahinzugefügt."
@@ -305,7 +312,10 @@ admin:
   demote-success: "&a%player% im Clan &e%clan% &awurde auf den Rang &e%rank% &adegradiert."
   taxes-run-success: "&aSteuereinzug erfolgreich ausgeführt! &7(%count% Clans besteuert, %exempt% in Schonfrist, %total% eingezogen)"
   taxes-disabled: "&cDas Steuersystem ist aktuell in der Konfiguration deaktiviert!"
-  taxes-info: "&6&lSteuern-Status:&r\n&7Aktiv: &e%enabled%\n&7Intervall: &e%interval% Tage\n&7Schonfrist: &e%grace% Tage\n&7Letzter Einzug: &e%last_run%\n&7Nächster Einzug: &e%next_run%"
+  taxes-limit-exceeded: "&cDas Steuer-Limit von maximal &e%max% &cdarf nicht überschritten werden!"
+  taxes:
+    limit-exceeded: "&cDas Steuer-Limit von maximal &e%max% &cdarf nicht überschritten werden!"
+    taxes-info: "&6&lSteuern-Status:&r\n&7Aktiv: &e%enabled%\n&7Intervall: &e%interval% Tage\n&7Schonfrist: &e%grace% Tage\n&7Letzter Einzug: &e%last_run%\n&7Nächster Einzug: &e%next_run%"
 
 # Clankassen-Nachrichten
 bank:

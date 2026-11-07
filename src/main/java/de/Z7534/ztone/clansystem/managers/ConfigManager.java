@@ -15,11 +15,58 @@ import java.util.regex.Pattern;
 
 public class ConfigManager {
 
+    public static final double MAX_TAX_LIMIT = 300_000_000.0;
+
+    public static class TaxBracket {
+        private final double min;
+        private final double max;
+        private final double multiplier;
+        private final double flatTax;
+
+        public TaxBracket(double min, double max, double multiplier, double flatTax) {
+            this.min = min;
+            this.max = max;
+            this.multiplier = multiplier;
+            this.flatTax = flatTax;
+        }
+
+        public double getMin() {
+            return min;
+        }
+
+        public double getMax() {
+            return max;
+        }
+
+        public double getMultiplier() {
+            return multiplier;
+        }
+
+        public double getFlatTax() {
+            return flatTax;
+        }
+
+        public boolean matches(double balance) {
+            if (balance < min) {
+                return false;
+            }
+            if (max >= 0 && balance > max) {
+                return false;
+            }
+            return true;
+        }
+
+        public double calculate(double balance) {
+            double effectiveBalance = Math.max(0.0, balance);
+            return (effectiveBalance * multiplier) + flatTax;
+        }
+    }
+
     private final Ztone plugin;
     private FileConfiguration globalConfig;
     private FileConfiguration clanConfig;
 
-    // Globale Modul-Einstellungen
+    // Modul-Aktivierung
     private boolean clansystemEnabled = true;
     private boolean clankasseEnabled = true;
     private boolean pvpmanagerEnabled = true;
@@ -72,67 +119,23 @@ public class ConfigManager {
     private boolean countNormalKills;
     private boolean disableFriendlyFire;
     private boolean disableAllyFire;
+    private int warPreparationTimeSeconds = 60;
 
     private boolean broadcastClanCreated;
     private boolean broadcastClanDisbanded;
     private boolean broadcastMemberJoined;
     private boolean broadcastMemberLeft;
 
-    private List<ClanRank> defaultRanks;
+    private final List<ClanRank> defaultRanks;
     private boolean chestLogging;
 
-    // Clan-spezifische Steuern-Einstellungen
+    // Steuern (Taxes)
     private boolean taxesEnabled = true;
     private int taxesIntervalDays = 7;
     private int taxesGracePeriodDays = 14;
     private Map<Integer, Double> taxesLevelBase = new HashMap<>();
     private double taxesFallbackBase = 500.0;
     private List<TaxBracket> taxesBrackets = new ArrayList<>();
-
-    public static class TaxBracket {
-        private final double min;
-        private final double max;
-        private final double multiplier;
-        private final double flatTax;
-
-        public TaxBracket(double min, double max, double multiplier, double flatTax) {
-            this.min = min;
-            this.max = max;
-            this.multiplier = multiplier;
-            this.flatTax = flatTax;
-        }
-
-        public double getMin() {
-            return min;
-        }
-
-        public double getMax() {
-            return max;
-        }
-
-        public double getMultiplier() {
-            return multiplier;
-        }
-
-        public double getFlatTax() {
-            return flatTax;
-        }
-
-        public boolean matches(double balance) {
-            if (balance < min) {
-                return false;
-            }
-            if (max >= 0 && balance > max) {
-                return false;
-            }
-            return true;
-        }
-
-        public double calculate(double balance) {
-            double effectiveBalance = Math.max(0.0, balance);
-            return (effectiveBalance * multiplier) + flatTax;
-        }
-    }
 
     public ConfigManager(Ztone plugin) {
         this.plugin = plugin;
@@ -141,14 +144,12 @@ public class ConfigManager {
     }
 
     public void reload() {
-        // 1. Globale Konfiguration laden und synchronisieren (plugins/Ztone/config.yml)
         File rootConfigFile = new File(plugin.getDataFolder(), "config.yml");
         this.globalConfig = ConfigUtil.loadAndSync(plugin, rootConfigFile, "config.yml");
         plugin.reloadConfig();
         this.globalConfig = plugin.getConfig();
         loadGlobalSettings();
 
-        // 2. Clan-spezifische Konfiguration laden und synchronisieren (plugins/Ztone/clansystem/config.yml)
         File clanFolder = new File(plugin.getDataFolder(), "clansystem");
         File clanConfigFile = new File(clanFolder, "config.yml");
 
@@ -162,6 +163,7 @@ public class ConfigManager {
         loadSuffixSettings();
         loadTeleportSettings();
         loadPvPSettings();
+        loadWarSettings();
         loadBroadcastSettings();
         loadDefaultRanks();
         loadTaxesSettings();
@@ -248,25 +250,20 @@ public class ConfigManager {
         if (backupSec != null) {
             this.backupEnabled = backupSec.getBoolean("enabled", true);
             this.backupIntervalMinutes = backupSec.getInt("interval-minutes", 5);
-            this.backupMaxCount = backupSec.getInt("max-backups", 50);
-        } else {
-            this.backupEnabled = true;
-            this.backupIntervalMinutes = 5;
-            this.backupMaxCount = 50;
+            this.backupMaxCount = backupSec.getInt("max-count", 50);
         }
     }
 
     private void loadClanSettings() {
         ConfigurationSection clan = clanConfig.getConfigurationSection("clan");
         if (clan != null) {
-            clanNameMinLength = clan.getInt("name-min-length", 3);
-            clanNameMaxLength = clan.getInt("name-max-length", 16);
-            clanNamePattern = Pattern.compile(clan.getString("name-pattern", "^[a-zA-Z0-9_]+$"));
-            leaveCooldown = clan.getInt("leave-cooldown", 86400);
+            clanNameMinLength = clan.getInt("name.min-length", 3);
+            clanNameMaxLength = clan.getInt("name.max-length", 16);
+            clanNamePattern = Pattern.compile(clan.getString("name.allowed-characters", "^[a-zA-Z0-9_]+$"));
+            leaveCooldown = clan.getInt("leave-cooldown", 300);
 
-            String joinTypeStr = clan.getString("default-join-type", "INVITE");
             try {
-                defaultJoinType = Clan.JoinType.valueOf(joinTypeStr.toUpperCase());
+                defaultJoinType = Clan.JoinType.valueOf(clan.getString("default-join-type", "INVITE").toUpperCase());
             } catch (IllegalArgumentException e) {
                 defaultJoinType = Clan.JoinType.INVITE;
             }
@@ -303,6 +300,15 @@ public class ConfigManager {
         }
     }
 
+    private void loadWarSettings() {
+        ConfigurationSection war = clanConfig.getConfigurationSection("war");
+        if (war != null) {
+            warPreparationTimeSeconds = war.getInt("preparation-time-seconds", 60);
+        } else {
+            warPreparationTimeSeconds = clanConfig.getInt("war.preparation-time-seconds", 60);
+        }
+    }
+
     private void loadBroadcastSettings() {
         ConfigurationSection bc = clanConfig.getConfigurationSection("broadcast");
         if (bc != null) {
@@ -336,11 +342,11 @@ public class ConfigManager {
 
         if (defaultRanks.isEmpty()) {
             ClanRank leader = new ClanRank("Leader", 100);
-            leader.getPermissions().addAll(java.util.Arrays.asList(Permission.values()));
+            leader.getPermissions().addAll(Arrays.asList(Permission.values()));
             defaultRanks.add(leader);
 
             ClanRank coLeader = new ClanRank("Co-Leader", 80);
-            coLeader.getPermissions().addAll(java.util.List.of(
+            coLeader.getPermissions().addAll(List.of(
                     Permission.INVITE, Permission.KICK, Permission.SET_HOME,
                     Permission.DEL_HOME, Permission.SET_WARP, Permission.DEL_WARP,
                     Permission.CHEST_ACCESS, Permission.CHEST_WITHDRAW,
@@ -348,160 +354,99 @@ public class ConfigManager {
             ));
             defaultRanks.add(coLeader);
 
-            ClanRank member = new ClanRank("Mitglied", 10);
-            member.getPermissions().addAll(java.util.List.of(
-                    Permission.CHEST_ACCESS, Permission.BANK_DEPOSIT, Permission.BANK_VIEW_TRANSACTIONS
+            ClanRank elder = new ClanRank("Elder", 50);
+            elder.getPermissions().addAll(List.of(
+                    Permission.INVITE, Permission.CHEST_ACCESS,
+                    Permission.BANK_DEPOSIT, Permission.BANK_VIEW_TRANSACTIONS
+            ));
+            defaultRanks.add(elder);
+
+            ClanRank member = new ClanRank("Member", 20);
+            member.getPermissions().addAll(List.of(
+                    Permission.CHEST_ACCESS, Permission.BANK_DEPOSIT
             ));
             defaultRanks.add(member);
+
+            ClanRank recruit = new ClanRank("Recruit", 0);
+            defaultRanks.add(recruit);
         }
     }
 
     private void loadTaxesSettings() {
-        taxesLevelBase.clear();
-        taxesBrackets.clear();
-
-        ConfigurationSection taxesSec = clanConfig.getConfigurationSection("taxes");
-        if (taxesSec == null && clanConfig.getDefaultSection() != null) {
-            taxesSec = clanConfig.getDefaultSection().getConfigurationSection("taxes");
-        }
-        if (taxesSec == null) {
+        ConfigurationSection taxes = clanConfig.getConfigurationSection("taxes");
+        if (taxes == null) {
             this.taxesEnabled = true;
             this.taxesIntervalDays = 7;
             this.taxesGracePeriodDays = 14;
+            this.taxesLevelBase = new HashMap<>();
             this.taxesFallbackBase = 500.0;
-        } else {
-            this.taxesEnabled = taxesSec.getBoolean("enabled", true);
-            this.taxesIntervalDays = Math.max(1, taxesSec.getInt("interval-days", 7));
-            this.taxesGracePeriodDays = Math.max(0, taxesSec.getInt("grace-period-days", 14));
-            this.taxesFallbackBase = taxesSec.getDouble("fallback-base", 500.0);
+            this.taxesBrackets = new ArrayList<>();
+            return;
+        }
 
-            ConfigurationSection levelSec = taxesSec.getConfigurationSection("level-base");
-            if (levelSec != null) {
-                for (String key : levelSec.getKeys(false)) {
-                    try {
-                        int lvl = Integer.parseInt(key);
-                        taxesLevelBase.put(lvl, levelSec.getDouble(key, taxesFallbackBase));
-                    } catch (NumberFormatException ignored) {}
-                }
-            }
+        this.taxesEnabled = taxes.getBoolean("enabled", true);
+        this.taxesIntervalDays = Math.max(1, taxes.getInt("interval-days", 7));
+        this.taxesGracePeriodDays = Math.max(0, taxes.getInt("grace-period-days", 14));
 
-            List<Map<?, ?>> bracketList = taxesSec.getMapList("balance-brackets");
-            if (bracketList != null && !bracketList.isEmpty()) {
-                for (Map<?, ?> map : bracketList) {
-                    try {
-                        double min = map.containsKey("min") ? Double.parseDouble(map.get("min").toString()) : 0.0;
-                        double max = map.containsKey("max") ? Double.parseDouble(map.get("max").toString()) : -1.0;
-                        double mult = map.containsKey("multiplier") ? Double.parseDouble(map.get("multiplier").toString()) : 0.0;
-                        double flat = map.containsKey("flat-tax") ? Double.parseDouble(map.get("flat-tax").toString()) : 0.0;
-                        taxesBrackets.add(new TaxBracket(min, max, mult, flat));
-                    } catch (Exception ignored) {}
-                }
+        this.taxesLevelBase = new HashMap<>();
+        ConfigurationSection lb = taxes.getConfigurationSection("level-base");
+        if (lb != null) {
+            for (String key : lb.getKeys(false)) {
+                try {
+                    int lvl = Integer.parseInt(key);
+                    taxesLevelBase.put(lvl, Math.min(MAX_TAX_LIMIT, lb.getDouble(key, 500.0)));
+                } catch (NumberFormatException ignored) {}
             }
         }
+        this.taxesFallbackBase = Math.min(MAX_TAX_LIMIT, taxes.getDouble("fallback-base", 500.0));
 
-        if (taxesBrackets.isEmpty()) {
-            taxesBrackets.add(new TaxBracket(0.0, 50000.0, 0.0, 0.0));
-            taxesBrackets.add(new TaxBracket(50000.0, 100000.0, 0.01, 0.0));
-            taxesBrackets.add(new TaxBracket(100000.0, 500000.0, 0.02, 0.0));
-            taxesBrackets.add(new TaxBracket(500000.0, 1000000.0, 0.03, 0.0));
-            taxesBrackets.add(new TaxBracket(1000000.0, -1.0, 0.05, 0.0));
+        this.taxesBrackets = new ArrayList<>();
+        List<Map<?, ?>> list = taxes.getMapList("balance-brackets");
+        if (list != null && !list.isEmpty()) {
+            for (Map<?, ?> map : list) {
+                try {
+                    double min = map.containsKey("min") ? ((Number) map.get("min")).doubleValue() : 0.0;
+                    double max = map.containsKey("max") ? ((Number) map.get("max")).doubleValue() : -1.0;
+                    double mul = map.containsKey("multiplier") ? ((Number) map.get("multiplier")).doubleValue() : 0.0;
+                    double flat = map.containsKey("flat-tax") ? ((Number) map.get("flat-tax")).doubleValue() : 0.0;
+                    taxesBrackets.add(new TaxBracket(min, max, mul, Math.min(MAX_TAX_LIMIT, flat)));
+                } catch (Exception ignored) {}
+            }
         }
     }
 
-    public boolean isClansystemEnabled() {
-        return clansystemEnabled;
-    }
+    public boolean isClansystemEnabled() { return clansystemEnabled; }
+    public boolean isClankasseEnabled() { return clankasseEnabled; }
+    public boolean isPvpmanagerEnabled() { return pvpmanagerEnabled; }
+    public boolean isClaimsEnabled() { return claimsEnabled; }
+    public boolean isStoneattackEnabled() { return stoneattackEnabled; }
+    public boolean isStonelogEnabled() { return stonelogEnabled; }
+    public boolean isMapcontrolEnabled() { return mapcontrolEnabled; }
+    public boolean isStonevoiceEnabled() { return stonevoiceEnabled; }
+    public boolean isPlayrewardsEnabled() { return playrewardsEnabled; }
+    public boolean isDeathchestEnabled() { return deathchestEnabled; }
+    public boolean isClearlagEnabled() { return clearlagEnabled; }
+    public boolean isStonesitEnabled() { return stonesitEnabled; }
+    public boolean isDragoneggEnabled() { return dragoneggEnabled; }
 
-    public boolean isClankasseEnabled() {
-        return clankasseEnabled && clansystemEnabled;
-    }
-
-    public boolean isPvpmanagerEnabled() {
-        return pvpmanagerEnabled;
-    }
-
-    public boolean isClaimsEnabled() {
-        return claimsEnabled;
-    }
-
-    public boolean isStoneattackEnabled() {
-        return stoneattackEnabled;
-    }
-
-    public boolean isStonelogEnabled() {
-        return stonelogEnabled;
-    }
-
-
-    public boolean isMapcontrolEnabled() {
-        return mapcontrolEnabled;
-    }
-
-    public boolean isStonevoiceEnabled() {
-        return stonevoiceEnabled;
-    }
-
-    public boolean isPlayrewardsEnabled() {
-        return playrewardsEnabled;
-    }
-
-    public boolean isDeathchestEnabled() {
-        return deathchestEnabled;
-    }
-
-    public boolean isClearlagEnabled() {
-        return clearlagEnabled;
-    }
-
-    public boolean isStonesitEnabled() {
-        return stonesitEnabled;
-    }
-
-    public boolean isDragoneggEnabled() {
-        return dragoneggEnabled;
-    }
-
-    public boolean isModuleEnabled(String module) {
-        if ("clansystem".equalsIgnoreCase(module) || "clans".equalsIgnoreCase(module) || "clan".equalsIgnoreCase(module)) {
-            return clansystemEnabled;
-        }
-        if ("clankasse".equalsIgnoreCase(module) || "bank".equalsIgnoreCase(module) || "kasse".equalsIgnoreCase(module)) {
-            return isClankasseEnabled();
-        }
-        if ("pvpmanager".equalsIgnoreCase(module) || "pvp".equalsIgnoreCase(module)) {
-            return pvpmanagerEnabled;
-        }
-        if ("claims".equalsIgnoreCase(module) || "claim".equalsIgnoreCase(module)) {
-            return claimsEnabled;
-        }
-        if ("stoneattack".equalsIgnoreCase(module)) {
-            return stoneattackEnabled;
-        }
-        if ("stonelog".equalsIgnoreCase(module)) {
-            return stonelogEnabled;
-        }
-        if ("mapcontrol".equalsIgnoreCase(module) || "map".equalsIgnoreCase(module)) {
-            return mapcontrolEnabled;
-        }
-        if ("stonevoice".equalsIgnoreCase(module) || "voice".equalsIgnoreCase(module)) {
-            return stonevoiceEnabled;
-        }
-        if ("playrewards".equalsIgnoreCase(module) || "playreward".equalsIgnoreCase(module) || "rewards".equalsIgnoreCase(module)) {
-            return playrewardsEnabled;
-        }
-        if ("deathchest".equalsIgnoreCase(module)) {
-            return deathchestEnabled;
-        }
-        if ("clearlag".equalsIgnoreCase(module)) {
-            return clearlagEnabled;
-        }
-        if ("stonesit".equalsIgnoreCase(module) || "gsit".equalsIgnoreCase(module) || "sit".equalsIgnoreCase(module)) {
-            return stonesitEnabled;
-        }
-        if ("dragonegg".equalsIgnoreCase(module) || "egg".equalsIgnoreCase(module)) {
-            return dragoneggEnabled;
-        }
-        return globalConfig.getBoolean("modules." + module, true);
+    public boolean isModuleEnabled(String moduleName) {
+        if (moduleName == null) return false;
+        return switch (moduleName.toLowerCase()) {
+            case "clansystem" -> isClansystemEnabled();
+            case "clankasse" -> isClankasseEnabled();
+            case "pvpmanager" -> isPvpmanagerEnabled();
+            case "claims" -> isClaimsEnabled();
+            case "stoneattack" -> isStoneattackEnabled();
+            case "stonelog" -> isStonelogEnabled();
+            case "mapcontrol" -> isMapcontrolEnabled();
+            case "stonevoice" -> isStonevoiceEnabled();
+            case "playrewards" -> isPlayrewardsEnabled();
+            case "deathchest" -> isDeathchestEnabled();
+            case "clearlag" -> isClearlagEnabled();
+            case "stonesit" -> isStonesitEnabled();
+            case "dragonegg" -> isDragoneggEnabled();
+            default -> false;
+        };
     }
 
     public StorageType getStorageType() { return storageType; }
@@ -526,7 +471,6 @@ public class ConfigManager {
     public Clan.JoinType getDefaultJoinType() { return defaultJoinType; }
 
     public int getSuffixMaxLength() { return suffixMaxLength; }
-
     public boolean isAllowMagic() { return allowMagic; }
     public List<String> getSuffixBlacklist() { return suffixBlacklist; }
 
@@ -540,6 +484,7 @@ public class ConfigManager {
     public boolean isCountNormalKills() { return countNormalKills; }
     public boolean isDisableFriendlyFire() { return disableFriendlyFire; }
     public boolean isDisableAllyFire() { return disableAllyFire; }
+    public int getWarPreparationTimeSeconds() { return warPreparationTimeSeconds; }
 
     public boolean isBroadcastClanCreated() { return broadcastClanCreated; }
     public boolean isBroadcastClanDisbanded() { return broadcastClanDisbanded; }
@@ -553,25 +498,11 @@ public class ConfigManager {
         return taxesEnabled && isClankasseEnabled();
     }
 
-    public int getTaxesIntervalDays() {
-        return taxesIntervalDays;
-    }
-
-    public int getTaxesGracePeriodDays() {
-        return taxesGracePeriodDays;
-    }
-
-    public Map<Integer, Double> getTaxesLevelBase() {
-        return Collections.unmodifiableMap(taxesLevelBase);
-    }
-
-    public double getTaxesFallbackBase() {
-        return taxesFallbackBase;
-    }
-
-    public List<TaxBracket> getTaxesBrackets() {
-        return Collections.unmodifiableList(taxesBrackets);
-    }
+    public int getTaxesIntervalDays() { return taxesIntervalDays; }
+    public int getTaxesGracePeriodDays() { return taxesGracePeriodDays; }
+    public Map<Integer, Double> getTaxesLevelBase() { return Collections.unmodifiableMap(taxesLevelBase); }
+    public double getTaxesFallbackBase() { return taxesFallbackBase; }
+    public List<TaxBracket> getTaxesBrackets() { return Collections.unmodifiableList(taxesBrackets); }
 
     public double getTaxBaseForLevel(int level) {
         return taxesLevelBase.getOrDefault(level, taxesFallbackBase);
@@ -594,7 +525,20 @@ public class ConfigManager {
             bracketTax = bracket.calculate(balance);
         }
         double total = base + bracketTax;
+        total = Math.min(MAX_TAX_LIMIT, total);
         return Math.max(0.0, Math.round(total * 100.0) / 100.0);
+    }
+
+    public void setLevelBaseTax(int level, double amount) {
+        double clamped = Math.min(MAX_TAX_LIMIT, Math.max(0.0, amount));
+        taxesLevelBase.put(level, clamped);
+        if (clanConfig != null) {
+            clanConfig.set("taxes.level-base." + level, clamped);
+            try {
+                File clanConfigFile = new File(new File(plugin.getDataFolder(), "clansystem"), "config.yml");
+                clanConfig.save(clanConfigFile);
+            } catch (Exception ignored) {}
+        }
     }
 
     public FileConfiguration getGlobalConfig() { return globalConfig; }

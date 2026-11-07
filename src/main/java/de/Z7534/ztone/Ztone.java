@@ -642,7 +642,7 @@ public class Ztone extends JavaPlugin {
         Clan clanA = clanManager.getClanByPlayer(a);
         Clan clanB = clanManager.getClanByPlayer(b);
         if (clanA == null || clanB == null || clanA.getId() == clanB.getId()) return false;
-        if (!warManager.areAtWar(clanA.getId(), clanB.getId())) return false;
+        if (!warManager.isWarPvpActive(clanA.getId(), clanB.getId())) return false;
         ClanMember memberA = clanA.getMember(a);
         ClanMember memberB = clanB.getMember(b);
         if (memberA == null || memberB == null) return false;
@@ -658,6 +658,14 @@ public class Ztone extends JavaPlugin {
         if (clan == null || clan.getActiveWars().isEmpty()) {
             return false;
         }
+        boolean hasPvpActiveWar = false;
+        for (int enemyId : clan.getActiveWars()) {
+            if (warManager.isWarPvpActive(clan.getId(), enemyId)) {
+                hasPvpActiveWar = true;
+                break;
+            }
+        }
+        if (!hasPvpActiveWar) return false;
         ClanMember member = clan.getMember(uuid);
         if (member == null) return false;
         return member.hasPermission(Permission.WAR_ALWAYS_PVP);

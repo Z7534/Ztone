@@ -21,6 +21,10 @@ public class GUIListener implements Listener {
 
     @EventHandler
     public void onInventoryClick(InventoryClickEvent event) {
+        if (!(event.getWhoClicked() instanceof Player player)) {
+            return;
+        }
+
         InventoryHolder holder = event.getInventory().getHolder();
 
         if (holder instanceof AbstractGUI gui) {
@@ -28,19 +32,33 @@ public class GUIListener implements Listener {
             return;
         }
 
-        if (holder instanceof ClanChestGUI chestGui) {
+        ClanChestGUI chestGui = ClanChestGUI.getOpenChest(player);
+        if (chestGui != null) {
             chestGui.handleClick(event);
+        } else if (holder instanceof ClanChestGUI holderChest) {
+            holderChest.handleClick(event);
         }
     }
 
     @EventHandler
     public void onInventoryDrag(InventoryDragEvent event) {
+        if (!(event.getWhoClicked() instanceof Player player)) {
+            return;
+        }
+
         InventoryHolder holder = event.getInventory().getHolder();
 
         if (holder instanceof AbstractGUI) {
             event.setCancelled(true);
+            return;
         }
 
+        ClanChestGUI chestGui = ClanChestGUI.getOpenChest(player);
+        if (chestGui != null) {
+            chestGui.handleDrag(event);
+        } else if (holder instanceof ClanChestGUI holderChest) {
+            holderChest.handleDrag(event);
+        }
     }
 
     @EventHandler
@@ -56,8 +74,11 @@ public class GUIListener implements Listener {
             return;
         }
 
-        if (holder instanceof ClanChestGUI chestGui) {
+        ClanChestGUI chestGui = ClanChestGUI.getOpenChest(player);
+        if (chestGui != null) {
             chestGui.handleClose(event);
+        } else if (holder instanceof ClanChestGUI holderChest) {
+            holderChest.handleClose(event);
         }
     }
 }

@@ -3291,29 +3291,12 @@ public class ClanCommand implements CommandExecutor, TabCompleter {
 
 
 
-        double amount;
-
-        try {
-
-            amount = Double.parseDouble(args[1].replace(",", "."));
-
-        } catch (NumberFormatException e) {
-
+        Double parsed = EconomyManager.parseAmount(args[1]);
+        if (parsed == null || parsed <= 0) {
             plugin.getMessageManager().send(player, "bank.invalid-amount");
-
             return;
-
         }
-
-
-
-        if (amount <= 0) {
-
-            plugin.getMessageManager().send(player, "bank.invalid-amount");
-
-            return;
-
-        }
+        double amount = parsed;
 
 
 
@@ -3449,29 +3432,12 @@ public class ClanCommand implements CommandExecutor, TabCompleter {
 
 
 
-        double amount;
-
-        try {
-
-            amount = Double.parseDouble(args[1].replace(",", "."));
-
-        } catch (NumberFormatException e) {
-
+        Double parsed = EconomyManager.parseAmount(args[1]);
+        if (parsed == null || parsed <= 0) {
             plugin.getMessageManager().send(player, "bank.invalid-amount");
-
             return;
-
         }
-
-
-
-        if (amount <= 0) {
-
-            plugin.getMessageManager().send(player, "bank.invalid-amount");
-
-            return;
-
-        }
+        double amount = parsed;
 
 
 
