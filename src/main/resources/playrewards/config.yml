@@ -40,7 +40,13 @@ gui:
       volume: 0.8
       pitch: 1.0
 
-# Einstellungen für die Spielzeit-Erfassung
+  # Einstellungen für die Übersicht (Hauptmenü Slot 4 & Slot 11)
+  overview:
+    # Text-Formatierung für 'Gespielte Zeit heute' in der Übersicht
+    # Platzhalter: %time%
+    daily_playtime_format: "<gray>Gespielte Zeit heute: <yellow><bold>%time%</bold></yellow>"
+
+# Einstellungen für die Spielzeit-Erfassung (Placeholder-basiert via PlaceholderAPI)
 playtime_tracking:
   # Maximale Zeit in Sekunden ohne Spielerbewegung, bevor der Spieler als AFK gewertet wird (für lokalen Fallback)
   afk_threshold_seconds: 300
@@ -48,12 +54,31 @@ playtime_tracking:
   # Asynchroner Cache-Aktualisierungsintervall in Ticks (20 Ticks = 1 Sekunde; 1200 Ticks = 60 Sekunden)
   cache_update_interval_ticks: 1200
 
-  # Plan Plugin Integration (Plan Query API)
-  # Bei aktivierter Plan API wird die reine Netto-Aktivzeit (exklusive AFK) abgefragt.
-  plan:
-    enabled: true
-    # Timeout in Sekunden für asynchrone SQL-Abfragen an Plan
-    query_timeout_seconds: 5
+  # ==============================================================================
+  # Gesamt-Spielzeit (Total Playtime) Tracking
+  # ==============================================================================
+  total_playtime:
+    # Placeholder für die Gesamt-Spielzeit (über PlaceholderAPI)
+    placeholder: "%stonesmpcore_playtime_seconds%"
+    # Format / Zeiteinheit des Placeholder-Werts:
+    # 'SECONDS'      - Wert ist in Sekunden (z. B. 3600)
+    # 'MINUTES'      - Wert ist in Minuten (z. B. 60)
+    # 'HOURS'        - Wert ist in Stunden (z. B. 1 oder 1.5)
+    # 'TICKS'        - Minecraft Ticks (20 Ticks = 1 Sekunde)
+    # 'MILLISECONDS' - Millisekunden (1000 ms = 1 Sekunde)
+    # 'FORMATTED'    - Textformatierte Zeit (z. B. "1d 4h 30m" oder "2 Stunden, 10 Minuten")
+    format: "SECONDS"
+
+  # ==============================================================================
+  # Tägliche Spielzeit (Daily Playtime) Tracking für heute (Daily Rewards)
+  # ==============================================================================
+  daily_playtime:
+    # Placeholder für die heutige Spielzeit (über PlaceholderAPI)
+    # Wird automatisch für die Prüfung und Freischaltung der Daily Rewards verwendet!
+    placeholder: "%stonesmpcore_playtime_today_seconds%"
+    # Format / Zeiteinheit des Placeholder-Werts:
+    # 'SECONDS', 'MINUTES', 'HOURS', 'TICKS', 'MILLISECONDS', 'FORMATTED'
+    format: "SECONDS"
 
 # Erinnerungen beim Betreten des Servers (Join Reminder)
 join_reminder:

@@ -4,6 +4,7 @@ import de.Z7534.ztone.Ztone;
 import de.Z7534.ztone.clansystem.managers.ConfigManager;
 import de.Z7534.ztone.clansystem.managers.MessageManager;
 import de.Z7534.ztone.clansystem.models.Clan;
+import de.Z7534.ztone.clansystem.models.ClanWar;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Projectile;
 import org.bukkit.event.EventHandler;
@@ -73,7 +74,8 @@ public class PvPListener implements Listener {
         // Clankriege finden NIEMALS auf Claims statt: Kills in/aus einem Claim zaehlen nicht als Kriegs-Kill.
         boolean inClaim = plugin.isInAnyClaim(victim.getLocation()) || plugin.isInAnyClaim(killer.getLocation());
 
-        if (!inClaim && plugin.getWarManager().isWarPvpActive(killerClan.getId(), victimClan.getId())) {
+        ClanWar war = plugin.getWarManager().getWarBetween(killerClan.getId(), victimClan.getId());
+        if (!inClaim && war != null && war.isPvpActive() && war.isParticipant(killer.getUniqueId()) && war.isParticipant(victim.getUniqueId())) {
 
             plugin.getWarManager().recordKill(killer.getUniqueId(), victim.getUniqueId(),
                     killerClan.getId(), victimClan.getId());

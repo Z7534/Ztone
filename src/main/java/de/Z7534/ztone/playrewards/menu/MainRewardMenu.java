@@ -47,12 +47,17 @@ public class MainRewardMenu implements InventoryHolder {
 
         PlayerData data = plugin.getDatabaseManager().getCachedData(player.getUniqueId());
         long playtime = plugin.getPlaytimeService().getCachedPlaytimeSeconds(player.getUniqueId());
+        long dailyPlaytime = plugin.getPlaytimeService().getDailyPlaytimeSeconds(player.getUniqueId());
         int availableDaily = plugin.getRewardClaimService().getAvailableDailyRewardsCount(player.getUniqueId());
         int streak = data != null ? data.getCurrentStreak() : 0;
         long hours = TimeUtil.getHours(playtime);
         String formattedDays = TimeUtil.formatDaysAndHours(playtime);
+        String formattedDaily = TimeUtil.formatHoursAndMinutes(dailyPlaytime);
 
-        // Slot 4: Spieler-Kopf mit Gesamt-Übersicht (Stunden & formatierte Tage)
+        String dailyFormatConfig = plugin.getConfig().getString("gui.overview.daily_playtime_format", "<gray>Gespielte Zeit heute: <yellow><bold>%time%</bold></yellow>");
+        String dailyPlaytimeLine = dailyFormatConfig.replace("%time%", formattedDaily);
+
+        // Slot 4: Spieler-Kopf mit Gesamt-Übersicht (Stunden, formatierte Tage & heute)
         ItemStack profileHead = new ItemStack(Material.PLAYER_HEAD);
         SkullMeta headMeta = (SkullMeta) profileHead.getItemMeta();
         if (headMeta != null) {
@@ -63,6 +68,7 @@ public class MainRewardMenu implements InventoryHolder {
             lore.add(Component.empty());
             lore.add(MessageUtil.parse("<gray>Aktuelle Spielzeit: <gold><bold>" + hours + " Stunden</bold></gold>"));
             lore.add(MessageUtil.parse("<gray>Formatiert in Tage: <aqua><bold>" + formattedDays + "</bold></aqua>"));
+            lore.add(MessageUtil.parse(dailyPlaytimeLine));
             lore.add(Component.empty());
             lore.add(MessageUtil.parse("<gray>Aktuelle Serie: <green><bold>" + streak + " Tage Streak</bold></green>"));
             lore.add(MessageUtil.parse("<gray>Offene Tagesbelohnungen: <yellow><bold>" + availableDaily + "</bold></yellow>"));
@@ -79,6 +85,7 @@ public class MainRewardMenu implements InventoryHolder {
             dailyMeta.displayName(MessageUtil.parse("<gold><bold>Tägliche Belohnungen</bold></gold>"));
             List<Component> lore = new ArrayList<>();
             lore.add(MessageUtil.parse("<gray>Hole dir jeden Tag tolle Geschenke ab!"));
+            lore.add(MessageUtil.parse(dailyPlaytimeLine));
             lore.add(MessageUtil.parse("<gray>Automatischer Reset: <yellow>00:00 Uhr</yellow>"));
             lore.add(Component.empty());
             if (availableDaily > 0) {

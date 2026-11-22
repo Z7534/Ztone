@@ -19,13 +19,15 @@ public final class ClaimsContext {
     private final BypassManager bypassManager;
     private final ClaimMapManager claimMapManager;
     private final PvPClaimBypassManager pvpClaimBypassManager;
+    private final ClaimNametagManager claimNametagManager;
 
     public ClaimsContext(JavaPlugin plugin, ConfigManager config, ClaimManager claimManager,
                           SelectionManager selectionManager, ChatInputManager chatInputManager,
                           PlayerLookupService playerLookupService, SafeSpotFinder safeSpotFinder,
                           ActivityManager activityManager, ParticleManager particleManager,
                           BanEnforcer banEnforcer, BypassManager bypassManager,
-                          ClaimMapManager claimMapManager, PvPClaimBypassManager pvpClaimBypassManager) {
+                          ClaimMapManager claimMapManager, PvPClaimBypassManager pvpClaimBypassManager,
+                          ClaimNametagManager claimNametagManager) {
         this.bypassManager = bypassManager;
         this.plugin = plugin;
         this.config = config;
@@ -39,6 +41,7 @@ public final class ClaimsContext {
         this.banEnforcer = banEnforcer;
         this.claimMapManager = claimMapManager;
         this.pvpClaimBypassManager = pvpClaimBypassManager;
+        this.claimNametagManager = claimNametagManager;
     }
 
     public JavaPlugin plugin() {
@@ -91,5 +94,9 @@ public final class ClaimsContext {
 
     public PvPClaimBypassManager pvpClaimBypass() {
         return pvpClaimBypassManager;
+    }
+
+    public ClaimNametagManager nametags() {
+        return claimNametagManager;
     }
 }

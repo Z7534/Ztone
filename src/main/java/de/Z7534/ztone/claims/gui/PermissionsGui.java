@@ -18,7 +18,7 @@ public final class PermissionsGui extends Gui {
             Material.DIAMOND_PICKAXE, Material.WATER_BUCKET, Material.CHEST, Material.OAK_DOOR,
             Material.LEVER, Material.HOPPER, Material.IRON_SWORD, Material.DIAMOND_SWORD,
             Material.SADDLE, Material.ITEM_FRAME, Material.FLINT_AND_STEEL, Material.BELL,
-            Material.SPAWNER
+            Material.SPAWNER, Material.OAK_STAIRS
     };
 
     private static final int SLOT_BACK = 18;

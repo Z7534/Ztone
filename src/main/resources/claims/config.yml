@@ -155,6 +155,7 @@ item-models:
   permissions-right-fire_explosions: ""
   permissions-right-bells_noteblocks: ""
   permissions-right-spawner: ""
+  permissions-right-sit: ""
   addplayer-back: ""
   addplayer-search: ""
   settings-back: ""

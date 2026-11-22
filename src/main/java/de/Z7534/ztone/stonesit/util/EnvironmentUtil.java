@@ -2,7 +2,9 @@ package de.Z7534.ztone.stonesit.util;
 
 import de.Z7534.ztone.Ztone;
 import de.Z7534.ztone.claims.Claims;
+import de.Z7534.ztone.claims.manager.BypassManager;
 import de.Z7534.ztone.claims.model.Claim;
+import de.Z7534.ztone.claims.model.ClaimPermission;
 import de.Z7534.ztone.stonesit.config.StoneSitConfig;
 import org.bukkit.Location;
 import org.bukkit.entity.Entity;
@@ -35,16 +37,25 @@ public final class EnvironmentUtil {
     }
 
     public boolean canUseInLocation(Location location, Player player) {
-        if (hasPermission(player, "stonesit.bypass.region", "stonesit.bypass.*", "GSit.ByPass.Region", "GSit.ByPass.*")) {
-            return true;
-        }
         Claims claimsModule = plugin.getClaims();
         if (claimsModule != null && plugin.getConfigManager() != null && plugin.getConfigManager().isClaimsEnabled()) {
+            if (claimsModule.getBypassManager() != null && claimsModule.getBypassManager().isActive(player)) {
+                return true;
+            }
             var claimManager = claimsModule.getClaimManager();
             if (claimManager != null) {
                 Claim claim = claimManager.getClaimAt(location);
                 if (claim != null) {
                     if (claim.isBanned(player.getUniqueId())) {
+                        return false;
+                    }
+                    if (player.hasPermission(BypassManager.PERMISSION_BYPASS_SIT)) {
+                        return true;
+                    }
+                    if (hasPermission(player, "stonesit.bypass.region", "stonesit.bypass.*", "GSit.ByPass.Region", "GSit.ByPass.*")) {
+                        return true;
+                    }
+                    if (!claim.hasPermission(player.getUniqueId(), ClaimPermission.SIT)) {
                         return false;
                     }
                     if (config.isTrustedRegionOnly()) {
@@ -55,6 +66,9 @@ public final class EnvironmentUtil {
                     }
                 }
             }
+        }
+        if (hasPermission(player, "stonesit.bypass.region", "stonesit.bypass.*", "GSit.ByPass.Region", "GSit.ByPass.*")) {
+            return true;
         }
         return true;
     }

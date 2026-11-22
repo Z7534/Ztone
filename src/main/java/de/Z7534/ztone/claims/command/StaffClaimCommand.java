@@ -2,10 +2,13 @@ package de.Z7534.ztone.claims.command;
 
 import de.Z7534.ztone.claims.ClaimsContext;
 import de.Z7534.ztone.claims.manager.BypassManager;
+import de.Z7534.ztone.claims.manager.ClaimNametagManager;
 import de.Z7534.ztone.claims.manager.PvPClaimBypassManager;
 import de.Z7534.ztone.claims.model.ChunkPos;
 import de.Z7534.ztone.claims.model.Claim;
+import de.Z7534.ztone.claims.model.ClaimLogEntry;
 import de.Z7534.ztone.claims.model.ClaimPermission;
+import de.Z7534.ztone.claims.model.PlayerData;
 import de.Z7534.ztone.claims.util.Text;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
@@ -18,23 +21,29 @@ import org.bukkit.command.TabCompleter;
 import org.bukkit.entity.Player;
 import org.bukkit.util.StringUtil;
 
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
-import de.Z7534.ztone.claims.model.PlayerData;
 
 public final class StaffClaimCommand implements CommandExecutor, TabCompleter {
 
+    private static final DateTimeFormatter LOG_DATE_FORMATTER = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm:ss").withZone(ZoneId.systemDefault());
+
     private final ClaimsContext ctx;
     private final PvPClaimBypassCommand pvpBypassCommand;
+    private final ClaimNametagCommand nametagCommand;
 
     public StaffClaimCommand(ClaimsContext ctx) {
         this.ctx = ctx;
         this.pvpBypassCommand = new PvPClaimBypassCommand(ctx);
+        this.nametagCommand = new ClaimNametagCommand(ctx);
     }
 
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         if (args.length == 0) {
-            sender.sendMessage("§cVerwendung: /staffclaim <addclaims|removeclaims|info|tp|unclaim|unclaimhere|unclaimhereonly|trust|ban|bypass|pvp|merge|reload> ...");
+            sender.sendMessage("§cVerwendung: /staffclaim <addclaims|removeclaims|info|loginfo|tp|unclaim|unclaimhere|unclaimhereonly|trust|ban|bypass|pvp|nametags|merge|reload> ...");
             return true;
         }
 
@@ -43,6 +52,7 @@ public final class StaffClaimCommand implements CommandExecutor, TabCompleter {
             case "addclaims" -> handleAddRemove(sender, args, true);
             case "removeclaims" -> handleAddRemove(sender, args, false);
             case "info" -> handleInfo(sender, args);
+            case "loginfo" -> handleLogInfo(sender, args);
             case "tp" -> handleTeleport(sender, args);
             case "unclaim" -> handleUnclaim(sender, args);
             case "unclaimhere" -> handleUnclaimHere(sender);
@@ -51,6 +61,7 @@ public final class StaffClaimCommand implements CommandExecutor, TabCompleter {
             case "ban" -> handleTrustOrBan(sender, args, false);
             case "bypass" -> handleBypass(sender, args);
             case "pvp", "pvpclaimbypass", "claimspvpoverride" -> pvpBypassCommand.onCommand(sender, command, label, Arrays.copyOfRange(args, 1, args.length));
+            case "nametags", "nametag", "claimnametags" -> nametagCommand.onCommand(sender, command, label, Arrays.copyOfRange(args, 1, args.length));
             case "reload" -> handleReload(sender);
             case "merge" -> handleMerge(sender, args);
             default -> sender.sendMessage("§cUnbekannter Unterbefehl.");
@@ -89,6 +100,9 @@ public final class StaffClaimCommand implements CommandExecutor, TabCompleter {
                 return;
             }
             ctx.bypass().setExplicitActive(target.getUniqueId(), enable);
+            if (ctx.nametags() != null) {
+                ctx.nametags().updatePlayer(target, target.getLocation());
+            }
             sender.sendMessage("§aBypass für " + target.getName() + " wurde " + (enable ? "aktiviert" : "deaktiviert") + ".");
             target.sendMessage(Text.line(ctx.config().prefix()
                     + ctx.config().message(enable ? "bypass-enabled" : "bypass-disabled")));
@@ -115,6 +129,10 @@ public final class StaffClaimCommand implements CommandExecutor, TabCompleter {
             ctx.bypass().setActive(player.getUniqueId(), enable);
         } else {
             enable = ctx.bypass().toggle(player);
+        }
+
+        if (ctx.nametags() != null) {
+            ctx.nametags().updatePlayer(player, player.getLocation());
         }
 
         sender.sendMessage(Text.line(ctx.config().prefix()
@@ -180,6 +198,138 @@ public final class StaffClaimCommand implements CommandExecutor, TabCompleter {
                 i++;
             }
         }));
+    }
+
+    private void handleLogInfo(CommandSender sender, String[] args) {
+        if (!sender.hasPermission("claims.admin.info") && !sender.hasPermission("claims.admin.loginfo") && !sender.hasPermission("claims.admin")) {
+            sender.sendMessage(Text.line(ctx.config().prefix() + ctx.config().message("no-permission")));
+            return;
+        }
+
+        // Remote Syntax: /staffclaim loginfo <spieler> <claimnr> [seite]
+        if (args.length >= 3 && !isInteger(args[1])) {
+            int pageArg = 1;
+            if (args.length >= 4) {
+                try {
+                    pageArg = Math.max(1, Integer.parseInt(args[3]));
+                } catch (NumberFormatException ignored) {}
+            }
+            final int page = pageArg;
+            withClaim(sender, args[1], args[2], claim -> {
+                Bukkit.getScheduler().runTaskAsynchronously(ctx.plugin(), () -> {
+                    List<ClaimLogEntry> logs = ctx.claims().getLogsForClaim(claim.id(), 100);
+                    Bukkit.getScheduler().runTask(ctx.plugin(), () -> {
+                        renderClaimLogs(sender, claim.name(), claim.id(), ctx.claims().resolvePlayerName(claim.owner()),
+                                claim.world(), null, logs, page, "/staffclaim loginfo " + args[1] + " " + args[2] + " ");
+                    });
+                });
+            });
+            return;
+        }
+
+        // Standort-Syntax: /staffclaim loginfo [seite]
+        if (!(sender instanceof Player player)) {
+            sender.sendMessage("§cVerwendung für Konsole: /staffclaim loginfo <spieler> <claimnr> [seite]");
+            return;
+        }
+
+        int page = 1;
+        if (args.length >= 2) {
+            try {
+                page = Math.max(1, Integer.parseInt(args[1]));
+            } catch (NumberFormatException ex) {
+                sender.sendMessage("§cUngültige Seitenzahl: " + args[1] + ". Nutze: /staffclaim loginfo [seite] oder /staffclaim loginfo <spieler> <claimnr>");
+                return;
+            }
+        }
+
+        Location loc = player.getLocation();
+        String world = loc.getWorld() != null ? loc.getWorld().getName() : "world";
+        int chunkX = loc.getBlockX() >> 4;
+        int chunkZ = loc.getBlockZ() >> 4;
+        ChunkPos pos = new ChunkPos(world, chunkX, chunkZ);
+        Claim currentClaim = ctx.claims().getClaimAt(pos);
+
+        final int targetPage = page;
+        Bukkit.getScheduler().runTaskAsynchronously(ctx.plugin(), () -> {
+            List<ClaimLogEntry> logs = ctx.claims().getLogsForLocation(world, chunkX, chunkZ, currentClaim != null ? currentClaim.id() : null, 100);
+            Bukkit.getScheduler().runTask(ctx.plugin(), () -> {
+                String claimName = currentClaim != null ? currentClaim.name() : null;
+                Long claimId = currentClaim != null ? currentClaim.id() : null;
+                String ownerName = currentClaim != null ? ctx.claims().resolvePlayerName(currentClaim.owner()) : null;
+                renderClaimLogs(sender, claimName, claimId, ownerName, world, pos, logs, targetPage, "/staffclaim loginfo ");
+            });
+        });
+    }
+
+    private void renderClaimLogs(CommandSender sender, String claimName, Long claimId, String ownerName,
+                                 String world, ChunkPos pos, List<ClaimLogEntry> logs, int page, String paginationBaseCmd) {
+        if (logs.isEmpty()) {
+            if (claimName != null) {
+                sender.sendMessage("§cKeine Logs für Claim '" + claimName + "' (ID: " + claimId + ") gefunden.");
+            } else if (pos != null) {
+                sender.sendMessage("§cHier befindet sich kein Claim und es wurden keine Logs für Chunk (" + pos.x() + ", " + pos.z() + ") gefunden.");
+            } else {
+                sender.sendMessage("§cKeine Logs gefunden.");
+            }
+            return;
+        }
+
+        int perPage = 6;
+        int total = logs.size();
+        int maxPage = Math.max(1, (int) Math.ceil((double) total / perPage));
+        if (page > maxPage) page = maxPage;
+
+        sender.sendMessage("§8§m--------------------------------------------------");
+        if (claimName != null && claimId != null) {
+            sender.sendMessage("§6§lClaim-Loginfo §8» §e" + claimName + " §7(ID: §f" + claimId + "§7)");
+            if (ownerName != null) {
+                String chunkStr = pos != null ? (" §8| §7Chunk: §f" + pos.x() + ", " + pos.z()) : "";
+                sender.sendMessage("§7Besitzer: §e" + ownerName + " §8| §7Welt: §f" + world + chunkStr);
+            }
+        } else if (pos != null) {
+            sender.sendMessage("§6§lChunk-Loginfo §8» §7Kein aktiver Claim");
+            sender.sendMessage("§7Welt: §f" + world + " §8| §7Chunk: §f" + pos.x() + ", " + pos.z());
+        }
+        sender.sendMessage("§8§m--------------------------------------------------");
+
+        int fromIndex = (page - 1) * perPage;
+        int toIndex = Math.min(fromIndex + perPage, total);
+        for (int i = fromIndex; i < toIndex; i++) {
+            ClaimLogEntry entry = logs.get(i);
+            String actionBadge = switch (entry.action().toUpperCase(Locale.ROOT)) {
+                case "CLAIM" -> "§a[CLAIM]";
+                case "UNCLAIM" -> "§c[UNCLAIM]";
+                case "ADMIN_UNCLAIM" -> "§4[ADMIN-UNCLAIM]";
+                case "DELETE" -> "§4[GELÖSCHT]";
+                case "TRANSFER" -> "§b[TRANSFER]";
+                case "MERGE" -> "§d[MERGE]";
+                default -> "§e[" + entry.action() + "]";
+            };
+            String timeStr = LOG_DATE_FORMATTER.format(Instant.ofEpochMilli(entry.timestamp()));
+            sender.sendMessage("§8[§7" + timeStr + "§8] " + actionBadge + " §7von §e" + entry.playerName());
+            if (entry.details() != null && !entry.details().isBlank()) {
+                sender.sendMessage(" §8└ §7" + entry.details());
+            }
+        }
+
+        sender.sendMessage("§8§m--------------------------------------------------");
+        if (maxPage > 1) {
+            int next = page < maxPage ? page + 1 : 1;
+            sender.sendMessage("§7Seite §e" + page + "§7/§e" + maxPage + " §8(§7" + total + " Einträge§8) §8- §7Weiter mit: §e" + paginationBaseCmd + next);
+        } else {
+            sender.sendMessage("§7Insgesamt §e" + total + " §7Eintrag/Einträge.");
+        }
+    }
+
+    private boolean isInteger(String s) {
+        if (s == null || s.isBlank()) return false;
+        try {
+            Integer.parseInt(s);
+            return true;
+        } catch (NumberFormatException e) {
+            return false;
+        }
     }
 
     private void handleTeleport(CommandSender sender, String[] args) {
@@ -252,7 +402,9 @@ public final class StaffClaimCommand implements CommandExecutor, TabCompleter {
             return;
         }
         withClaim(sender, args[1], args[2], claim -> {
-            ctx.claims().deleteClaim(claim);
+            UUID actorUuid = sender instanceof Player p ? p.getUniqueId() : null;
+            String actorName = sender.getName();
+            ctx.claims().deleteClaim(claim, actorUuid, actorName);
             sender.sendMessage("§a" + claim.name() + " wurde gelöscht.");
         });
     }
@@ -268,7 +420,9 @@ public final class StaffClaimCommand implements CommandExecutor, TabCompleter {
             sender.sendMessage("§cHier befindet sich kein Claim.");
             return;
         }
-        ctx.claims().deleteClaim(claim);
+        UUID actorUuid = player.getUniqueId();
+        String actorName = player.getName();
+        ctx.claims().deleteClaim(claim, actorUuid, actorName);
         sender.sendMessage("§a" + claim.name() + " wurde gelöscht.");
     }
 
@@ -285,7 +439,9 @@ public final class StaffClaimCommand implements CommandExecutor, TabCompleter {
             sender.sendMessage("§cHier befindet sich kein Claim.");
             return;
         }
-        boolean ok = ctx.claims().unclaimSingleChunk(pos);
+        UUID actorUuid = player.getUniqueId();
+        String actorName = player.getName();
+        boolean ok = ctx.claims().unclaimSingleChunk(pos, actorUuid, actorName);
         if (ok) {
             sender.sendMessage("§aDer Chunk (" + pos.x() + ", " + pos.z() + ") von Claim " + claim.name() + " wurde erfolgreich ungeclaimt.");
         } else {
@@ -459,6 +615,7 @@ public final class StaffClaimCommand implements CommandExecutor, TabCompleter {
             addIfPerm(subs, sender, "addclaims", "claims.admin.addclaims");
             addIfPerm(subs, sender, "removeclaims", "claims.admin.removeclaims");
             addIfPerm(subs, sender, "info", "claims.admin.info");
+            addIfPerm(subs, sender, "loginfo", "claims.admin.info");
             addIfPerm(subs, sender, "tp", "claims.admin.teleport");
             addIfPerm(subs, sender, "unclaim", "claims.admin.unclaim");
             addIfPerm(subs, sender, "unclaimhere", "claims.admin.unclaim");
@@ -469,6 +626,7 @@ public final class StaffClaimCommand implements CommandExecutor, TabCompleter {
             addIfPerm(subs, sender, "pvp", PvPClaimBypassManager.PERMISSION);
             addIfPerm(subs, sender, "pvpclaimbypass", PvPClaimBypassManager.PERMISSION);
             addIfPerm(subs, sender, "claimspvpoverride", PvPClaimBypassManager.PERMISSION);
+            addIfPerm(subs, sender, "nametags", ClaimNametagManager.PERMISSION);
             addIfPerm(subs, sender, "reload", "claims.admin.reload");
             addIfPerm(subs, sender, "merge", "claims.admin");
             StringUtil.copyPartialMatches(args[0], subs, out);
@@ -482,9 +640,13 @@ public final class StaffClaimCommand implements CommandExecutor, TabCompleter {
             return pvpBypassCommand.onTabComplete(sender, command, alias, Arrays.copyOfRange(args, 1, args.length));
         }
 
+        if (sub.equals("nametags") || sub.equals("nametag") || sub.equals("claimnametags")) {
+            return nametagCommand.onTabComplete(sender, command, alias, Arrays.copyOfRange(args, 1, args.length));
+        }
+
         if (args.length == 2) {
             switch (sub) {
-                case "addclaims", "removeclaims", "info", "tp", "unclaim", "trust", "ban", "merge" -> {
+                case "addclaims", "removeclaims", "info", "loginfo", "tp", "unclaim", "trust", "ban", "merge" -> {
                     StringUtil.copyPartialMatches(args[1], getKnownPlayerNames(), out);
                     Collections.sort(out);
                 }
@@ -501,7 +663,7 @@ public final class StaffClaimCommand implements CommandExecutor, TabCompleter {
 
         if (args.length == 3) {
             switch (sub) {
-                case "tp", "unclaim" -> StringUtil.copyPartialMatches(args[2], claimNumbersFor(args[1]), out);
+                case "tp", "unclaim", "loginfo" -> StringUtil.copyPartialMatches(args[2], claimNumbersFor(args[1]), out);
                 case "trust", "ban" -> {
                     List<String> numbers = new ArrayList<>(claimNumbersFor(args[1]));
                     numbers.add("all");
@@ -542,7 +704,7 @@ public final class StaffClaimCommand implements CommandExecutor, TabCompleter {
     }
 
     private void addIfPerm(List<String> list, CommandSender sender, String name, String perm) {
-        if (sender.hasPermission(perm)) {
+        if (sender.hasPermission(perm) || sender.hasPermission("claims.admin")) {
             list.add(name);
         }
     }
@@ -555,7 +717,6 @@ public final class StaffClaimCommand implements CommandExecutor, TabCompleter {
     }
 
     private List<String> claimNumbersFor(String playerName) {
-
         UUID targetUuid = null;
         for (PlayerData pd : ctx.claims().getAllPlayerData()) {
             if (pd.name().equalsIgnoreCase(playerName)) {

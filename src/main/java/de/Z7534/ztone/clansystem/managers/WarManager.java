@@ -70,7 +70,35 @@ public class WarManager {
             return null;
         }
 
+        List<UUID> attackerEligible = new ArrayList<>();
+        for (ClanMember m : attacker.getMembers().values()) {
+            if (m.hasPermission(Permission.WAR_ALWAYS_PVP)) {
+                attackerEligible.add(m.getUuid());
+            }
+        }
+
+        List<UUID> defenderEligible = new ArrayList<>();
+        for (ClanMember m : defender.getMembers().values()) {
+            if (m.hasPermission(Permission.WAR_ALWAYS_PVP)) {
+                defenderEligible.add(m.getUuid());
+            }
+        }
+
+        int fighterCount = Math.min(attackerEligible.size(), defenderEligible.size());
+        if (fighterCount <= 0) {
+            return null;
+        }
+
+        Collections.shuffle(attackerEligible);
+        Collections.shuffle(defenderEligible);
+
+        List<UUID> selectedAttacker = new ArrayList<>(attackerEligible.subList(0, fighterCount));
+        List<UUID> selectedDefender = new ArrayList<>(defenderEligible.subList(0, fighterCount));
+
         ClanWar war = new ClanWar(attacker.getId(), defender.getId());
+        war.setParticipants(attacker.getId(), selectedAttacker);
+        war.setParticipants(defender.getId(), selectedDefender);
+
         int prepSeconds = plugin.getConfigManager().getWarPreparationTimeSeconds();
         if (prepSeconds > 0) {
             war.setStatus(ClanWar.WarStatus.PREPARATION);
@@ -90,6 +118,9 @@ public class WarManager {
         war.setId(warId);
         registerWar(war);
 
+        plugin.getDatabaseManager().saveWarParticipants(warId, attacker.getId(), selectedAttacker);
+        plugin.getDatabaseManager().saveWarParticipants(warId, defender.getId(), selectedDefender);
+
         attacker.addWar(defender.getId());
         defender.addWar(attacker.getId());
 
@@ -97,6 +128,13 @@ public class WarManager {
                 MessageManager.of("clan", attacker.getColoredName(), "enemy", defender.getColoredName()));
         attacker.broadcastMessage(declaredMessage);
         defender.broadcastMessage(declaredMessage);
+
+        String fairnessMsg = "§8[§6Krieg§8] §7Ausgeglichener Clankrieg: §e" + fighterCount + " vs " + fighterCount + " §7Kämpfer (zufällig aus berechtigten Mitgliedern gewählt)!";
+        attacker.broadcastMessage(fairnessMsg);
+        defender.broadcastMessage(fairnessMsg);
+
+        notifyClanMembersOfWarStatus(attacker, war);
+        notifyClanMembersOfWarStatus(defender, war);
 
         if (prepSeconds > 0) {
             String prepMessage = plugin.getMessageManager().get("war.preparation-started",
@@ -345,16 +383,26 @@ public class WarManager {
 
         if (victimClan != null) {
             ClanMember victimMember = victimClan.getMember(victimUuid);
-            if (victimMember != null && victimMember.hasPermission(Permission.WAR_ALWAYS_PVP)) {
+            if (victimMember != null && war.isParticipant(victimUuid)) {
                 int deaths = war.addParticipantDeath(victimUuid);
                 String deathMsg = "§8[§6Krieg§8] §e" + victimMember.getName() + " §7wurde im Clankrieg getötet! (" + (deaths >= 3 ? "§43/3 K.O." : "§c" + deaths + "/3 Tode") + "§7)";
                 if (killerClan != null) killerClan.broadcastMessage(deathMsg);
                 victimClan.broadcastMessage(deathMsg);
 
                 boolean allDefeated = true;
-                for (ClanMember m : victimClan.getMembers().values()) {
-                    if (m.hasPermission(Permission.WAR_ALWAYS_PVP)) {
-                        if (war.getParticipantDeaths(m.getUuid()) < 3) {
+                Set<UUID> victimParticipants = war.getParticipantsFor(victimClanId);
+                if (victimParticipants.isEmpty()) {
+                    for (ClanMember m : victimClan.getMembers().values()) {
+                        if (m.hasPermission(Permission.WAR_ALWAYS_PVP)) {
+                            if (war.getParticipantDeaths(m.getUuid()) < 3) {
+                                allDefeated = false;
+                                break;
+                            }
+                        }
+                    }
+                } else {
+                    for (UUID pUuid : victimParticipants) {
+                        if (war.getParticipantDeaths(pUuid) < 3) {
                             allDefeated = false;
                             break;
                         }
@@ -384,5 +432,17 @@ public class WarManager {
     public Collection<ClanWar> getAllActiveWars() {
         Collections.unmodifiableCollection(activeWars.values());
         return activeWars.values();
+    }
+    private void notifyClanMembersOfWarStatus(Clan clan, ClanWar war) {
+        for (ClanMember m : clan.getMembers().values()) {
+            Player p = Bukkit.getPlayer(m.getUuid());
+            if (p != null && p.isOnline()) {
+                if (war.isParticipant(m.getUuid())) {
+                    p.sendMessage("§8[§6Krieg§8] §c§lDu wurdest als KÄMPFER für diesen Clankrieg ausgewählt! §7(3 Leben)");
+                } else {
+                    p.sendMessage("§8[§6Krieg§8] §7Du nimmst an diesem Clankrieg als Zuschauer teil.");
+                }
+            }
+        }
     }
 }

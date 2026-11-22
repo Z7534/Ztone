@@ -161,7 +161,7 @@ public final class ClaimSettingsGui extends Gui {
                 () -> {
                     Claim current = ctx.claims().getOwned(player.getUniqueId(), claim.id());
                     if (current != null && current.isOwner(player.getUniqueId())) {
-                        ctx.claims().deleteClaim(current);
+                        ctx.claims().deleteClaim(current, player.getUniqueId(), player.getName());
                         player.sendMessage(Text.line(ctx.config().prefix() + ctx.config().message("claim-deleted")));
                     }
                     player.closeInventory();

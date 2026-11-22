@@ -1,6 +1,7 @@
 package de.Z7534.ztone.stonesit.listener;
 
 import de.Z7534.ztone.Ztone;
+import de.Z7534.ztone.claims.model.Claim;
 import de.Z7534.ztone.stonesit.config.StoneSitConfig;
 import de.Z7534.ztone.stonesit.manager.SitManager;
 import de.Z7534.ztone.stonesit.model.Seat;
@@ -19,6 +20,7 @@ import org.bukkit.attribute.AttributeInstance;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.block.data.BlockData;
+import org.bukkit.block.data.type.Stairs;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
@@ -31,6 +33,7 @@ import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockBurnEvent;
 import org.bukkit.event.block.BlockExplodeEvent;
 import org.bukkit.event.block.BlockFadeEvent;
+import org.bukkit.event.block.BlockFromToEvent;
 import org.bukkit.event.block.BlockPistonEvent;
 import org.bukkit.event.block.BlockPistonExtendEvent;
 import org.bukkit.event.block.BlockPistonRetractEvent;
@@ -42,6 +45,7 @@ import org.bukkit.event.entity.EntityDismountEvent;
 import org.bukkit.event.entity.EntityExplodeEvent;
 import org.bukkit.event.entity.EntityMountEvent;
 import org.bukkit.event.entity.EntityPotionEffectEvent;
+import org.bukkit.event.entity.EntityTeleportEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.entity.ProjectileLaunchEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
@@ -53,7 +57,6 @@ import org.bukkit.event.player.PlayerGameModeChangeEvent;
 import org.bukkit.event.player.PlayerInteractAtEntityEvent;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
-import de.Z7534.ztone.claims.model.Claim;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerTeleportEvent;
@@ -62,7 +65,7 @@ import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.util.RayTraceResult;
 import org.bukkit.util.Vector;
 
-import java.util.ArrayList;
+import java.util.*;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
@@ -133,6 +136,23 @@ public final class SitListener implements Listener {
             return;
         }
 
+        // Teppich-/Block-Kickschutz: Wenn auf diesem Block oder darüber ein geschützter Admin sitzt, nicht kicken!
+        if (sitManager.isBlockWithSeat(clickedBlock)) {
+            for (Seat s : sitManager.getSeatsByBlock(clickedBlock)) {
+                if (SitManager.isKickProtected(s.getEntity()) && !s.getEntity().equals(player)) {
+                    return;
+                }
+            }
+        }
+        Block blockAbove = clickedBlock.getRelative(BlockFace.UP);
+        if (sitManager.isBlockWithSeat(blockAbove)) {
+            for (Seat s : sitManager.getSeatsByBlock(blockAbove)) {
+                if (SitManager.isKickProtected(s.getEntity()) && !s.getEntity().equals(player)) {
+                    return;
+                }
+            }
+        }
+
         double maxDistanceSquared = config.getSitMaxDistanceSquared();
         Location blockLoc = clickedBlock.getLocation();
         if (maxDistanceSquared > 0d) {
@@ -150,6 +170,7 @@ public final class SitListener implements Listener {
         }
 
         if (!environmentUtil.canUseInLocation(blockLoc, player)) {
+            config.sendMessage(player, "action-sit-region-error");
             return;
         }
 
@@ -211,7 +232,7 @@ public final class SitListener implements Listener {
     }
 
     // =========================================================================
-    //                      RECHTSKLICK AUF SPIELER (PLAYERSIT)
+    //                 RECHTSKLICK AUF SPIELER & ENTITIES (SIT)
     // =========================================================================
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
@@ -220,15 +241,44 @@ public final class SitListener implements Listener {
             return;
         }
         Entity rightClicked = event.getRightClicked();
-        if (!(rightClicked instanceof Player target)) {
-            return;
-        }
-
-        if (!config.isPlayerSitAllow() && !config.isPlayerSitAllowNpc()) {
+        if (rightClicked.getScoreboardTags().contains(SitManager.SIT_TAG)
+                || rightClicked.getScoreboardTags().contains(SitManager.PLAYERSIT_ENTITY_TAG)) {
             return;
         }
 
         Player player = event.getPlayer();
+        if (rightClicked instanceof Player target) {
+            handlePlayerSit(event, player, target);
+        }
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    public void onPlayerInteractEntity(PlayerInteractEntityEvent event) {
+        if (event.getHand() != EquipmentSlot.HAND) {
+            return;
+        }
+        Entity rightClicked = event.getRightClicked();
+        if (rightClicked.getScoreboardTags().contains(SitManager.SIT_TAG)
+                || rightClicked.getScoreboardTags().contains(SitManager.PLAYERSIT_ENTITY_TAG)) {
+            return;
+        }
+
+        Player player = event.getPlayer();
+        if (PassengerUtil.isEntityInPassengerList(rightClicked, player)) {
+            event.setCancelled(true);
+            return;
+        }
+
+        if (rightClicked instanceof Player target) {
+            handlePlayerSit(event, player, target);
+        }
+    }
+
+    private void handlePlayerSit(Cancellable event, Player player, Player target) {
+        if (!config.isPlayerSitAllow() && !config.isPlayerSitAllowNpc()) {
+            return;
+        }
+
         if (!EnvironmentUtil.hasPermission(player, "stonesit.playersit", "stonesit.playersit.*", "GSit.PlayerSit", "GSit.PlayerSit.*")) {
             return;
         }
@@ -258,10 +308,12 @@ public final class SitListener implements Listener {
         }
 
         if (!environmentUtil.canUseInLocation(target.getLocation(), player)) {
+            config.sendMessage(player, "action-sit-region-error");
+            event.setCancelled(true);
             return;
         }
 
-        if (PassengerUtil.isEntityInPassengerList(target, player) || PassengerUtil.isEntityInPassengerList(player, target)) {
+        if (!PassengerUtil.canMount(player, target)) {
             return;
         }
 
@@ -275,7 +327,12 @@ public final class SitListener implements Listener {
             }
         }
 
+        sitManager.cleanStalePassengerEntities(target);
         Entity highestEntity = PassengerUtil.getTopEntityPassenger(target);
+        if (highestEntity != null && !highestEntity.equals(target)) {
+            sitManager.cleanStalePassengerEntities(highestEntity);
+            highestEntity = PassengerUtil.getTopEntityPassenger(target);
+        }
         if (!(highestEntity instanceof Player highestPlayer)) {
             return;
         }
@@ -299,18 +356,11 @@ public final class SitListener implements Listener {
             }
         }
 
-        if (sitManager.sitOnPlayer(player, highestPlayer)) {
-            event.setCancelled(true);
-        }
-    }
-
-    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
-    public void onPlayerInteractEntity(PlayerInteractEntityEvent event) {
-        if (!(event.getRightClicked() instanceof Player target)) {
+        if (!PassengerUtil.canMount(player, highestPlayer)) {
             return;
         }
-        Player player = event.getPlayer();
-        if (PassengerUtil.isEntityInPassengerList(target, player)) {
+
+        if (!PassengerUtil.canMount(player, highestPlayer)) { return; } if (sitManager.sitOnPlayer(player, highestPlayer)) {
             event.setCancelled(true);
         }
     }
@@ -418,6 +468,7 @@ public final class SitListener implements Listener {
             return;
         }
         Player player = event.getPlayer();
+        sitManager.cleanStalePassengerEntities(player);
         if (player.isFlying()
                 || player.getVehicle() != null
                 || sitManager.getPreventDismountStackPlayers().contains(player.getUniqueId())
@@ -457,6 +508,22 @@ public final class SitListener implements Listener {
         if (pose != null && !pose.getSeat().getSeatEntity().equals(event.getMount())) {
             if (!sitManager.removePose(pose, StopReason.SWITCH, false)) {
                 event.setCancelled(true);
+                return;
+            }
+        }
+        if (sitManager.isPlayerInPlayerSitStack(player)) {
+            Map.Entry<UUID, List<UUID>> vehicleEntry = sitManager.getTopToBottomStacks().get(player.getUniqueId());
+            boolean isOwnSitEntity = false;
+            if (vehicleEntry != null) {
+                for (UUID id : vehicleEntry.getValue()) {
+                    if (id.equals(event.getMount().getUniqueId())) {
+                        isOwnSitEntity = true;
+                        break;
+                    }
+                }
+            }
+            if (!isOwnSitEntity) {
+                sitManager.stopPlayerSit(player, StopReason.SWITCH, false, true);
             }
         }
     }
@@ -464,6 +531,11 @@ public final class SitListener implements Listener {
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
     public void onEntityDismount(EntityDismountEvent event) {
         if (!(event.getEntity() instanceof Player player)) {
+            return;
+        }
+
+        // Carrier-Teleport-Schutz: Während des Mit-Teleportierens nicht dismounten!
+        if (sitManager.isCarrierTeleporting(player.getUniqueId()) || sitManager.isInternalTeleporting(player.getUniqueId())) {
             return;
         }
 
@@ -486,6 +558,17 @@ public final class SitListener implements Listener {
         Entity dismounted = event.getDismounted();
         if (!dismounted.getScoreboardTags().contains(SitManager.PLAYERSIT_ENTITY_TAG)
                 || !sitManager.isPlayerInPlayerSitStack(player)) {
+            return;
+        }
+
+        // Programmatischer / interner Dismount darf nicht durch Kick-Schutz blockiert werden!
+        if (sitManager.isInternalDismounting(player.getUniqueId())) {
+            return;
+        }
+
+        // KICK-SCHUTZ: Geschützte Admins dürfen nur freiwillig durch Sneaken aufstehen
+        if (SitManager.isKickProtected(player) && !player.isSneaking()) {
+            event.setCancelled(true);
             return;
         }
 
@@ -554,9 +637,20 @@ public final class SitListener implements Listener {
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
     public void onPlayerTeleport(PlayerTeleportEvent event) {
         Player player = event.getPlayer();
-        if (sitManager.isInternalTeleporting(player.getUniqueId())) {
+        if (sitManager.isInternalTeleporting(player.getUniqueId())
+                || sitManager.isCarrierTeleporting(player.getUniqueId())) {
             return;
         }
+
+        // TELEPORT-SCHUTZ: Wenn auf diesem Spieler ein geschützter Admin sitzt, teleportiert sich der Admin mit und bleibt auf dem Kopf!
+        Location to = event.getTo();
+        if (to != null) {
+            List<Player> protectedAdmins = sitManager.getProtectedPassengerChain(player);
+            if (!protectedAdmins.isEmpty()) {
+                sitManager.handleCarrierTeleport(player, to);
+            }
+        }
+
         Seat seat = sitManager.getSeatByEntity(player);
         if (seat != null) {
             sitManager.removeSeat(seat, StopReason.TELEPORT, false);
@@ -566,6 +660,23 @@ public final class SitListener implements Listener {
             sitManager.removePose(pose, StopReason.TELEPORT, false);
         }
         sitManager.stopPlayerSit(player, StopReason.TELEPORT);
+    }
+
+    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
+    public void onEntityTeleport(EntityTeleportEvent event) {
+        Entity entity = event.getEntity();
+        if (entity instanceof Player) {
+            return;
+        }
+        Location to = event.getTo();
+        if (to == null) {
+            return;
+        }
+        // TELEPORT-SCHUTZ: Wenn auf dieser Entity ein geschützter Admin sitzt, teleportiert sich der Admin mit und bleibt darauf sitzen!
+        List<Player> protectedAdmins = sitManager.getProtectedPassengerChain(entity);
+        if (!protectedAdmins.isEmpty()) {
+            sitManager.handleCarrierTeleport(entity, to);
+        }
     }
 
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
@@ -602,6 +713,10 @@ public final class SitListener implements Listener {
         StoneSitPose pose = sitManager.getPoseByPlayer(player);
         if (pose != null) {
             pose.playDamageAnimation();
+        }
+        // KICK-SCHUTZ: Geschützte Admins dürfen durch Schaden NIEMALS gekickt werden!
+        if (SitManager.isKickProtected(player)) {
+            return;
         }
         if (!config.isGetUpDamage() || event.getDamage() <= 0d) {
             return;
@@ -648,6 +763,28 @@ public final class SitListener implements Listener {
     // =========================================================================
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    public void onBlockFromTo(BlockFromToEvent event) {
+        Block toBlock = event.getToBlock();
+        if (sitManager.isBlockWithSeat(toBlock)) {
+            for (Seat seat : sitManager.getSeatsByBlock(toBlock)) {
+                if (SitManager.isKickProtected(seat.getEntity())) {
+                    event.setCancelled(true);
+                    return;
+                }
+            }
+        }
+        Block above = toBlock.getRelative(BlockFace.UP);
+        if (sitManager.isBlockWithSeat(above)) {
+            for (Seat seat : sitManager.getSeatsByBlock(above)) {
+                if (SitManager.isKickProtected(seat.getEntity())) {
+                    event.setCancelled(true);
+                    return;
+                }
+            }
+        }
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onBlockPistonExtend(BlockPistonExtendEvent event) {
         handleBlockPistonEvent(event, event.getBlocks());
     }
@@ -673,6 +810,9 @@ public final class SitListener implements Listener {
             sitManager.moveSeat(seat, event.getDirection());
         }
         for (StoneSitPose pose : breakPoses) {
+            if (SitManager.isKickProtected(pose.getPlayer())) {
+                continue;
+            }
             sitManager.removePose(pose, StopReason.BLOCK_BREAK);
         }
     }
@@ -688,15 +828,38 @@ public final class SitListener implements Listener {
     }
 
     private void handleExplodeEvent(List<Block> blocks) {
-        if (!config.isGetUpBreak() || (sitManager.getAllSeats().isEmpty() && sitManager.getAllPoses().isEmpty())) {
+        if (sitManager.getAllSeats().isEmpty() && sitManager.getAllPoses().isEmpty()) {
             return;
         }
-        blocksLoop:
         for (Block block : new ArrayList<>(blocks)) {
+            boolean protectedSeat = false;
+            for (Seat seat : sitManager.getSeatsByBlock(block)) {
+                if (SitManager.isKickProtected(seat.getEntity())) {
+                    protectedSeat = true;
+                    break;
+                }
+            }
+            if (!protectedSeat) {
+                Block above = block.getRelative(BlockFace.UP);
+                for (Seat seat : sitManager.getSeatsByBlock(above)) {
+                    if (SitManager.isKickProtected(seat.getEntity())) {
+                        protectedSeat = true;
+                        break;
+                    }
+                }
+            }
+            if (protectedSeat) {
+                blocks.remove(block);
+                continue;
+            }
+
+            if (!config.isGetUpBreak()) {
+                continue;
+            }
             for (Seat seat : new ArrayList<>(sitManager.getSeatsByBlock(block))) {
                 if (!sitManager.removeSeat(seat, StopReason.BLOCK_BREAK)) {
                     blocks.remove(block);
-                    continue blocksLoop;
+                    break;
                 }
             }
             for (StoneSitPose pose : new ArrayList<>(sitManager.getPosesByBlock(block))) {
@@ -734,6 +897,59 @@ public final class SitListener implements Listener {
     }
 
     private void handleBlockBreakLikeEvent(Cancellable event, Block block) {
+        // TEPPICH- & BLOCK-SCHUTZ: Wenn ein geschützter Admin auf diesem Block sitzt, Abbau verhindern
+        if (sitManager.isBlockWithSeat(block)) {
+            for (Seat seat : sitManager.getSeatsByBlock(block)) {
+                if (SitManager.isKickProtected(seat.getEntity())) {
+                    if (event instanceof BlockBreakEvent bbe && bbe.getPlayer().equals(seat.getEntity())) {
+                        sitManager.removeSeat(seat, StopReason.BLOCK_BREAK);
+                        return;
+                    }
+                    event.setCancelled(true);
+                    return;
+                }
+            }
+        }
+        if (sitManager.isBlockWithPose(block)) {
+            for (StoneSitPose pose : sitManager.getPosesByBlock(block)) {
+                if (SitManager.isKickProtected(pose.getPlayer())) {
+                    if (event instanceof BlockBreakEvent bbe && bbe.getPlayer().equals(pose.getPlayer())) {
+                        sitManager.removePose(pose, StopReason.BLOCK_BREAK);
+                        return;
+                    }
+                    event.setCancelled(true);
+                    return;
+                }
+            }
+        }
+
+        // TEPPICH-UNTERGRUND-SCHUTZ: Wenn auf dem Block darüber ein Teppich mit geschütztem Admin liegt
+        Block above = block.getRelative(BlockFace.UP);
+        if (sitManager.isBlockWithSeat(above)) {
+            for (Seat seat : sitManager.getSeatsByBlock(above)) {
+                if (SitManager.isKickProtected(seat.getEntity())) {
+                    if (event instanceof BlockBreakEvent bbe && bbe.getPlayer().equals(seat.getEntity())) {
+                        sitManager.removeSeat(seat, StopReason.BLOCK_BREAK);
+                        return;
+                    }
+                    event.setCancelled(true);
+                    return;
+                }
+            }
+        }
+        if (sitManager.isBlockWithPose(above)) {
+            for (StoneSitPose pose : sitManager.getPosesByBlock(above)) {
+                if (SitManager.isKickProtected(pose.getPlayer())) {
+                    if (event instanceof BlockBreakEvent bbe && bbe.getPlayer().equals(pose.getPlayer())) {
+                        sitManager.removePose(pose, StopReason.BLOCK_BREAK);
+                        return;
+                    }
+                    event.setCancelled(true);
+                    return;
+                }
+            }
+        }
+
         if (!config.isGetUpBreak()) {
             return;
         }
@@ -753,3 +969,4 @@ public final class SitListener implements Listener {
         }
     }
 }
+

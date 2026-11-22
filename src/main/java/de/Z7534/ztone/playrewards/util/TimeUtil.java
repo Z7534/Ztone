@@ -61,6 +61,31 @@ public final class TimeUtil {
     }
 
     /**
+     * Formatiert Spielzeit in Stunden und Minuten in Small Caps (z. B. "2 ꜱᴛᴜɴᴅᴇɴ, 15 ᴍɪɴᴜᴛᴇɴ" oder "45 ᴍɪɴᴜᴛᴇɴ").
+     */
+    public static String formatHoursAndMinutes(long totalSeconds) {
+        if (totalSeconds <= 0) {
+            return "0 ᴍɪɴᴜᴛᴇɴ";
+        }
+        long hours = TimeUnit.SECONDS.toHours(totalSeconds);
+        long minutes = TimeUnit.SECONDS.toMinutes(totalSeconds) % 60;
+        long seconds = totalSeconds % 60;
+
+        StringBuilder sb = new StringBuilder();
+        if (hours > 0) {
+            sb.append(hours).append(hours == 1 ? " ꜱᴛᴜɴᴅᴇ" : " ꜱᴛᴜɴᴅᴇɴ");
+        }
+        if (minutes > 0) {
+            if (sb.length() > 0) sb.append(", ");
+            sb.append(minutes).append(minutes == 1 ? " ᴍɪɴᴜᴛᴇ" : " ᴍɪɴᴜᴛᴇɴ");
+        }
+        if (hours == 0 && minutes == 0) {
+            sb.append(seconds).append(seconds == 1 ? " ꜱᴇᴋᴜɴᴅᴇ" : " ꜱᴇᴋᴜɴᴅᴇɴ");
+        }
+        return sb.toString();
+    }
+
+    /**
      * Formatiert Spielzeit in Sekunden zu lesbarem Text in Small Caps (z. B. "2ᴅ 4ʜ 35ᴍ").
      */
     public static String formatDuration(long totalSeconds) {

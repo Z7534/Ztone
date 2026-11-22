@@ -9,6 +9,7 @@ import de.Z7534.ztone.clansystem.listeners.PlayerListener;
 import de.Z7534.ztone.clansystem.listeners.PvPListener;
 import de.Z7534.ztone.clansystem.managers.*;
 import de.Z7534.ztone.clansystem.models.Clan;
+import de.Z7534.ztone.clansystem.models.ClanWar;
 import de.Z7534.ztone.clansystem.models.ClanMember;
 import de.Z7534.ztone.clansystem.models.Permission;
 import de.Z7534.ztone.clansystem.placeholders.ClanPlaceholders;
@@ -398,7 +399,6 @@ public class Ztone extends JavaPlugin {
         if (lower.contains("placeholderapi") || lower.contains("clip")) return "PlaceholderAPI";
         if (lower.contains("luckperms") || lower.contains("lucko")) return "LuckPerms";
         if (lower.contains("floodgate") || lower.contains("geyser")) return "Floodgate";
-        if (lower.contains("plan")) return "Plan";
         if (lower.contains("worldguard") || lower.contains("sk89q")) return "WorldGuard";
         return className.replace('/', '.');
     }
@@ -643,32 +643,35 @@ public class Ztone extends JavaPlugin {
         Clan clanB = clanManager.getClanByPlayer(b);
         if (clanA == null || clanB == null || clanA.getId() == clanB.getId()) return false;
         if (!warManager.isWarPvpActive(clanA.getId(), clanB.getId())) return false;
+        ClanWar war = warManager.getWarBetween(clanA.getId(), clanB.getId());
+        if (war == null) return false;
         ClanMember memberA = clanA.getMember(a);
         ClanMember memberB = clanB.getMember(b);
         if (memberA == null || memberB == null) return false;
-        return memberA.hasPermission(Permission.WAR_ALWAYS_PVP) && memberB.hasPermission(Permission.WAR_ALWAYS_PVP);
+        if (!memberA.hasPermission(Permission.WAR_ALWAYS_PVP) || !memberB.hasPermission(Permission.WAR_ALWAYS_PVP)) return false;
+        return war.isParticipant(a) && war.isParticipant(b);
     }
 
     public boolean isForcedWarPvP(UUID uuid) {
         if (configManager == null || !configManager.isClansystemEnabled() || !configManager.isPvpmanagerEnabled()) {
             return false;
         }
-        if (clanManager == null) return false;
+        if (clanManager == null || warManager == null) return false;
         Clan clan = clanManager.getClanByPlayer(uuid);
         if (clan == null || clan.getActiveWars().isEmpty()) {
             return false;
         }
-        boolean hasPvpActiveWar = false;
+        ClanMember member = clan.getMember(uuid);
+        if (member == null || !member.hasPermission(Permission.WAR_ALWAYS_PVP)) return false;
         for (int enemyId : clan.getActiveWars()) {
             if (warManager.isWarPvpActive(clan.getId(), enemyId)) {
-                hasPvpActiveWar = true;
-                break;
+                ClanWar war = warManager.getWarBetween(clan.getId(), enemyId);
+                if (war != null && war.isParticipant(uuid)) {
+                    return true;
+                }
             }
         }
-        if (!hasPvpActiveWar) return false;
-        ClanMember member = clan.getMember(uuid);
-        if (member == null) return false;
-        return member.hasPermission(Permission.WAR_ALWAYS_PVP);
+        return false;
     }
 
     // ==========================================

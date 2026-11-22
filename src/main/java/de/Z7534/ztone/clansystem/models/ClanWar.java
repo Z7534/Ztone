@@ -2,7 +2,7 @@ package de.Z7534.ztone.clansystem.models;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 
 public class ClanWar {
 
@@ -27,6 +27,9 @@ public class ClanWar {
     private Map<UUID, Integer> defenderKills;
     private Map<UUID, Integer> participantDeaths;
 
+    private final Set<UUID> attackerParticipants;
+    private final Set<UUID> defenderParticipants;
+
     private int attackerPoints;
     private int defenderPoints;
 
@@ -44,6 +47,8 @@ public class ClanWar {
         this.attackerKills = new HashMap<>();
         this.defenderKills = new HashMap<>();
         this.participantDeaths = new HashMap<>();
+        this.attackerParticipants = new HashSet<>();
+        this.defenderParticipants = new HashSet<>();
         this.attackerPoints = 0;
         this.defenderPoints = 0;
     }
@@ -216,5 +221,62 @@ public class ClanWar {
             return defenderClanId;
         }
         return null;
+    }
+
+    public void addParticipant(int clanId, UUID uuid) {
+        if (clanId == attackerClanId) {
+            attackerParticipants.add(uuid);
+        } else if (clanId == defenderClanId) {
+            defenderParticipants.add(uuid);
+        }
+    }
+
+    public void setParticipants(int clanId, Collection<UUID> uuids) {
+        if (clanId == attackerClanId) {
+            attackerParticipants.clear();
+            if (uuids != null) attackerParticipants.addAll(uuids);
+        } else if (clanId == defenderClanId) {
+            defenderParticipants.clear();
+            if (uuids != null) defenderParticipants.addAll(uuids);
+        }
+    }
+
+    public Set<UUID> getAttackerParticipants() {
+        return Collections.unmodifiableSet(attackerParticipants);
+    }
+
+    public Set<UUID> getDefenderParticipants() {
+        return Collections.unmodifiableSet(defenderParticipants);
+    }
+
+    public Set<UUID> getParticipantsFor(int clanId) {
+        if (clanId == attackerClanId) {
+            return Collections.unmodifiableSet(attackerParticipants);
+        } else if (clanId == defenderClanId) {
+            return Collections.unmodifiableSet(defenderParticipants);
+        }
+        return Collections.emptySet();
+    }
+
+    public Set<UUID> getAllParticipants() {
+        Set<UUID> all = new HashSet<>(attackerParticipants);
+        all.addAll(defenderParticipants);
+        return all;
+    }
+
+    public boolean isParticipant(UUID uuid) {
+        if (attackerParticipants.isEmpty() && defenderParticipants.isEmpty()) {
+            return true;
+        }
+        return attackerParticipants.contains(uuid) || defenderParticipants.contains(uuid);
+    }
+
+    public boolean isParticipant(int clanId, UUID uuid) {
+        if (clanId == attackerClanId) {
+            return attackerParticipants.isEmpty() || attackerParticipants.contains(uuid);
+        } else if (clanId == defenderClanId) {
+            return defenderParticipants.isEmpty() || defenderParticipants.contains(uuid);
+        }
+        return false;
     }
 }

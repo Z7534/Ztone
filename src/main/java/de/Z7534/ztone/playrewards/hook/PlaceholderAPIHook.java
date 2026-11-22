@@ -76,6 +76,35 @@ public class PlaceholderAPIHook extends PlaceholderExpansion {
                 // Detailliert formatiert (z. B. "5 Tage, 8 Stunden, 24 Minuten")
                 return TimeUtil.formatDaysAndHours(playtimeSeconds);
 
+            case "playtime_today":
+            case "playtime_today_formatted":
+            case "daily_playtime_formatted":
+            case "today_formatted": {
+                long dailySec = plugin.getPlaytimeService().getDailyPlaytimeSeconds(player.getUniqueId());
+                return TimeUtil.formatHoursAndMinutes(dailySec);
+            }
+
+            case "playtime_today_seconds":
+            case "daily_playtime_seconds":
+            case "today_seconds": {
+                long dailySec = plugin.getPlaytimeService().getDailyPlaytimeSeconds(player.getUniqueId());
+                return String.valueOf(dailySec);
+            }
+
+            case "playtime_today_hours":
+            case "daily_playtime_hours":
+            case "today_hours": {
+                long dailySec = plugin.getPlaytimeService().getDailyPlaytimeSeconds(player.getUniqueId());
+                return String.valueOf(TimeUtil.getHours(dailySec));
+            }
+
+            case "playtime_today_minutes":
+            case "daily_playtime_minutes":
+            case "today_minutes": {
+                long dailySec = plugin.getPlaytimeService().getDailyPlaytimeSeconds(player.getUniqueId());
+                return String.valueOf(TimeUnit.SECONDS.toMinutes(dailySec));
+            }
+
             case "daily_available": {
                 if (data == null) return "0";
                 int availableCount = plugin.getRewardClaimService().getAvailableDailyRewardsCount(player.getUniqueId());

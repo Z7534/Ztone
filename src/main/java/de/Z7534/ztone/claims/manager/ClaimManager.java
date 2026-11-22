@@ -7,6 +7,7 @@ import de.Z7534.ztone.claims.hook.WorldGuardHook;
 import de.Z7534.ztone.claims.model.Claim;
 import de.Z7534.ztone.claims.model.ChunkPos;
 import de.Z7534.ztone.claims.model.PlayerData;
+import de.Z7534.ztone.claims.model.ClaimLogEntry;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -51,6 +52,7 @@ public final class ClaimManager {
         }
         playerData.clear();
         playerData.putAll(playerRepository.loadAll());
+        claimRepository.migrateExistingClaimsToLogs();
         int merged = mergeAllAdjacentClaims();
         if (merged > 0) {
             plugin.getLogger().info("Automatisch zusammengeführt: " + merged + " aneinandergrenzende Claims.");
@@ -101,6 +103,19 @@ public final class ClaimManager {
         if (!playerData.containsKey(uuid)) {
             getOrCreatePlayerData(uuid, name);
         }
+    }
+
+    public String resolvePlayerName(UUID uuid) {
+        if (uuid == null) return "Konsole";
+        PlayerData pd = playerData.get(uuid);
+        if (pd != null && pd.name() != null && !pd.name().isBlank()) {
+            return pd.name();
+        }
+        var offline = org.bukkit.Bukkit.getOfflinePlayer(uuid);
+        if (offline.getName() != null) {
+            return offline.getName();
+        }
+        return uuid.toString();
     }
 
     private void async(Runnable task) {
@@ -237,11 +252,17 @@ public final class ClaimManager {
      * es ändert sich nur der Besitzer.
      */
     public boolean transferClaim(Claim claim, UUID newOwner, String newOwnerName) {
+        return transferClaim(claim, newOwner, newOwnerName, null, null);
+    }
+
+    public boolean transferClaim(Claim claim, UUID newOwner, String newOwnerName, UUID actorUuid, String actorName) {
         Claim current = claimsById.get(claim.id());
         if (current == null) {
             return false;
         }
         ensurePlayerData(newOwner, newOwnerName);
+        UUID oldOwner = current.owner();
+        String oldOwnerName = resolvePlayerName(oldOwner);
         current.setOwner(newOwner);
         // Der neue Besitzer darf weder als Trust noch als Ban-Eintrag auf seinem eigenen Claim stehen.
         current.trusted().remove(newOwner);
@@ -251,6 +272,12 @@ public final class ClaimManager {
             claimRepository.removeTrust(current.id(), newOwner);
             claimRepository.removeBan(current.id(), newOwner);
         });
+
+        UUID actualActor = actorUuid != null ? actorUuid : oldOwner;
+        String resolvedActorName = actorName != null ? actorName : resolvePlayerName(actualActor);
+        String details = "Besitzer übertragen: " + oldOwnerName + " -> " + newOwnerName;
+        claimRepository.logAsync(current.id(), current.name(), current.world(), actualActor, resolvedActorName, "TRANSFER", details, new HashSet<>(current.chunks()));
+
         mergeAdjacentClaimsFor(newOwner, current.world());
         return true;
     }
@@ -434,26 +461,26 @@ public final class ClaimManager {
 
     public void apply(Player player, Set<ChunkPos> toClaim, Set<ChunkPos> toUnclaim) {
         UUID owner = player.getUniqueId();
+        String ownerName = player.getName();
         if (!toUnclaim.isEmpty()) {
-            unclaimChunks(owner, toUnclaim);
+            unclaimChunks(owner, toUnclaim, owner, ownerName);
         }
         if (!toClaim.isEmpty()) {
-            claimChunks(owner, toClaim);
+            claimChunks(owner, ownerName, toClaim);
         }
     }
 
-    private void claimChunks(UUID owner, Set<ChunkPos> newChunks) {
-
+    private void claimChunks(UUID owner, String ownerName, Set<ChunkPos> newChunks) {
         Map<String, Set<ChunkPos>> byWorld = new HashMap<>();
         for (ChunkPos p : newChunks) {
             byWorld.computeIfAbsent(p.world(), w -> new HashSet<>()).add(p);
         }
         for (Map.Entry<String, Set<ChunkPos>> entry : byWorld.entrySet()) {
-            claimChunksInWorld(owner, entry.getKey(), entry.getValue());
+            claimChunksInWorld(owner, ownerName, entry.getKey(), entry.getValue());
         }
     }
 
-    private void claimChunksInWorld(UUID owner, String world, Set<ChunkPos> newChunks) {
+    private void claimChunksInWorld(UUID owner, String ownerName, String world, Set<ChunkPos> newChunks) {
         Set<ChunkPos> ownerChunks = new HashSet<>();
         for (Claim c : claimsById.values()) {
             if (c.owner().equals(owner) && c.world().equals(world)) {
@@ -487,9 +514,16 @@ public final class ClaimManager {
                 }
                 claim.setId(id);
                 index(claim);
+                claimRepository.logAsync(id, claim.name(), world, owner, ownerName, "CLAIM",
+                        "Neuer Claim erstellt (" + component.size() + " Chunks)", component);
             } else {
                 touched.sort(Comparator.comparingInt(c -> -c.chunks().size()));
                 Claim survivor = touched.get(0);
+                Set<ChunkPos> newlyAdded = new HashSet<>(component);
+                for (Claim c : touched) {
+                    newlyAdded.removeAll(c.chunks());
+                }
+
                 unindex(survivor);
                 survivor.chunks().clear();
                 survivor.chunks().addAll(component);
@@ -508,7 +542,11 @@ public final class ClaimManager {
                     unindex(victim);
                     claimsById.remove(victim.id());
                     final long victimId = victim.id();
+                    final Set<ChunkPos> victimChunks = new HashSet<>(victim.chunks());
+                    final String victimName = victim.name();
                     async(() -> claimRepository.deleteClaim(victimId));
+                    claimRepository.logAsync(survivor.id(), survivor.name(), world, owner, ownerName, "MERGE",
+                            "Claim '" + victimName + "' (" + victimChunks.size() + " Chunks) mit '" + survivor.name() + "' zusammengeführt", victimChunks);
                 }
                 index(survivor);
                 // Kopie HIER (Server-Thread) anlegen, nicht im Async-Thread - sonst droht eine
@@ -516,6 +554,11 @@ public final class ClaimManager {
                 final long survivorId = survivor.id();
                 final Set<ChunkPos> survivorChunks = new HashSet<>(survivor.chunks());
                 async(() -> claimRepository.replaceChunks(survivorId, survivorChunks));
+
+                if (!newlyAdded.isEmpty()) {
+                    claimRepository.logAsync(survivor.id(), survivor.name(), world, owner, ownerName, "CLAIM",
+                            "Claim erweitert (+" + newlyAdded.size() + " Chunks)", newlyAdded);
+                }
             }
         }
         mergeAdjacentClaimsFor(owner, world);
@@ -571,11 +614,19 @@ public final class ClaimManager {
     }
 
     private long claimRepositoryInsert(Claim claim) {
-
         return claimRepository.insertClaim(claim);
     }
 
     private void unclaimChunks(UUID owner, Set<ChunkPos> toRemove) {
+        unclaimChunks(owner, toRemove, null, null);
+    }
+
+    private void unclaimChunks(UUID owner, Set<ChunkPos> toRemove, UUID actorUuid, String actorName) {
+        UUID actualActor = actorUuid != null ? actorUuid : owner;
+        String resolvedActorName = actorName != null ? actorName : resolvePlayerName(actualActor);
+        boolean isAdmin = actorUuid != null && !actorUuid.equals(owner);
+        String action = isAdmin ? "ADMIN_UNCLAIM" : "UNCLAIM";
+
         Map<Long, Set<ChunkPos>> byClaim = new HashMap<>();
         for (ChunkPos pos : toRemove) {
             Claim claim = getClaimAt(pos);
@@ -587,14 +638,22 @@ public final class ClaimManager {
             Claim claim = claimsById.get(entry.getKey());
             if (claim == null) continue;
             unindex(claim);
-            claim.chunks().removeAll(entry.getValue());
+            Set<ChunkPos> removedChunks = entry.getValue();
+            claim.chunks().removeAll(removedChunks);
 
             if (claim.chunks().isEmpty()) {
                 claimsById.remove(claim.id());
                 final long id = claim.id();
                 async(() -> claimRepository.deleteClaim(id));
+                String details = "Claim vollständig aufgelöst/ungeclaimt (" + removedChunks.size() + " Chunks"
+                        + (isAdmin ? ", Besitzer: " + resolvePlayerName(owner) : "") + ")";
+                claimRepository.logAsync(claim.id(), claim.name(), claim.world(), actualActor, resolvedActorName, action, details, removedChunks);
                 continue;
             }
+
+            String details = removedChunks.size() + " Chunk(s) ungeclaimt"
+                    + (isAdmin ? " (Besitzer: " + resolvePlayerName(owner) + ")" : "");
+            claimRepository.logAsync(claim.id(), claim.name(), claim.world(), actualActor, resolvedActorName, action, details, removedChunks);
 
             List<Set<ChunkPos>> components = splitIntoComponents(claim.chunks());
             components.sort((a, b) -> b.size() - a.size());
@@ -624,6 +683,11 @@ public final class ClaimManager {
                 }
                 split.setId(id);
                 index(split);
+
+                claimRepository.logAsync(split.id(), split.name(), split.world(), split.owner(),
+                        resolvePlayerName(split.owner()), "CLAIM",
+                        "Abgetrennter Teilclaim nach Unclaim (" + split.chunks().size() + " Chunks)", split.chunks());
+
                 // Schnappschüsse im Server-Thread erstellen, der Async-Thread liest nur die Kopien.
                 final long splitId = id;
                 final Map<UUID, Integer> trustSnapshot = new HashMap<>();
@@ -692,17 +756,35 @@ public final class ClaimManager {
     }
 
     public void deleteClaim(Claim claim) {
+        deleteClaim(claim, null, null);
+    }
+
+    public void deleteClaim(Claim claim, UUID actorUuid, String actorName) {
         unindex(claim);
         claimsById.remove(claim.id());
-        async(() -> claimRepository.deleteClaim(claim.id()));
+        final long claimId = claim.id();
+        final Set<ChunkPos> chunksCopy = new HashSet<>(claim.chunks());
+        async(() -> claimRepository.deleteClaim(claimId));
+
+        UUID actualActor = actorUuid != null ? actorUuid : claim.owner();
+        String resolvedActorName = actorName != null ? actorName : resolvePlayerName(actualActor);
+        boolean isAdmin = actorUuid != null && !actorUuid.equals(claim.owner());
+        String action = isAdmin ? "ADMIN_UNCLAIM" : "DELETE";
+        String details = "Claim gelöscht (" + chunksCopy.size() + " Chunks"
+                + (isAdmin ? ", ehem. Besitzer: " + resolvePlayerName(claim.owner()) : "") + ")";
+        claimRepository.logAsync(claimId, claim.name(), claim.world(), actualActor, resolvedActorName, action, details, chunksCopy);
     }
 
     public boolean unclaimSingleChunk(ChunkPos pos) {
+        return unclaimSingleChunk(pos, null, null);
+    }
+
+    public boolean unclaimSingleChunk(ChunkPos pos, UUID actorUuid, String actorName) {
         Claim claim = getClaimAt(pos);
         if (claim == null) {
             return false;
         }
-        unclaimChunks(claim.owner(), Set.of(pos));
+        unclaimChunks(claim.owner(), Set.of(pos), actorUuid, actorName);
         return true;
     }
 
@@ -892,12 +974,25 @@ public final class ClaimManager {
             unindex(victim);
             claimsById.remove(victim.id());
             final long victimId = victim.id();
+            final Set<ChunkPos> victimChunks = new HashSet<>(victim.chunks());
+            final String victimName = victim.name();
             async(() -> claimRepository.deleteClaim(victimId));
+            claimRepository.logAsync(survivor.id(), survivor.name(), survivor.world(), survivor.owner(),
+                    resolvePlayerName(survivor.owner()), "MERGE",
+                    "Claim '" + victimName + "' (" + victimChunks.size() + " Chunks) mit '" + survivor.name() + "' zusammengeführt", victimChunks);
         }
 
         index(survivor);
         final long survivorId = survivor.id();
         final Set<ChunkPos> survivorChunks = new HashSet<>(survivor.chunks());
         async(() -> claimRepository.replaceChunks(survivorId, survivorChunks));
+    }
+
+    public List<ClaimLogEntry> getLogsForLocation(String world, int chunkX, int chunkZ, Long claimId, int limit) {
+        return claimRepository.getLogsForLocation(world, chunkX, chunkZ, claimId, limit);
+    }
+
+    public List<ClaimLogEntry> getLogsForClaim(long claimId, int limit) {
+        return claimRepository.getLogsForClaim(claimId, limit);
     }
 }

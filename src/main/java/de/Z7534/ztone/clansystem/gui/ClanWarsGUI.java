@@ -13,6 +13,8 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Set;
+import java.util.UUID;
 
 public class ClanWarsGUI extends AbstractGUI {
 
@@ -66,19 +68,39 @@ public class ClanWarsGUI extends AbstractGUI {
             lore.add("&a" + clan.getName() + ": &e" + ourPoints);
             lore.add("&c" + opponent.getName() + ": &e" + theirPoints);
             lore.add("");
-            lore.add("&6Status &8(3 Tode pro Clankrieg-Spieler):");
+            lore.add("&6Status &8(3 Tode pro Clankrieg-Kämpfer):");
             lore.add("&a" + clan.getName() + " &8(Dein Clan):");
-            for (ClanMember m : clan.getMembers().values()) {
-                if (m.hasPermission(Permission.WAR_ALWAYS_PVP)) {
-                    int d = war.getParticipantDeaths(m.getUuid());
-                    lore.add(" &8- &e" + m.getName() + ": " + (d >= 3 ? "&43/3 K.O." : "&c" + d + "/3 Tode"));
+            Set<UUID> ourFighters = war.getParticipantsFor(clan.getId());
+            if (ourFighters.isEmpty()) {
+                for (ClanMember m : clan.getMembers().values()) {
+                    if (m.hasPermission(Permission.WAR_ALWAYS_PVP)) {
+                        int d = war.getParticipantDeaths(m.getUuid());
+                        lore.add(" &8- &e" + m.getName() + ": " + (d >= 3 ? "&43/3 K.O." : "&c" + d + "/3 Tode"));
+                    }
+                }
+            } else {
+                for (UUID u : ourFighters) {
+                    ClanMember m = clan.getMember(u);
+                    String name = m != null ? m.getName() : u.toString();
+                    int d = war.getParticipantDeaths(u);
+                    lore.add(" &8- &e" + name + ": " + (d >= 3 ? "&43/3 K.O." : "&c" + d + "/3 Tode"));
                 }
             }
             lore.add("&c" + opponent.getName() + " &8(Gegner):");
-            for (ClanMember m : opponent.getMembers().values()) {
-                if (m.hasPermission(Permission.WAR_ALWAYS_PVP)) {
-                    int d = war.getParticipantDeaths(m.getUuid());
-                    lore.add(" &8- &e" + m.getName() + ": " + (d >= 3 ? "&43/3 K.O." : "&c" + d + "/3 Tode"));
+            Set<UUID> theirFighters = war.getParticipantsFor(opponent.getId());
+            if (theirFighters.isEmpty()) {
+                for (ClanMember m : opponent.getMembers().values()) {
+                    if (m.hasPermission(Permission.WAR_ALWAYS_PVP)) {
+                        int d = war.getParticipantDeaths(m.getUuid());
+                        lore.add(" &8- &e" + m.getName() + ": " + (d >= 3 ? "&43/3 K.O." : "&c" + d + "/3 Tode"));
+                    }
+                }
+            } else {
+                for (UUID u : theirFighters) {
+                    ClanMember m = opponent.getMember(u);
+                    String name = m != null ? m.getName() : u.toString();
+                    int d = war.getParticipantDeaths(u);
+                    lore.add(" &8- &e" + name + ": " + (d >= 3 ? "&43/3 K.O." : "&c" + d + "/3 Tode"));
                 }
             }
 

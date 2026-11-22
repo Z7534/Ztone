@@ -13,6 +13,8 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Set;
+import java.util.UUID;
 
 public class ClanWarDetailGUI extends AbstractGUI {
 
@@ -94,9 +96,61 @@ public class ClanWarDetailGUI extends AbstractGUI {
         // Left side: Our clan participants
         int[] leftSlots = {19, 20, 21, 28, 29, 30, 37, 38, 39};
         int leftIdx = 0;
-        for (ClanMember m : clan.getMembers().values()) {
-            if (m.hasPermission(Permission.WAR_ALWAYS_PVP)) {
-                if (leftIdx >= leftSlots.length) break;
+        Set<UUID> ourFighters = war.getParticipantsFor(clan.getId());
+        List<ClanMember> ourList = new ArrayList<>();
+        if (!ourFighters.isEmpty()) {
+            for (UUID u : ourFighters) {
+                ClanMember m = clan.getMember(u);
+                if (m != null) ourList.add(m);
+            }
+        } else {
+            for (ClanMember m : clan.getMembers().values()) {
+                if (m.hasPermission(Permission.WAR_ALWAYS_PVP)) ourList.add(m);
+            }
+        }
+        for (ClanMember m : ourList) {
+            if (leftIdx >= leftSlots.length) break;
+            int deaths = war.getParticipantDeaths(m.getUuid());
+            int lives = Math.max(0, 3 - deaths);
+            int kills = war.getKillsForPlayer(m.getUuid());
+
+            String heartBar;
+            if (lives == 3) heartBar = "§a❤❤❤ §2(3/3)";
+            else if (lives == 2) heartBar = "§e❤❤§8🖤 §6(2/3)";
+            else if (lives == 1) heartBar = "§c❤§8🖤🖤 §c(1/3)";
+            else heartBar = "§4🖤🖤🖤 §4(0/3 K.O.)";
+
+            List<String> pLore = new ArrayList<>();
+            pLore.add("§7Rolle: §e" + m.getDisplayRankName());
+            pLore.add("§7Status: " + (lives == 0 ? "§4§l☠ AUSGESCHIEDEN" : "§a§lIM KAMPF"));
+            pLore.add("§7Verbleibende Leben: " + heartBar);
+            pLore.add("§7Kills im Krieg: §b" + kills);
+
+            setItem(leftSlots[leftIdx++], new ItemBuilder(Material.PLAYER_HEAD)
+                    .skullOwner(m.getUuid())
+                    .name((lives == 0 ? "§8§m" : "§a") + m.getName())
+                    .lore(pLore)
+                    .build());
+        }
+
+        // Right side: Opponent clan participants
+        int[] rightSlots = {23, 24, 25, 32, 33, 34, 41, 42, 43};
+        int rightIdx = 0;
+        if (opponent != null) {
+            Set<UUID> theirFighters = war.getParticipantsFor(opponent.getId());
+            List<ClanMember> theirList = new ArrayList<>();
+            if (!theirFighters.isEmpty()) {
+                for (UUID u : theirFighters) {
+                    ClanMember m = opponent.getMember(u);
+                    if (m != null) theirList.add(m);
+                }
+            } else {
+                for (ClanMember m : opponent.getMembers().values()) {
+                    if (m.hasPermission(Permission.WAR_ALWAYS_PVP)) theirList.add(m);
+                }
+            }
+            for (ClanMember m : theirList) {
+                if (rightIdx >= rightSlots.length) break;
                 int deaths = war.getParticipantDeaths(m.getUuid());
                 int lives = Math.max(0, 3 - deaths);
                 int kills = war.getKillsForPlayer(m.getUuid());
@@ -113,43 +167,11 @@ public class ClanWarDetailGUI extends AbstractGUI {
                 pLore.add("§7Verbleibende Leben: " + heartBar);
                 pLore.add("§7Kills im Krieg: §b" + kills);
 
-                setItem(leftSlots[leftIdx++], new ItemBuilder(Material.PLAYER_HEAD)
+                setItem(rightSlots[rightIdx++], new ItemBuilder(Material.PLAYER_HEAD)
                         .skullOwner(m.getUuid())
-                        .name((lives == 0 ? "§8§m" : "§a") + m.getName())
+                        .name((lives == 0 ? "§8§m" : "§c") + m.getName())
                         .lore(pLore)
                         .build());
-            }
-        }
-
-        // Right side: Opponent clan participants
-        int[] rightSlots = {23, 24, 25, 32, 33, 34, 41, 42, 43};
-        int rightIdx = 0;
-        if (opponent != null) {
-            for (ClanMember m : opponent.getMembers().values()) {
-                if (m.hasPermission(Permission.WAR_ALWAYS_PVP)) {
-                    if (rightIdx >= rightSlots.length) break;
-                    int deaths = war.getParticipantDeaths(m.getUuid());
-                    int lives = Math.max(0, 3 - deaths);
-                    int kills = war.getKillsForPlayer(m.getUuid());
-
-                    String heartBar;
-                    if (lives == 3) heartBar = "§a❤❤❤ §2(3/3)";
-                    else if (lives == 2) heartBar = "§e❤❤§8🖤 §6(2/3)";
-                    else if (lives == 1) heartBar = "§c❤§8🖤🖤 §c(1/3)";
-                    else heartBar = "§4🖤🖤🖤 §4(0/3 K.O.)";
-
-                    List<String> pLore = new ArrayList<>();
-                    pLore.add("§7Rolle: §e" + m.getDisplayRankName());
-                    pLore.add("§7Status: " + (lives == 0 ? "§4§l☠ AUSGESCHIEDEN" : "§a§lIM KAMPF"));
-                    pLore.add("§7Verbleibende Leben: " + heartBar);
-                    pLore.add("§7Kills im Krieg: §b" + kills);
-
-                    setItem(rightSlots[rightIdx++], new ItemBuilder(Material.PLAYER_HEAD)
-                            .skullOwner(m.getUuid())
-                            .name((lives == 0 ? "§8§m" : "§c") + m.getName())
-                            .lore(pLore)
-                            .build());
-                }
             }
         }
 

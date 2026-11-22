@@ -2,6 +2,7 @@ package de.Z7534.ztone.claims;
 
 import de.Z7534.ztone.Ztone;
 import de.Z7534.ztone.claims.command.ClaimCommand;
+import de.Z7534.ztone.claims.command.ClaimNametagCommand;
 import de.Z7534.ztone.claims.command.PvPClaimBypassCommand;
 import de.Z7534.ztone.claims.command.StaffClaimCommand;
 import de.Z7534.ztone.claims.config.ConfigManager;
@@ -28,6 +29,7 @@ public final class Claims {
     private ParticleManager particleManager;
     private ClaimMapManager claimMapManager;
     private PvPClaimBypassManager pvpClaimBypassManager;
+    private ClaimNametagManager claimNametagManager;
     private ClaimsPlaceholderExpansion placeholderExpansion;
     private BanEnforcer banEnforcer;
     private BukkitTask activityTask;
@@ -64,6 +66,10 @@ public final class Claims {
         pvpClaimBypassManager = new PvPClaimBypassManager(plugin, claimManager);
         pvpClaimBypassManager.load();
 
+        claimNametagManager = new ClaimNametagManager(plugin, claimManager, bypassManager);
+        claimNametagManager.cleanupStaleTeams();
+        claimNametagManager.load();
+
         if (Bukkit.getPluginManager().getPlugin("PlaceholderAPI") != null) {
             placeholderExpansion = new ClaimsPlaceholderExpansion(claimManager, configManager);
             placeholderExpansion.register();
@@ -75,6 +81,7 @@ public final class Claims {
         PlayerLookupService lookupService = new PlayerLookupService(plugin, claimManager);
         SafeSpotFinder safeSpotFinder = new SafeSpotFinder();
         activityManager = new ActivityManager(plugin, claimManager, configManager);
+        activityManager.setNametagManager(claimNametagManager);
         particleManager = new ParticleManager(claimManager, selectionManager, configManager);
         this.banEnforcer = new BanEnforcer(configManager, safeSpotFinder, bypassManager);
         claimMapManager = new ClaimMapManager(plugin, claimManager, selectionManager);
@@ -88,7 +95,7 @@ public final class Claims {
 
         ClaimsContext ctx = new ClaimsContext(plugin, configManager, claimManager, selectionManager,
                 chatInputManager, lookupService, safeSpotFinder, activityManager, particleManager, banEnforcer,
-                bypassManager, claimMapManager, pvpClaimBypassManager);
+                bypassManager, claimMapManager, pvpClaimBypassManager, claimNametagManager);
 
         ClaimCommand claimCommand = new ClaimCommand(ctx);
         var cmd = plugin.getCommand("claim");
@@ -116,13 +123,21 @@ public final class Claims {
             pvpClaimCmd.setTabCompleter(pvpClaimBypassCommand);
         }
 
+        ClaimNametagCommand claimNametagCommand = new ClaimNametagCommand(ctx);
+        var nametagCmd = plugin.getCommand("claimnametags");
+        if (nametagCmd != null) {
+            nametagCmd.setExecutor(claimNametagCommand);
+            nametagCmd.setTabCompleter(claimNametagCommand);
+        }
+
         Bukkit.getPluginManager().registerEvents(new GuiListener(), plugin);
         Bukkit.getPluginManager().registerEvents(new ChatListener(chatInputManager), plugin);
         Bukkit.getPluginManager().registerEvents(new SelectionListener(selectionManager, claimManager, configManager, bypassManager, claimMapManager), plugin);
         Bukkit.getPluginManager().registerEvents(new ProtectionListener(claimManager, configManager, bypassManager, pvpClaimBypassManager), plugin);
         Bukkit.getPluginManager().registerEvents(
                 new ActivityListener(plugin, activityManager, claimManager, selectionManager, chatInputManager,
-                        configManager, bypassManager, banEnforcer, claimMapManager, pvpClaimBypassManager), plugin);
+                        configManager, bypassManager, banEnforcer, claimMapManager, pvpClaimBypassManager,
+                        claimNametagManager), plugin);
         Bukkit.getPluginManager().registerEvents(new ClaimMapListener(ctx, claimMapManager), plugin);
 
         // SmartSpawner Hook registrieren
@@ -150,6 +165,10 @@ public final class Claims {
         }
         if (pvpClaimBypassManager != null) {
             pvpClaimBypassManager.save();
+        }
+        if (claimNametagManager != null) {
+            claimNametagManager.save();
+            claimNametagManager.shutdown();
         }
         if (claimManager != null) {
             for (Player player : Bukkit.getOnlinePlayers()) {
@@ -194,6 +213,10 @@ public final class Claims {
 
     public PvPClaimBypassManager getPvPClaimBypassManager() {
         return pvpClaimBypassManager;
+    }
+
+    public ClaimNametagManager getClaimNametagManager() {
+        return claimNametagManager;
     }
 
     public Database getDatabase() {

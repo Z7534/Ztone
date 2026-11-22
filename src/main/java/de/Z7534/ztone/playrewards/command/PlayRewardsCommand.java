@@ -3,6 +3,7 @@ package de.Z7534.ztone.playrewards.command;
 import de.Z7534.ztone.playrewards.PlayReward;
 import de.Z7534.ztone.playrewards.menu.MainRewardMenu;
 import de.Z7534.ztone.playrewards.util.MessageUtil;
+import de.Z7534.ztone.playrewards.util.TimeUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
@@ -31,7 +32,7 @@ public class PlayRewardsCommand implements CommandExecutor {
                 return true;
             }
 
-            // Öffnet das 3er-Haupt-Menü (synchronisiert zuvor asynchron Spielzeit von Plan)
+            // Öffnet das 3er-Haupt-Menü (synchronisiert zuvor asynchron Spielzeit über den konfigurierten Placeholder)
             plugin.getPlaytimeService().getActivePlaytimeSeconds(player.getUniqueId()).thenAccept(sec -> {
                 Bukkit.getScheduler().runTask(plugin.getPlugin(), () -> {
                     if (player.isOnline()) {
@@ -52,7 +53,6 @@ public class PlayRewardsCommand implements CommandExecutor {
                 return true;
             }
             plugin.getConfigManager().reloadAll();
-            plugin.getPlanHook().checkAvailability();
             MessageUtil.sendMessage(sender, plugin.getPrefix(), "<green>Alle Konfigurationsdateien wurden erfolgreich neu geladen!");
             return true;
         }
@@ -69,26 +69,24 @@ public class PlayRewardsCommand implements CommandExecutor {
                 return true;
             }
 
-            MessageUtil.sendMessage(sender, plugin.getPrefix(), "<yellow>Frage Plan-Spielzeit für <white>" + target.getName() + "</white> ab...");
-            plugin.getPlanHook().queryActivePlaytimeSeconds(target.getUniqueId()).thenAccept(optSeconds -> {
-                long seconds = optSeconds.orElse(0L);
-                if (seconds > 0) {
-                    plugin.getPlaytimeService().setPlaytimeSeconds(target.getUniqueId(), seconds);
-                    long days = seconds / 86400;
-                    long hours = (seconds % 86400) / 3600;
-                    long minutes = (seconds % 3600) / 60;
-                    long secs = seconds % 60;
-                    MessageUtil.sendMessage(sender, plugin.getPrefix(), "<green>Erfolg! Spielzeit von Plan synchronisiert: <gold>" +
-                            days + " Tage, " + hours + " Stunden, " + minutes + " Minuten, " + secs + "s (" + seconds + "s)</gold>");
-                } else {
-                    long fallback = plugin.getPlaytimeService().getFallbackPlaytimeSeconds(target.getUniqueId());
-                    long days = fallback / 86400;
-                    long hours = (fallback % 86400) / 3600;
-                    long minutes = (fallback % 3600) / 60;
-                    MessageUtil.sendMessage(sender, plugin.getPrefix(), "<red>Plan hat 0s für <white>" + target.getName() +
-                            "</white> gemeldet. Aktueller lokaler Ztone-Stand: <gold>" + days + "d " + hours + "h " + minutes + "m (" + fallback + "s)</gold>");
-                    MessageUtil.sendMessage(sender, plugin.getPrefix(), "<gray>Tipp: Prüfe mit <white>/papi parse " + target.getName() + " %plan_player_time_active_raw%</white> ob Plan bereit ist.");
-                }
+            String totalPh = plugin.getConfig().getString("playtime_tracking.total_playtime.placeholder", "%stonesmpcore_playtime_seconds%");
+            String dailyPh = plugin.getConfig().getString("playtime_tracking.daily_playtime.placeholder", "%stonesmpcore_playtime_today_seconds%");
+            MessageUtil.sendMessage(sender, plugin.getPrefix(), "<yellow>Frage Spielzeit über Placeholder für <white>" + target.getName() + "</white> ab...");
+
+            plugin.getPlaytimeService().getActivePlaytimeSeconds(target.getUniqueId()).thenAccept(seconds -> {
+                long dailySeconds = plugin.getPlaytimeService().getDailyPlaytimeSeconds(target.getUniqueId());
+                long days = seconds / 86400;
+                long hours = (seconds % 86400) / 3600;
+                long minutes = (seconds % 3600) / 60;
+                long secs = seconds % 60;
+
+                String formattedDaily = TimeUtil.formatHoursAndMinutes(dailySeconds);
+
+                MessageUtil.sendMessage(sender, plugin.getPrefix(), "<green>Erfolg! Spielzeit über Placeholder synchronisiert:");
+                MessageUtil.sendMessage(sender, plugin.getPrefix(), " <gray>Gesamt-Spielzeit (" + totalPh + "): <gold>" +
+                        days + " Tage, " + hours + " Stunden, " + minutes + " Minuten, " + secs + "s (" + seconds + "s)</gold>");
+                MessageUtil.sendMessage(sender, plugin.getPrefix(), " <gray>Heutige Spielzeit (" + dailyPh + "): <yellow>" +
+                        formattedDaily + " (" + dailySeconds + "s)</yellow>");
             });
             return true;
         }

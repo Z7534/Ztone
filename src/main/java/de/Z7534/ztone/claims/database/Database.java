@@ -173,8 +173,7 @@ public final class Database {
             migrateOldTables(conn);
 
             st.execute("""
-                CREATE TABLE IF NOT EXISTS claims_players (
-                    uuid TEXT PRIMARY KEY,
+                CREATE TABLE IF NOT EXISTS claims_players (\n                    uuid TEXT PRIMARY KEY,
                     name TEXT NOT NULL,
                     bonus_claim_slots INTEGER NOT NULL DEFAULT 0,
                     playtime_seconds INTEGER NOT NULL DEFAULT 0,
@@ -259,6 +258,38 @@ public final class Database {
 
             st.execute("CREATE INDEX IF NOT EXISTS idx_claims_chunks_world ON claims_chunks(claim_id);");
             st.execute("CREATE INDEX IF NOT EXISTS idx_claims_owner ON claims_claims(owner_uuid);");
+
+            // Claims-Logs Tabellen
+            boolean isMariaDB = dbManager != null && dbManager.getDialect() != null && dbManager.getDialect().type() == StorageType.MARIADB;
+            String autoInc = isMariaDB ? "INT AUTO_INCREMENT PRIMARY KEY" : "INTEGER PRIMARY KEY AUTOINCREMENT";
+
+            st.execute("CREATE TABLE IF NOT EXISTS claims_logs (" +
+                    "id " + autoInc + "," +
+                    "claim_id INTEGER," +
+                    "claim_name TEXT," +
+                    "world TEXT NOT NULL," +
+                    "player_uuid TEXT NOT NULL," +
+                    "player_name TEXT NOT NULL," +
+                    "action TEXT NOT NULL," +
+                    "timestamp BIGINT NOT NULL," +
+                    "details TEXT" +
+                    ");");
+
+            st.execute("""
+                CREATE TABLE IF NOT EXISTS claims_log_chunks (
+                    log_id INTEGER NOT NULL,
+                    chunk_x INTEGER NOT NULL,
+                    chunk_z INTEGER NOT NULL,
+                    PRIMARY KEY (log_id, chunk_x, chunk_z)
+                );
+                """);
+
+            try {
+                st.execute("CREATE INDEX IF NOT EXISTS idx_claims_logs_claim_id ON claims_logs(claim_id);");
+                st.execute("CREATE INDEX IF NOT EXISTS idx_claims_logs_timestamp ON claims_logs(timestamp);");
+                st.execute("CREATE INDEX IF NOT EXISTS idx_claims_log_chunks_pos ON claims_log_chunks(chunk_x, chunk_z);");
+            } catch (SQLException ignored) {
+            }
 
             // Kompatibilitaets-Views entfernen, um Konflikte und Schreibfehler in SQLite zu verhindern
             try {

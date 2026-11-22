@@ -19,9 +19,17 @@ public final class BypassManager {
 
     public static final String PERMISSION = "claims.admin.bypass";
     public static final String PERMISSION_AUTO_JOIN = "claims.admin.bypass.join";
+    public static final String PERMISSION_BYPASS_SIT = "claims.admin.bypass.sit";
 
     private final Set<UUID> active = ConcurrentHashMap.newKeySet();
     private final Set<UUID> explicit = ConcurrentHashMap.newKeySet();
+
+    /**
+     * Prüft, ob der Spieler die Claim-Bypass-Berechtigung für Sitzen/Liegen hat.
+     */
+    public static boolean hasSitBypass(Player player) {
+        return player != null && player.hasPermission(PERMISSION_BYPASS_SIT);
+    }
 
     /**
      * Ob der Spieler gerade Bypass-Rechte hat.

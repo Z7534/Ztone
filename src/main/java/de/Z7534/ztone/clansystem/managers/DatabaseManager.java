@@ -279,6 +279,16 @@ public class DatabaseManager {
             );
 
             stmt.executeUpdate(
+                    "CREATE TABLE IF NOT EXISTS " + tablePrefix + "war_participants (" +
+                            "war_id INT NOT NULL," +
+                            "clan_id INT NOT NULL," +
+                            "player_uuid VARCHAR(36) NOT NULL," +
+                            "PRIMARY KEY (war_id, player_uuid)," +
+                            "FOREIGN KEY (war_id) REFERENCES " + tablePrefix + "wars(id) ON DELETE CASCADE" +
+                            ")"
+            );
+
+            stmt.executeUpdate(
                     "CREATE TABLE IF NOT EXISTS " + tablePrefix + "cooldowns (" +
                             "player_uuid VARCHAR(36) NOT NULL," +
                             "cooldown_type VARCHAR(32) NOT NULL," +
@@ -1174,6 +1184,10 @@ public class DatabaseManager {
                     ps.setInt(1, warId);
                     ps.executeUpdate();
                 }
+                try (PreparedStatement ps = conn.prepareStatement("DELETE FROM " + tablePrefix + "war_participants WHERE war_id = ?")) {
+                    ps.setInt(1, warId);
+                    ps.executeUpdate();
+                }
                 try (PreparedStatement ps = conn.prepareStatement("DELETE FROM " + tablePrefix + "wars WHERE id = ?")) {
                     ps.setInt(1, warId);
                     ps.executeUpdate();
@@ -1229,6 +1243,26 @@ public class DatabaseManager {
         }
     }
 
+    public CompletableFuture<Void> saveWarParticipants(int warId, int clanId, Collection<UUID> participants) {
+        return CompletableFuture.runAsync(() -> {
+            if (participants == null || participants.isEmpty()) return;
+            String sql = "INSERT INTO " + tablePrefix + "war_participants (war_id, clan_id, player_uuid) VALUES (?, ?, ?)";
+            try (Connection conn = getConnection();
+                 PreparedStatement ps = conn.prepareStatement(sql)) {
+                for (UUID uuid : participants) {
+                    ps.setInt(1, warId);
+                    ps.setInt(2, clanId);
+                    ps.setString(3, uuid.toString());
+                    ps.addBatch();
+                }
+                ps.executeBatch();
+            } catch (SQLException e) {
+                plugin.getLogger().severe("Fehler beim Speichern der Kriegsteilnehmer: " + e.getMessage());
+                e.printStackTrace();
+            }
+        }, dbExecutor);
+    }
+
     public List<ClanWar> loadActiveWars() {
         List<ClanWar> wars = new ArrayList<>();
         String sql = "SELECT * FROM " + tablePrefix + "wars WHERE status = 'ACTIVE' OR status = 'PREPARATION' OR status = 'PREPARATION'";
@@ -1252,6 +1286,14 @@ public class DatabaseManager {
                     try (ResultSet krs = kps.executeQuery()) {
                         while (krs.next()) {
                             war.setParticipantDeaths(UUID.fromString(krs.getString("victim_uuid")), krs.getInt("cnt"));
+                        }
+                    }
+                } catch (Exception ignored) {}
+                try (PreparedStatement pps = conn.prepareStatement("SELECT clan_id, player_uuid FROM " + tablePrefix + "war_participants WHERE war_id = ?")) {
+                    pps.setInt(1, war.getId());
+                    try (ResultSet prs = pps.executeQuery()) {
+                        while (prs.next()) {
+                            war.addParticipant(prs.getInt("clan_id"), UUID.fromString(prs.getString("player_uuid")));
                         }
                     }
                 } catch (Exception ignored) {}

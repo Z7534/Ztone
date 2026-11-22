@@ -7,7 +7,6 @@ import de.Z7534.ztone.playrewards.config.ConfigManager;
 import de.Z7534.ztone.playrewards.database.DatabaseManager;
 import de.Z7534.ztone.playrewards.hook.GeyserHook;
 import de.Z7534.ztone.playrewards.hook.PlaceholderAPIHook;
-import de.Z7534.ztone.playrewards.hook.PlanHook;
 import de.Z7534.ztone.playrewards.listener.AfkDetectionListener;
 import de.Z7534.ztone.playrewards.listener.InventoryClickListener;
 import de.Z7534.ztone.playrewards.listener.PlayerConnectionListener;
@@ -42,7 +41,6 @@ public final class PlayReward {
     private ConfigManager configManager;
     private DatabaseManager databaseManager;
 
-    private PlanHook planHook;
     private GeyserHook geyserHook;
     private PlaceholderAPIHook placeholderAPIHook;
 
@@ -66,7 +64,6 @@ public final class PlayReward {
         this.databaseManager.initialize();
 
         // 3. Externe Plugin-Hooks initialisieren
-        this.planHook = new PlanHook(getLogger());
         this.geyserHook = new GeyserHook();
 
         if (Bukkit.getPluginManager().isPluginEnabled("PlaceholderAPI")) {
@@ -207,10 +204,6 @@ public final class PlayReward {
 
     public DatabaseManager getDatabaseManager() {
         return databaseManager;
-    }
-
-    public PlanHook getPlanHook() {
-        return planHook;
     }
 
     public GeyserHook getGeyserHook() {

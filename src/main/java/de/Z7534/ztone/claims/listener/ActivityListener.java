@@ -7,6 +7,7 @@ import de.Z7534.ztone.claims.manager.BypassManager;
 import de.Z7534.ztone.claims.manager.ChatInputManager;
 import de.Z7534.ztone.claims.manager.ClaimManager;
 import de.Z7534.ztone.claims.manager.ClaimMapManager;
+import de.Z7534.ztone.claims.manager.ClaimNametagManager;
 import de.Z7534.ztone.claims.manager.PvPClaimBypassManager;
 import de.Z7534.ztone.claims.manager.SelectionManager;
 import de.Z7534.ztone.claims.model.Claim;
@@ -41,6 +42,7 @@ public final class ActivityListener implements Listener {
     private final BanEnforcer banEnforcer;
     private final ClaimMapManager claimMapManager;
     private final PvPClaimBypassManager pvpClaimBypass;
+    private final ClaimNametagManager nametagManager;
 
     private final Map<UUID, Long> lastBanMessage = new HashMap<>();
     private final Map<UUID, Long> lastCombatMessage = new HashMap<>();
@@ -49,7 +51,8 @@ public final class ActivityListener implements Listener {
     public ActivityListener(JavaPlugin plugin, ActivityManager activityManager, ClaimManager claimManager,
                              SelectionManager selectionManager, ChatInputManager chatInputManager,
                              ConfigManager config, BypassManager bypass, BanEnforcer banEnforcer,
-                             ClaimMapManager claimMapManager, PvPClaimBypassManager pvpClaimBypass) {
+                             ClaimMapManager claimMapManager, PvPClaimBypassManager pvpClaimBypass,
+                             ClaimNametagManager nametagManager) {
         this.plugin = plugin;
         this.activityManager = activityManager;
         this.claimManager = claimManager;
@@ -60,6 +63,7 @@ public final class ActivityListener implements Listener {
         this.banEnforcer = banEnforcer;
         this.claimMapManager = claimMapManager;
         this.pvpClaimBypass = pvpClaimBypass;
+        this.nametagManager = nametagManager;
     }
 
     @EventHandler
@@ -73,7 +77,12 @@ public final class ActivityListener implements Listener {
         activityManager.recordActivity(player.getUniqueId());
         activityManager.checkEntryHint(player);
         // Prüfen, ob der Spieler in einem Claim steht, aus dem er gebannt/ausgeschlossen ist
-        Bukkit.getScheduler().runTask(plugin, () -> evictIfRestricted(player));
+        Bukkit.getScheduler().runTask(plugin, () -> {
+            evictIfRestricted(player);
+            if (nametagManager != null && player.isOnline()) {
+                nametagManager.updatePlayer(player, player.getLocation());
+            }
+        });
     }
 
     @EventHandler
@@ -83,6 +92,9 @@ public final class ActivityListener implements Listener {
         Bukkit.getScheduler().runTask(plugin, () -> {
             if (player.isOnline()) {
                 evictIfRestricted(player);
+                if (nametagManager != null) {
+                    nametagManager.updatePlayer(player, player.getLocation());
+                }
             }
         });
     }
@@ -91,6 +103,9 @@ public final class ActivityListener implements Listener {
     public void onQuit(PlayerQuitEvent e) {
         Player player = e.getPlayer();
         UUID uuid = player.getUniqueId();
+        if (nametagManager != null) {
+            nametagManager.handleQuit(player);
+        }
         bypass.reset(uuid);
         lastBanMessage.remove(uuid);
         lastCombatMessage.remove(uuid);
@@ -136,6 +151,9 @@ public final class ActivityListener implements Listener {
         if ((from.getBlockX() >> 4) != (to.getBlockX() >> 4)
                 || (from.getBlockZ() >> 4) != (to.getBlockZ() >> 4)) {
             activityManager.checkEntryHint(e.getPlayer(), to);
+            if (nametagManager != null) {
+                nametagManager.updatePlayer(e.getPlayer(), to);
+            }
         }
     }
 
@@ -153,12 +171,18 @@ public final class ActivityListener implements Listener {
 
         if (bypass.isActive(player)) {
             activityManager.checkEntryHint(player, to);
+            if (nametagManager != null) {
+                nametagManager.updatePlayer(player, to);
+            }
             return;
         }
 
         Claim claim = claimManager.getClaimAt(to);
         if (claim == null) {
             activityManager.checkEntryHint(player, to);
+            if (nametagManager != null) {
+                nametagManager.updatePlayer(player, to);
+            }
             return;
         }
 
@@ -183,10 +207,16 @@ public final class ActivityListener implements Listener {
             } else {
                 sendEggMessage(player);
             }
+            if (nametagManager != null) {
+                nametagManager.updatePlayer(player, e.getTo());
+            }
             return;
         }
 
         activityManager.checkEntryHint(player, e.getTo());
+        if (nametagManager != null) {
+            nametagManager.updatePlayer(player, e.getTo());
+        }
     }
 
     private void stopElytraGliding(Player player, Location from, Location to) {

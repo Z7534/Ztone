@@ -59,6 +59,11 @@ public final class SitCommand implements CommandExecutor, TabCompleter {
             return true;
         }
 
+        if (sitManager.isPlayerInPlayerSitStack(player)) {
+            sitManager.stopPlayerSit(player, StopReason.GET_UP, false, true);
+            return true;
+        }
+
         if (!player.isValid() || player.isSneaking() || !player.isOnGround() || player.getVehicle() != null || player.isSleeping()) {
             config.sendMessage(player, "action-sit-now-error");
             return true;

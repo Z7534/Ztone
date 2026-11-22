@@ -1,6 +1,6 @@
-﻿# 🛡️ Ztone – All-in-One Server-System
+# 🛡️ Ztone – All-in-One Server-System
 
-Willkommen in der offiziellen Dokumentation für **Ztone** (Version 1.1.8).  
+Willkommen in der offiziellen Dokumentation für **Ztone** (Version 1.1.14).  
 Ztone ist eine hochgradig optimierte, modulare All-in-One-Lösung für Minecraft Paper-, Purpur- und Leaf-Server (kompatibel mit Java 21 & Java 25).
 
 ---
@@ -27,6 +27,7 @@ Ztone ist eine hochgradig optimierte, modulare All-in-One-Lösung für Minecraft
 19. [Changelog v1.1.5](#18-changelog-v115)
 20. [Changelog v1.1.6](#19-changelog-v116)
 21. [Changelog v1.1.8](#20-changelog-v118)
+22. [Changelog v1.1.9](#21-changelog-v119)
 
 ---
 
@@ -43,7 +44,8 @@ Ztone bündelt alle wichtigen Core-Features für moderne Survival- und SMP-Netzw
 * **StoneVoice:** SimpleVoiceChat-Gruppenüberwachung für Admins inkl. Beitritts-Alerts (*Hinweis: Stonemute wurde als eigenständiges Plugin nach C:\Stonemute ausgelagert*).
 * **MapControl:** Erzwingen von Fairplay-Regeln für Client-Minimaps (Xaero, JourneyMap, VoxelMap).
 * **Stonelog:** Hochperformantes Discord-Audit-Logging mit automatischem Multi-Embed-Batching (bis zu 10 Embeds/Request), parallelen URL-Queues und Exempt-Berechtigung.
-* **StoneSit:** Hochperformantes Sit-, Lay-, LegsUp-, Spin- & PlayerSit-System (1:1 nach GSit für Paper 26.2 optimiert, mit 360° Rotations-Animation, Bett-Schlaf-Logik ohne Respawn-Punkt und lautlosem Admin-Schutz vor Sneak-Abwurf im Vanish).
+* **StoneSit:** Hochperformantes Sit-, Lay-, LegsUp-, Spin- & PlayerSit-System (1:1 nach GSit für Paper 26.2 optimiert, mit 360° Rotations-Animation, Bett-Schlaf-Logik ohne Respawn-Punkt, Claim-Sit-Rechteprüfung inkl. Bypass claims.admin.bypass.sit und absolutem Admin-Kickschutz).
+* **DragonEgg:** Schutz- und PvP-System für das gesicherte Drachenei (permanentes Leuchten des Trägers, erzwungenes PvP, Claim-Betretungsverbot sowie Admin-Befehl /dragonegg <bypass|give|reload>).
 * **Auto-Config-Sync:** Automatisches Ergänzen neuer Funktionen und Konfigurationsoptionen bei Versionsupdates direkt in bestehende `.yml`-Dateien.
 
 ---
@@ -443,6 +445,7 @@ modules:
   deathchest: true
   clearlag: true
   stonesit: true
+  dragonegg: true
 
 database:
   type: "sqlite" # oder "mariadb"
@@ -490,7 +493,7 @@ Alle Platzhalter erfordern das installierte Plugin **PlaceholderAPI**.
 # Kompilieren mit Gradle Shadow-Jar
 ./gradlew shadowJar
 ```
-Die fertige Server-JAR befindet sich im Verzeichnis `build/libs/Ztone-1.1.8.jar`.
+Die fertige Server-JAR befindet sich im Verzeichnis `build/libs/Ztone-1.1.14.jar`.
 
 ---
 
@@ -666,3 +669,103 @@ Die fertige Server-JAR befindet sich im Verzeichnis `build/libs/Ztone-1.1.8.jar`
 * **Automatisches SQLite-Hot-Backup & Datenbank-Stabilität:**
   * Asynchrones Hot-Backup aller Datenbanken alle 5 Minuten (`VACUUM INTO`, max. 50 rollierende Backups) sowie manueller Befehl `/ztone backup`.
   * Bereinigung alter SQLite-Kompatibilitäts-Views (`DROP VIEW IF EXISTS`) und dauerhafte Persistenz der `pvpmanager_players`-Tabelle.
+
+---
+
+## 21. Changelog v1.1.9
+
+### 🛡️ Claim-Modul (Piston-Schutz)
+* **Aushebelung des Claim-Schutzes durch Sticky Pistons behoben:**
+  * Behoben: Spieler konnten mit Sticky Pistons unberechtigt Blöcke aus fremden/geschützten Claims herausziehen.
+  * Vollständige Verifikation in `ProtectionListener` (`BlockPistonExtendEvent` & `BlockPistonRetractEvent`):
+    * Prüfung von Kolbenbasis und ausgefahrenem Kolbenkopf-Bereich verhindert jegliches Eindringen über Claim-Grenzen.
+    * Prüfung des direkt vor dem ausgefahrenen Sticky-Kopf anliegenden Blocks.
+    * Lückenlose Überprüfung aller bewegten Blöcke (`getBlocks()`, inkl. Schleim- und Honigblock-Verbindungen): Blöcke dürfen weder aus einem Claim herausgezogen noch in einen Claim hineingedrückt werden.
+    * Kolben in der Wildnis oder in fremden Claims können keinerlei Blöcke innerhalb geschützter Grundstücke bewegen.
+
+### ⚔️ Clansystem (Faire Clankriege & Offline-Rejoin-Benachrichtigung)
+* **Faire Teilnehmeranzahl & Zufallsauswahl (`WAR_ALWAYS_PVP`):**
+  * Haben zwei kriegsführende Clans eine unterschiedliche Anzahl an berechtigten Kämpfern (z. B. Clan 1 mit 20 Kämpfern und Clan 2 mit 8 Kämpfern), gleicht das System die Anzahl automatisch auf das Minimum an (`Math.min`, im Beispiel exakt 8 gegen 8).
+  * Die teilnehmenden Kämpfer des größeren Clans werden bei Kriegserklärung vollautomatisch zufällig ausgewählt.
+  * Nicht ausgewählte Mitglieder nehmen als geschützte Zuschauer am Krieg teil; nur die ausgewählten Kämpfer haben permanentes Kriegs-PvP.
+  * Das Ausscheiden eines Clans (3 Tode pro Kämpfer bis zum K.O.) richtet sich ausschließlich nach den ausgewählten Kriegsteilnehmern.
+  * Die Teilnehmerliste wird persistent in der neuen Datenbank-Tabelle `ztone_war_participants` gesichert.
+* **Rejoin-Benachrichtigung für offline Mitglieder:**
+  * Spieler, die bei Kriegsausbruch offline waren oder während eines laufenden Kriegs den Server betreten, werden beim Rejoin automatisch mit Chat-Banner, Bildschirm-Title (`CLANKRIEG AKTIV!`) und Sound gewarnt.
+  * Die Benachrichtigung zeigt dem Spieler transparent an, ob er als Kämpfer (inkl. verbleibender Leben) oder als Zuschauer eingeteilt ist.
+* **GUI-Anzeige aktualisiert:**
+  * Sowohl `ClanWarsGUI` als auch `ClanWarDetailGUI` visualisieren nun exakt die ausgewählten Kriegsteilnehmer beider Clans und deren verbleibende Leben.
+---
+
+## 22. Changelog v1.1.10
+
+### 🎁 PlayRewards (Plan-Entfernung & Placeholder-System)
+* **Vollständige Entfernung aller Plan-Abhängigkeiten:** Softdepend, PlanHook und zugehörige Config-Einträge entfernt.
+* **Konfigurierbares Placeholder-System für die Gesamt-Spielzeit:**
+  * Frei konfigurierbarer Placeholder (Standard: %stonesmpcore_playtime_seconds%) und Zeitformat (SECONDS, MINUTES, HOURS, DAYS, TICKS, FORMATTED, AUTO).
+* **Tracking für die tägliche Spielzeit („Gespielte Zeit heute“):**
+  * Konfigurierbarer Placeholder (Standard: %stonesmpcore_playtime_today_seconds%) mit automatischem Fallback auf lokales Tracking.
+  * Direkt im Hauptmenü (Slot 4 beim Spielerkopf & Slot 11 bei den täglichen Belohnungen) sowie über neue PlaceholderAPI-Platzhalter (%playrewards_playtime_today%, %playrewards_playtime_today_seconds%, etc.) abrufbar.
+
+### 🪑 StoneSit (Admin-Kickschutz, Teleport-Mitnahme & Block-Schutz)
+* **Absoluter Kick-Schutz für Administratoren (stonesit.bypass.kick, stonesit.bypass.sneakeject, stonesit.admin oder OP):**
+  * Admins können weder durch Sneaken des Trägers noch durch Klick Dritter oder Schaden abgeworfen werden.
+* **Teleport-Mitnahme bei PlayerSit:**
+  * Teleportiert sich ein Spieler, auf dem ein Admin sitzt, wird der Admin automatisch mitteleportiert und bleibt auf dem Kopf sitzen.
+* **Teppich- und Sitzblock-Schutz:**
+  * Teppiche und Sitzblöcke mit sitzenden Admins können nicht abgebaut oder durch Flüssigkeiten weggespült werden.
+
+---
+
+## 23. Changelog v1.1.11
+
+### 🛡️ Claims (Audit-Logging & /staffclaim loginfo)
+* **Vollständiges Audit-Logging für Claim-Aktionen:**
+  * Automatische Protokollierung in claims_logs und claims_log_chunks bei /claim, /claim auto, /unclaim, /unclaim auto, /unclaimall, Transfers, Merges sowie Admin-Aktionen.
+  * Automatischer One-Time-Import bestehender Claims beim Erststart für eine lückenlose Historie.
+* **Neuer Befehl /staffclaim loginfo:**
+  * /staffclaim loginfo [Seite]: Zeigt die Claim- und Chunk-Historie des aktuellen Standorts mit Zeitstempel, Spieler, Aktion und Chunk-Koordinaten an.
+  * /staffclaim loginfo <Spieler> <ClaimNr> [Seite]: Zeigt die Historie eines spezifischen Spieler-Claims aus der Ferne an.
+
+### 🪑 StoneSit (Bugfix Admin-Switch & MountGuard)
+* **Fehler beim direkten Wechseln von Spieler-Köpfen behoben:**
+  * cleanStalePassengerEntities und internalDismounting-Flag verhindern verwaiste AreaEffectCloud-Entities beim direkten Wechsel eines kick-geschützten Admins auf einen anderen Spieler.
+* **MountGuard & Rekursions-Schutz:**
+  * Verhindert zirkuläre Reitschleifen und sichert alle Passenger-Traversierungen mit Visited-Sets sowie Tiefenlimit (MAX_STACK_DEPTH = 16) gegen StackOverflowError ab.
+
+---
+
+## 24. Changelog v1.1.12
+
+### 🪑 StoneSit & 🛡️ Claims (ClaimPermission.SIT)
+* **Entity-Sit deaktiviert:** Rechtsklick-Sitzen ist ausschließlich auf andere Spieler (PlayerSit) sowie Blöcke beschränkt.
+* **Neue Claim-Permission SIT:**
+  * Im Rechte-Menü (/claim -> Trust / Besucher-Rechte) individuell einstellbar (Icon: Eichentreppe).
+  * Prüft vor jeder Sit-/Pose-Aktion (/sit, /lay, /legsup, /spin, Block-Klick, Player-Sit), ob der Spieler auf dem Claim SIT-Rechte besitzt.
+  * Automatischer Abwurf aus Player-Sit-Stacks, wenn ein Spieler ohne SIT-Rechte in einen fremden Claim getragen wird.
+
+---
+
+## 25. Changelog v1.1.13
+
+### 🛡️ Claims & 🪑 StoneSit (claims.admin.bypass.sit)
+* **Neuer Sit-Bypass (claims.admin.bypass.sit, Standard: op):**
+  * Erlaubt das Sitzen und Liegen (/sit, /lay, /legsup, /spin, Block-Klick, Player-Sit) auf fremden Claims ohne dortige SIT-Rechte und unabhängig vom globalen /staffclaim bypass.
+  * Ist ein Spieler auf dem Claim gebannt, greift der Bypass nicht.
+
+---
+
+## 26. Changelog v1.1.14
+
+### 🛡️ Claims (Spieler-Nametags auf Claims deaktivieren & Container-Drop-Bugfix)
+* **Spieler-Nametags auf Claims deaktivieren (ClaimNametagManager):**
+  * Neuer Admin-Befehl /claimnametags [off|on|toggle|list|<Spieler> <ClaimNr> [off|on]] (Aliase: /claimnametag, /claimsnametags, /claimsnametag) sowie integriert in /staffclaim nametags.
+  * **Permissions:**
+    * claims.admin.nametags (Standard: op, Teil von claims.admin): Erlaubt das Verwalten der Nametag-Einstellung auf Claims.
+    * claims.admin.nametags.bypass (Standard: alse): Extra Bypass-Permission – Spieler mit dieser Permission (oder aktivem /staffclaim bypass) behalten ihren sichtbaren Nametag auch auf Claims mit deaktivierten Nametags.
+  * **Funktionsweise:** Blendet die Nametags über den Köpfen aller Spieler auf dem Claim automatisch aus (nutzt bei installiertem **TAB** direkt die TAB-API NameTagManager#hideNameTag/showNameTag und fällt andernfalls automatisch auf ein Bukkit Scoreboard-Team mit NAME_TAG_VISIBILITY = NEVER inkl. Wiederherstellung des vorherigen Rang-Teams zurück).
+  * Persistente Speicherung über Server-Neustarts hinweg in plugins/Ztone/claims/nametag_disabled_claims.json.
+* **Bugfix: Item-Verlust beim Droppen aus Containern ohne ITEMS-Recht (bei vollem Inventar):**
+  * **Behoben:** Hatte ein Spieler auf einem Claim CONTAINERS-Rechte, aber keine ITEMS-Rechte (Items droppen/aufheben) und versuchte bei vollem eigenen Inventar ein Item aus einem Container zu droppen (oder schloss das Container-Inventar mit einem Item auf dem Cursor), verschwand das Item durch Bukkits PlayerDropItemEvent-Cancellation ersatzlos.
+  * InventoryClickEvent blockiert Drop-Aktionen (Q, Strg+Q, Klick außerhalb des Inventars) ohne ITEMS-Rechte nun direkt im Vorfeld, sodass das Item gar nicht erst aus dem Container-Slot bzw. vom Cursor entfernt wird.
+  * Zusätzlich legt ein Sicherheits-Fallback in PlayerDropItemEvent / InventoryCloseEvent überschüssige Items, die nicht mehr in das volle Spielerinventar passen, automatisch zurück in den geöffneten Container, anstatt sie zu löschen.

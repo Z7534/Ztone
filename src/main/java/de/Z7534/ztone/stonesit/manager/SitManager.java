@@ -1,6 +1,8 @@
 package de.Z7534.ztone.stonesit.manager;
 
 import de.Z7534.ztone.Ztone;
+import de.Z7534.ztone.claims.manager.BypassManager;
+import de.Z7534.ztone.claims.manager.BypassManager;
 import de.Z7534.ztone.claims.model.Claim;
 import de.Z7534.ztone.claims.util.Text;
 import de.Z7534.ztone.stonesit.config.StoneSitConfig;
@@ -9,6 +11,7 @@ import de.Z7534.ztone.stonesit.model.Seat;
 import de.Z7534.ztone.stonesit.model.StoneSitPose;
 import de.Z7534.ztone.stonesit.model.StopReason;
 import de.Z7534.ztone.stonesit.util.EnvironmentUtil;
+import de.Z7534.ztone.stonesit.util.PassengerUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
 import org.bukkit.GameRules;
@@ -51,8 +54,6 @@ public final class SitManager {
     private final Map<UUID, Seat> seats = new HashMap<>();
     private final Map<Block, Set<Seat>> blockSeats = new HashMap<>();
 
-    // Spin Tracking (/spin & /gspin) -> Jetzt vollwertig als PoseType.SPIN in poses integriert
-
     // Pose Tracking (/lay & /legsup, O(1) Lookups)
     private final Map<UUID, StoneSitPose> poses = new HashMap<>();
     private final Map<Block, Set<StoneSitPose>> blockPoses = new HashMap<>();
@@ -67,6 +68,10 @@ public final class SitManager {
 
     // Internes Flag für sicheres Teleportieren beim Absteigen ohne Rekursion im TeleportListener
     private final Set<UUID> internalTeleporting = new HashSet<>();
+    private final Set<UUID> carrierTeleportingAdmins = new HashSet<>();
+
+    // Internes Flag um programmatische/interne Dismounts nicht versehentlich im DismountListener abzublocken
+    private final Set<UUID> internalDismounting = new HashSet<>();
 
     public SitManager(Ztone plugin, StoneSitConfig config) {
         this.plugin = plugin;
@@ -113,6 +118,10 @@ public final class SitManager {
             return false;
         }
         for (Seat seat : new ArrayList<>(getSeatsByBlock(block))) {
+            // Admin-Schutz: Sitzt ein Admin auf diesem Teppich/Block, kann er nicht gekickt werden!
+            if (isKickProtected(seat.getEntity())) {
+                return false;
+            }
             if (!removeSeat(seat, StopReason.KICKED)) {
                 return false;
             }
@@ -139,8 +148,8 @@ public final class SitManager {
     }
 
     public boolean isBlacklistedSitBlockData(BlockData blockData) {
-        for (BlockData blacklisted : config.getBlockDataBlacklist()) {
-            if (blacklisted.matches(blockData)) {
+        for (BlockData blacklistedBlockData : config.getBlockDataBlacklist()) {
+            if (blacklistedBlockData.matches(blockData)) {
                 return true;
             }
         }
@@ -155,6 +164,17 @@ public final class SitManager {
         if (entity == null || !entity.isValid()) {
             return null;
         }
+
+        if (entity instanceof Player player) {
+            StoneSitPose pose = getPoseByPlayer(player);
+            if (pose != null) {
+                removePose(pose, StopReason.SWITCH);
+            }
+            if (isPlayerInPlayerSitStack(player)) {
+                stopPlayerSit(player, StopReason.SWITCH, false, true);
+            }
+        }
+
         Location returnLocation = entity.getLocation();
         Location seatLocation = getSeatLocation(block, returnLocation, xOffset, yOffset, zOffset, sitInBlockCenter);
         seatLocation.setYaw(seatRotation);
@@ -221,18 +241,16 @@ public final class SitManager {
                 return;
             }
         }
-
-        Set<Seat> blockSeatList = blockSeats.get(seat.getBlock());
-        if (blockSeatList != null) {
-            blockSeatList.remove(seat);
-            if (blockSeatList.isEmpty()) {
-                blockSeats.remove(seat.getBlock());
-            }
-        }
-        seat.setBlock(seat.getBlock().getRelative(blockDirection));
-        blockSeats.computeIfAbsent(seat.getBlock(), b -> new HashSet<>()).add(seat);
-        seat.setLocation(seat.getLocation().add(blockDirection.getModX(), blockDirection.getModY(), blockDirection.getModZ()));
-        setEntityLocation(seat.getSeatEntity(), seat.getLocation());
+        Block nextBlock = seat.getBlock().getRelative(blockDirection);
+        double sitBlockDataHeightOffset = getSitBlockDataHeightOffset(seat.getBlock().getBlockData());
+        Location newSeatLocation = seat.getLocation().add(
+                blockDirection.getModX(),
+                blockDirection.getModY() + (nextBlock.getBlockData() instanceof Stairs ? STAIR_Y_OFFSET : 0d) + sitBlockDataHeightOffset,
+                blockDirection.getModZ()
+        );
+        seat.setBlock(nextBlock);
+        seat.setLocation(newSeatLocation);
+        setEntityLocation(seat.getSeatEntity(), newSeatLocation);
     }
 
     public boolean removeSeat(Seat seat, StopReason stopReason) {
@@ -244,6 +262,12 @@ public final class SitManager {
             return true;
         }
         LivingEntity entity = seat.getEntity();
+
+        // Admin-Schutz: Admins mit Kick-Bypass dürfen niemals gekickt werden!
+        if (stopReason == StopReason.KICKED && isKickProtected(entity)) {
+            return false;
+        }
+
         seats.remove(entity.getUniqueId());
 
         Set<Seat> blockSeatList = blockSeats.get(seat.getBlock());
@@ -300,14 +324,19 @@ public final class SitManager {
         internalTeleporting.add(uuid);
         try {
             entity.teleport(location, PlayerTeleportEvent.TeleportCause.PLUGIN);
-        } catch (Throwable ignored) {
         } finally {
-            internalTeleporting.remove(uuid);
+            Bukkit.getScheduler().runTask(plugin, () -> {
+                internalTeleporting.remove(uuid);
+            });
         }
     }
 
     public boolean isInternalTeleporting(UUID uuid) {
         return internalTeleporting.contains(uuid);
+    }
+
+    public boolean isInternalDismounting(UUID uuid) {
+        return uuid != null && internalDismounting.contains(uuid);
     }
 
     public Seat createCustomSeat(Block block, LivingEntity entity, boolean force) {
@@ -431,6 +460,10 @@ public final class SitManager {
             return false;
         }
         for (StoneSitPose pose : new ArrayList<>(getPosesByBlock(block))) {
+            // Admin-Schutz: Sitzt/liegt ein Admin hier, darf er nicht gekickt werden!
+            if (isKickProtected(pose.getPlayer())) {
+                return false;
+            }
             if (!removePose(pose, StopReason.KICKED)) {
                 return false;
             }
@@ -445,6 +478,14 @@ public final class SitManager {
     public StoneSitPose createPose(Block block, Player player, PoseType poseType, double xOffset, double yOffset, double zOffset, float seatRotation, boolean sitInBlockCenter) {
         if (player == null || !player.isValid() || !StoneSitPose.isAvailable()) {
             return null;
+        }
+
+        Seat existingSeat = getSeatByEntity(player);
+        if (existingSeat != null) {
+            removeSeat(existingSeat, StopReason.SWITCH);
+        }
+        if (isPlayerInPlayerSitStack(player)) {
+            stopPlayerSit(player, StopReason.SWITCH, false, true);
         }
 
         Location returnLocation = player.getLocation();
@@ -486,8 +527,14 @@ public final class SitManager {
         if (pose == null) {
             return true;
         }
-        Seat seat = pose.getSeat();
         Player player = pose.getPlayer();
+
+        // Admin-Schutz: Admins dürfen niemals gekickt werden!
+        if (stopReason == StopReason.KICKED && isKickProtected(player)) {
+            return false;
+        }
+
+        Seat seat = pose.getSeat();
 
         poses.remove(player.getUniqueId());
         Set<StoneSitPose> blockPoseList = blockPoses.get(seat.getBlock());
@@ -544,11 +591,6 @@ public final class SitManager {
         }
     }
 
-    /**
-     * Prüft, ob durch liegende Spieler (/lay & /legsup) – alleine oder zusammen mit Spielern in echten Betten –
-     * die Nacht bzw. das Gewitter übersprungen werden kann (wie in einem echten Bett nach 100 Ticks / 5 Sek.,
-     * aber OHNE jemals den Respawn-Punkt des Spielers zu setzen!).
-     */
     private void checkPoseNightSkip() {
         if (!config.isPoseLayNightSkip() || poses.isEmpty()) {
             return;
@@ -568,47 +610,33 @@ public final class SitManager {
             if (!world.isBedWorks()) {
                 continue;
             }
-            long dayTime = world.getTime() % 24000L;
-            boolean isNight = dayTime >= 12542L && dayTime <= 23459L;
+            long time = world.getTime();
+            boolean isNight = time >= 12542L && time <= 23460L;
             boolean isThundering = world.isThundering();
             if (!isNight && !isThundering) {
                 continue;
             }
 
-            Integer percentage = world.getGameRuleValue(GameRules.PLAYERS_SLEEPING_PERCENTAGE);
-            int requiredPercentage = percentage != null ? percentage : 100;
-            if (requiredPercentage > 100) {
+            int playersSleepingPercentage = world.getGameRuleValue(GameRules.PLAYERS_SLEEPING_PERCENTAGE);
+            if (playersSleepingPercentage > 100) {
                 continue;
             }
 
+            List<Player> worldPlayers = world.getPlayers();
             int eligiblePlayers = 0;
-            int deeplySleepingOrLaying = 0;
-            List<StoneSitPose> worldPoses = new ArrayList<>();
+            int restingPlayers = 0;
 
-            for (Player p : world.getPlayers()) {
-                if (!p.isValid() || p.isDead() || p.getGameMode() == GameMode.SPECTATOR) {
+            for (Player p : worldPlayers) {
+                if (p.getGameMode() == GameMode.SPECTATOR) {
                     continue;
                 }
-                StoneSitPose pPose = poses.get(p.getUniqueId());
-                if (pPose != null) {
-                    if (pPose.getPoseType() == PoseType.SPIN) {
-                        continue;
-                    }
-                    worldPoses.add(pPose);
-                    if (pPose.wasSleepingIgnoredBeforePose()) {
-                        continue;
-                    }
-                    eligiblePlayers++;
-                    if (pPose.getLayTicks() >= 100) {
-                        deeplySleepingOrLaying++;
-                    }
-                } else {
-                    if (p.isSleepingIgnored()) {
-                        continue;
-                    }
-                    eligiblePlayers++;
-                    if (p.isSleeping() && p.getSleepTicks() >= 100) {
-                        deeplySleepingOrLaying++;
+                eligiblePlayers++;
+                if (p.isSleeping()) {
+                    restingPlayers++;
+                } else if (poses.containsKey(p.getUniqueId())) {
+                    StoneSitPose pose = poses.get(p.getUniqueId());
+                    if (pose != null && pose.getPoseType() != PoseType.SPIN && pose.getLayTicks() >= 100) {
+                        restingPlayers++;
                     }
                 }
             }
@@ -617,61 +645,64 @@ public final class SitManager {
                 continue;
             }
 
-            int requiredCount = Math.max(1, (int) Math.ceil((eligiblePlayers * requiredPercentage) / 100.0d));
-            if (deeplySleepingOrLaying < requiredCount) {
-                continue;
+            boolean shouldSkip = false;
+            if (playersSleepingPercentage <= 0) {
+                shouldSkip = restingPlayers > 0;
+            } else {
+                int needed = (int) Math.ceil((eligiblePlayers * (double) playersSleepingPercentage) / 100.0);
+                shouldSkip = restingPlayers >= needed;
             }
 
-            // Nacht / Gewitter überspringen wie im Vanilla-Bett (ohne Respawn-Punkt zu verändern!)
-            long currentFullTime = world.getFullTime();
-            long nextDay = currentFullTime + 24000L;
-            long targetFullTime = nextDay - (nextDay % 24000L);
-            long skipAmount = targetFullTime - currentFullTime;
-
-            TimeSkipEvent timeSkipEvent = new TimeSkipEvent(world, TimeSkipEvent.SkipReason.NIGHT_SKIP, skipAmount);
-            Bukkit.getPluginManager().callEvent(timeSkipEvent);
-            if (timeSkipEvent.isCancelled()) {
-                continue;
+            if (shouldSkip) {
+                triggerWorldNightSkip(world);
             }
+        }
+    }
 
-            Boolean advanceTime = world.getGameRuleValue(GameRules.ADVANCE_TIME);
-            if (isNight && (advanceTime == null || advanceTime)) {
-                world.setFullTime(currentFullTime + timeSkipEvent.getSkipAmount());
+    private void triggerWorldNightSkip(World world) {
+        long currentFullTime = world.getFullTime();
+        long currentDayTime = world.getTime();
+        long addTime = (currentDayTime <= 24000L) ? (24000L - currentDayTime) : 0L;
+        long targetFullTime = currentFullTime + addTime;
+
+        TimeSkipEvent timeSkipEvent = new TimeSkipEvent(world, TimeSkipEvent.SkipReason.NIGHT_SKIP, addTime);
+        Bukkit.getPluginManager().callEvent(timeSkipEvent);
+        if (timeSkipEvent.isCancelled()) {
+            return;
+        }
+
+        world.setFullTime(targetFullTime);
+        world.setTime(0L);
+
+        if (world.isThundering()) {
+            world.setThundering(false);
+            world.setThunderDuration(0);
+        }
+        if (world.hasStorm()) {
+            world.setStorm(false);
+            world.setWeatherDuration(0);
+        }
+
+        for (Player p : world.getPlayers()) {
+            if (p.isValid()) {
+                try {
+                    p.setStatistic(Statistic.TIME_SINCE_REST, 0);
+                } catch (Throwable ignored) {}
             }
+        }
 
-            Boolean advanceWeather = world.getGameRuleValue(GameRules.ADVANCE_WEATHER);
-            if ((advanceWeather == null || advanceWeather) && (world.hasStorm() || world.isThundering())) {
-                world.setStorm(false);
-                world.setThundering(false);
-                world.setWeatherDuration(0);
-                world.setThunderDuration(0);
-            }
-
-            for (Player p : world.getPlayers()) {
-                StoneSitPose checkPose = poses.get(p.getUniqueId());
-                if (p.isSleeping() || (checkPose != null && checkPose.getPoseType() != PoseType.SPIN)) {
-                    if (config.isPoseLayRest()) {
-                        p.setStatistic(Statistic.TIME_SINCE_REST, 0);
-                    }
-                }
-            }
-
-            for (StoneSitPose worldPose : worldPoses) {
-                worldPose.resetLayTicks();
-                if (config.isPoseLayWakeupMorning()) {
-                    removePose(worldPose, StopReason.GET_UP);
+        if (config.isPoseLayWakeupMorning()) {
+            for (StoneSitPose pose : new ArrayList<>(poses.values())) {
+                if (pose.getPoseType() != PoseType.SPIN && pose.getPlayer().getWorld().equals(world)) {
+                    removePose(pose, StopReason.GET_UP, true);
                 }
             }
         }
     }
 
     // =========================================================================
-    //                             PLAYER SIT (STACK)
+    //                         PLAYER-SIT & ENTITY-SIT
     // =========================================================================
-
-    public Set<UUID> getPreventDismountStackPlayers() {
-        return preventDismountStackPlayers;
-    }
 
     public boolean isPlayerInPlayerSitStack(Player player) {
         if (player == null) return false;
@@ -679,32 +710,221 @@ public final class SitManager {
         return bottomToTopStacks.containsKey(uuid) || topToBottomStacks.containsKey(uuid);
     }
 
-    /**
-     * Liefert den Spieler, der direkt auf {@code bottomPlayer} sitzt (falls vorhanden).
-     */
-    public Player getDirectTopPlayer(Player bottomPlayer) {
-        if (bottomPlayer == null) return null;
-        Map.Entry<UUID, List<UUID>> entry = bottomToTopStacks.get(bottomPlayer.getUniqueId());
+    public boolean isPlayerInPlayerSitStack(Entity entity) {
+        if (entity == null) return false;
+        UUID uuid = entity.getUniqueId();
+        return bottomToTopStacks.containsKey(uuid) || topToBottomStacks.containsKey(uuid);
+    }
+
+    public Set<UUID> getPreventDismountStackPlayers() {
+        return preventDismountStackPlayers;
+    }
+
+    public Player getDirectTopPlayer(Entity bottomEntity) {
+        if (bottomEntity == null) return null;
+        Map.Entry<UUID, List<UUID>> entry = bottomToTopStacks.get(bottomEntity.getUniqueId());
+        if (entry == null) return null;
+        return Bukkit.getPlayer(entry.getKey());
+    }
+
+    public Player getDirectBottomPlayer(Entity topEntity) {
+        if (topEntity == null) return null;
+        Map.Entry<UUID, List<UUID>> entry = topToBottomStacks.get(topEntity.getUniqueId());
         if (entry == null) return null;
         return Bukkit.getPlayer(entry.getKey());
     }
 
     /**
-     * Liefert den Spieler, auf dem {@code topPlayer} direkt sitzt (falls vorhanden).
+     * Bereinigt verwaiste Passagier-Entities (leere AreaEffectClouds / Sit-ArmorStands)
+     * sowie inkonsistente Stack-Einträge auf der übergebenen Entity.
      */
-    public Player getDirectBottomPlayer(Player topPlayer) {
-        if (topPlayer == null) return null;
-        Map.Entry<UUID, List<UUID>> entry = topToBottomStacks.get(topPlayer.getUniqueId());
-        if (entry == null) return null;
-        return Bukkit.getPlayer(entry.getKey());
+    public void cleanStalePassengerEntities(Entity entity) {
+        if (entity == null) {
+            return;
+        }
+
+        // 1. Bereinige verwaiste Passagier-Entities auf der Bukkit-Entity
+        for (Entity passenger : new ArrayList<>(entity.getPassengers())) {
+            if (passenger instanceof AreaEffectCloud
+                    || passenger.getScoreboardTags().contains(PLAYERSIT_ENTITY_TAG)
+                    || passenger.getScoreboardTags().contains(SIT_TAG)
+                    || passenger.getScoreboardTags().contains(POSE_TAG)) {
+                boolean hasValidOnlineRider = false;
+                for (Entity rider : passenger.getPassengers()) {
+                    if (rider instanceof Player p && p.isOnline() && p.isValid()) {
+                        hasValidOnlineRider = true;
+                        break;
+                    }
+                }
+                if (!hasValidOnlineRider) {
+                    entity.removePassenger(passenger);
+                    passenger.remove();
+                }
+            }
+        }
+
+        // 2. Bereinige verwaiste Einträge in bottomToTopStacks
+        UUID entityUuid = entity.getUniqueId();
+        Map.Entry<UUID, List<UUID>> topEntry = bottomToTopStacks.get(entityUuid);
+        if (topEntry != null) {
+            UUID topPlayerUuid = topEntry.getKey();
+            Player topPlayer = Bukkit.getPlayer(topPlayerUuid);
+            boolean stale = false;
+
+            if (topPlayer == null || !topPlayer.isOnline() || !topPlayer.isValid()) {
+                stale = true;
+            } else {
+                Map.Entry<UUID, List<UUID>> reverseEntry = topToBottomStacks.get(topPlayerUuid);
+                if (reverseEntry == null || !entityUuid.equals(reverseEntry.getKey())) {
+                    stale = true;
+                } else if (!PassengerUtil.isEntityInPassengerList(entity, topPlayer)) {
+                    stale = true;
+                }
+            }
+
+            if (stale) {
+                bottomToTopStacks.remove(entityUuid);
+                if (topPlayer != null) {
+                    Map.Entry<UUID, List<UUID>> reverseEntry = topToBottomStacks.get(topPlayerUuid);
+                    if (reverseEntry != null && entityUuid.equals(reverseEntry.getKey())) {
+                        topToBottomStacks.remove(topPlayerUuid);
+                    }
+                }
+                for (UUID sitEntityId : topEntry.getValue()) {
+                    Entity sitEntity = Bukkit.getEntity(sitEntityId);
+                    if (sitEntity != null) {
+                        entity.removePassenger(sitEntity);
+                        sitEntity.remove();
+                    }
+                }
+            }
+        }
+
+        // 3. Bereinige verwaiste Einträge in topToBottomStacks
+        Map.Entry<UUID, List<UUID>> bottomEntry = topToBottomStacks.get(entityUuid);
+        if (bottomEntry != null) {
+            UUID vehicleUuid = bottomEntry.getKey();
+            Entity vehicle = Bukkit.getEntity(vehicleUuid);
+            boolean stale = false;
+
+            if (vehicle == null || !vehicle.isValid()) {
+                stale = true;
+            } else {
+                Map.Entry<UUID, List<UUID>> reverseEntry = bottomToTopStacks.get(vehicleUuid);
+                if (reverseEntry == null || !entityUuid.equals(reverseEntry.getKey())) {
+                    stale = true;
+                } else if (!PassengerUtil.isEntityInPassengerList(vehicle, entity)) {
+                    stale = true;
+                }
+            }
+
+            if (stale) {
+                topToBottomStacks.remove(entityUuid);
+                if (vehicle != null) {
+                    Map.Entry<UUID, List<UUID>> reverseEntry = bottomToTopStacks.get(vehicleUuid);
+                    if (reverseEntry != null && entityUuid.equals(reverseEntry.getKey())) {
+                        bottomToTopStacks.remove(vehicleUuid);
+                    }
+                }
+                for (UUID sitEntityId : bottomEntry.getValue()) {
+                    Entity sitEntity = Bukkit.getEntity(sitEntityId);
+                    if (sitEntity != null) {
+                        if (vehicle != null) {
+                            vehicle.removePassenger(sitEntity);
+                        }
+                        sitEntity.remove();
+                    }
+                }
+            }
+        }
+
+        if (bottomToTopStacks.isEmpty()) {
+            stopPlayerSitBanTaskIfIdle();
+        }
     }
 
     /**
-     * Prüft, ob auf {@code bottomPlayer} (direkt oder im Stapel darüber) ein Admin sitzt,
-     * der durch die Permission {@code stonesit.bypass.sneakeject} vor dem Sneak-Abwurf geschützt ist.
+     * Sammelt alle kick-geschützten Admins, die direkt oder indirekt auf {@code bottomEntity} sitzen.
      */
+    public List<Player> getProtectedPassengerChain(Entity bottomEntity) {
+        if (bottomEntity == null) return Collections.emptyList();
+        cleanStalePassengerEntities(bottomEntity);
+        List<Player> chain = new ArrayList<>();
+        UUID currentUuid = bottomEntity.getUniqueId();
+        int safety = 0;
+        while (currentUuid != null && safety++ < 64) {
+            Map.Entry<UUID, List<UUID>> entry = bottomToTopStacks.get(currentUuid);
+            if (entry == null) break;
+            UUID topUuid = entry.getKey();
+            Player topPlayer = Bukkit.getPlayer(topUuid);
+            if (topPlayer != null && isKickProtected(topPlayer)) {
+                chain.add(topPlayer);
+            }
+            currentUuid = topUuid;
+        }
+        return chain;
+    }
+
+    public boolean isCarrierTeleporting(UUID uuid) {
+        return carrierTeleportingAdmins.contains(uuid);
+    }
+
+    public void handleCarrierTeleport(Entity carrier, Location destination) {
+        if (carrier == null || destination == null) {
+            return;
+        }
+        List<Player> protectedAdmins = getProtectedPassengerChain(carrier);
+        if (protectedAdmins.isEmpty()) {
+            return;
+        }
+
+        for (Player admin : protectedAdmins) {
+            carrierTeleportingAdmins.add(admin.getUniqueId());
+            internalTeleporting.add(admin.getUniqueId());
+        }
+
+        Bukkit.getScheduler().runTaskLater(plugin, () -> {
+            try {
+                if (!carrier.isValid()) {
+                    return;
+                }
+                if (carrier instanceof Player playerCarrier && !playerCarrier.isOnline()) {
+                    return;
+                }
+
+                Entity currentVehicle = carrier;
+                for (Player admin : protectedAdmins) {
+                    if (!admin.isOnline() || !admin.isValid()) {
+                        continue;
+                    }
+                    Map.Entry<UUID, List<UUID>> entry = topToBottomStacks.remove(admin.getUniqueId());
+                    if (entry != null) {
+                        bottomToTopStacks.remove(entry.getKey());
+                        for (UUID entityId : entry.getValue()) {
+                            Entity e = Bukkit.getEntity(entityId);
+                            if (e != null) {
+                                e.remove();
+                            }
+                        }
+                    }
+
+                    admin.teleport(currentVehicle.getLocation(), PlayerTeleportEvent.TeleportCause.PLUGIN);
+                    if (sitOnEntity(admin, currentVehicle)) {
+                        currentVehicle = admin;
+                    }
+                }
+            } finally {
+                for (Player admin : protectedAdmins) {
+                    carrierTeleportingAdmins.remove(admin.getUniqueId());
+                    internalTeleporting.remove(admin.getUniqueId());
+                }
+            }
+        }, 1L);
+    }
+
     public boolean hasSneakEjectProtectedPassenger(Player bottomPlayer) {
         if (bottomPlayer == null) return false;
+        cleanStalePassengerEntities(bottomPlayer);
         UUID currentUuid = bottomPlayer.getUniqueId();
         int safety = 0;
         while (currentUuid != null && safety++ < 64) {
@@ -712,26 +932,22 @@ public final class SitManager {
             if (entry == null) break;
             UUID topUuid = entry.getKey();
             Player topPlayer = Bukkit.getPlayer(topUuid);
-            if (topPlayer != null && isSneakEjectProtected(topPlayer)) {
+            if (topPlayer != null && isKickProtected(topPlayer)) {
                 return true;
             }
             currentUuid = topUuid;
         }
-        for (org.bukkit.entity.Entity p : bottomPlayer.getPassengers()) {
-            if (p instanceof Player topPlayer && isSneakEjectProtected(topPlayer)) {
+        for (Entity p : bottomPlayer.getPassengers()) {
+            if (p instanceof Player topPlayer && isKickProtected(topPlayer)) {
                 return true;
             }
         }
         return false;
     }
 
-    /**
-     * Prüft, ob ein geschützter Admin sichtbar (nicht im Vanish) auf dem Kopf sitzt.
-     * Wenn alle geschützten Admins im Vanish sind, soll keine Benachrichtigung gesendet werden,
-     * damit der Vanish-Status des Admins vor dem Spieler geheim bleibt.
-     */
     public boolean hasVisibleSneakEjectProtectedPassenger(Player bottomPlayer) {
         if (bottomPlayer == null) return false;
+        cleanStalePassengerEntities(bottomPlayer);
         UUID currentUuid = bottomPlayer.getUniqueId();
         int safety = 0;
         while (currentUuid != null && safety++ < 64) {
@@ -739,29 +955,39 @@ public final class SitManager {
             if (entry == null) break;
             UUID topUuid = entry.getKey();
             Player topPlayer = Bukkit.getPlayer(topUuid);
-            if (topPlayer != null && isSneakEjectProtected(topPlayer) && !de.Z7534.ztone.util.VanishUtil.isVanished(topPlayer)) {
+            if (topPlayer != null && isKickProtected(topPlayer) && !de.Z7534.ztone.util.VanishUtil.isVanished(topPlayer)) {
                 return true;
             }
             currentUuid = topUuid;
         }
-        for (org.bukkit.entity.Entity p : bottomPlayer.getPassengers()) {
-            if (p instanceof Player topPlayer && isSneakEjectProtected(topPlayer) && !de.Z7534.ztone.util.VanishUtil.isVanished(topPlayer)) {
+        for (Entity p : bottomPlayer.getPassengers()) {
+            if (p instanceof Player topPlayer && isKickProtected(topPlayer) && !de.Z7534.ztone.util.VanishUtil.isVanished(topPlayer)) {
                 return true;
             }
+        }
+        return false;
+    }
+
+    public static boolean isKickProtected(Entity entity) {
+        if (entity instanceof Player player) {
+            return player.isOp() || EnvironmentUtil.hasPermission(player,
+                    "stonesit.bypass.kick",
+                    "stonesit.bypass.sneakeject",
+                    "stonesit.bypass.*",
+                    "stonesit.admin",
+                    "GSit.ByPass.Kick",
+                    "GSit.ByPass.SneakEject",
+                    "GSit.ByPass.*");
         }
         return false;
     }
 
     public static boolean isSneakEjectProtected(Player player) {
-        return player != null && EnvironmentUtil.hasPermission(player,
-                "stonesit.bypass.sneakeject",
-                "stonesit.bypass.kick",
-                "stonesit.bypass.*",
-                "GSit.ByPass.SneakEject",
-                "GSit.ByPass.*");
+        return isKickProtected(player);
     }
 
     public void removeAllPlayerSitStacks() {
+        carrierTeleportingAdmins.clear();
         for (UUID topPlayerId : new ArrayList<>(topToBottomStacks.keySet())) {
             Player topPlayer = Bukkit.getPlayer(topPlayerId);
             if (topPlayer != null) {
@@ -770,13 +996,12 @@ public final class SitManager {
         }
         bottomToTopStacks.clear();
         topToBottomStacks.clear();
-        preventDismountStackPlayers.clear();
         stopPlayerSitBanTaskIfIdle();
     }
 
     private void ensurePlayerSitBanTaskRunning() {
         if (playerSitBanTask == null && plugin.isEnabled() && !bottomToTopStacks.isEmpty()) {
-            playerSitBanTask = Bukkit.getScheduler().runTaskTimer(plugin, this::checkAllPlayerSitStacksForBans, 20L, 20L);
+            playerSitBanTask = Bukkit.getScheduler().runTaskTimer(plugin, this::tickPlayerSitBans, 20L, 20L);
         }
     }
 
@@ -787,24 +1012,19 @@ public final class SitManager {
         }
     }
 
-    public void checkAllPlayerSitStacksForBans() {
+    private void tickPlayerSitBans() {
         if (bottomToTopStacks.isEmpty()) {
             stopPlayerSitBanTaskIfIdle();
             return;
         }
-        for (UUID bottomId : new ArrayList<>(bottomToTopStacks.keySet())) {
-            Player bottom = Bukkit.getPlayer(bottomId);
-            if (bottom != null && bottom.isOnline()) {
+        for (UUID bottomUuid : new ArrayList<>(bottomToTopStacks.keySet())) {
+            Player bottom = Bukkit.getPlayer(bottomUuid);
+            if (bottom != null && bottom.isOnline() && bottom.isValid()) {
                 checkPlayerSitStackBans(bottom, bottom.getLocation());
             }
         }
     }
 
-    /**
-     * Prüft alle Spieler in einem PlayerSit-Stack an einer bestimmten Location (z.B. nach Bewegung).
-     * Befindet sich der Stack in einem Claim, auf dem ein Reiter gebannt ist,
-     * wird dieser Reiter sofort vom Kopf geworfen und per SafeSpot außerhalb des Claims evakuiert.
-     */
     public void checkPlayerSitStackBans(Player anyStackPlayer, Location loc) {
         if (anyStackPlayer == null || loc == null) return;
         if (!isPlayerInPlayerSitStack(anyStackPlayer)) return;
@@ -815,7 +1035,6 @@ public final class SitManager {
         Claim claim = claimsModule.getClaimManager().getClaimAt(loc);
         if (claim == null) return;
 
-        // Finde den untersten Träger
         Player bottom = anyStackPlayer;
         int safety = 0;
         while (safety++ < 64) {
@@ -824,38 +1043,70 @@ public final class SitManager {
             bottom = vehicle;
         }
 
-        // Iteriere von unten nach oben durch den Stack
         Player current = bottom;
         safety = 0;
         while (current != null && safety++ < 64) {
             Player top = getDirectTopPlayer(current);
             if (top == null) break;
 
-            boolean hasBypass = claimsModule.getBypassManager() != null && claimsModule.getBypassManager().isActive(top);
-            if (!hasBypass && claim.isBanned(top.getUniqueId())) {
-                Player carrier = current;
-                Player ejected = top;
+            boolean hasStaffClaimBypass = claimsModule.getBypassManager() != null && claimsModule.getBypassManager().isActive(top);
+            if (!hasStaffClaimBypass) {
+                if (claim.isBanned(top.getUniqueId())) {
+                    Player carrier = current;
+                    Player ejected = top;
 
-                // Sofort vom Kopf werfen
-                stopPlayerSit(ejected, StopReason.PLUGIN);
+                    stopPlayerSit(ejected, StopReason.PLUGIN);
 
-                // Benachrichtigungen
-                ejected.sendMessage(config.getMessage("action-playersit-banned-claim",
-                        "<prefix> <red>Du wurdest vom Kopf geworfen, da du auf diesem Claim gebannt bist!</red>"));
-                carrier.sendMessage(Text.line(config.getPrefix() + " <yellow>" + ejected.getName()
-                        + "</yellow> <red>wurde von deinem Kopf geworfen (auf diesem Claim gebannt).</red>"));
+                    ejected.sendMessage(config.getMessage("action-playersit-banned-claim",
+                            "<prefix> <red>Du wurdest vom Kopf geworfen, da du auf diesem Claim gebannt bist!</red>"));
+                    carrier.sendMessage(Text.line(config.getPrefix() + " <yellow>" + ejected.getName()
+                            + "</yellow> <red>wurde von deinem Kopf geworfen (auf diesem Claim gebannt).</red>"));
 
-                // Sofort sicher außerhalb des Claims evakuieren
-                plugin.evictFromClaimIfRestricted(ejected);
+                    plugin.evictFromClaimIfRestricted(ejected);
+                } else if (!top.hasPermission(BypassManager.PERMISSION_BYPASS_SIT)
+                        && !EnvironmentUtil.hasPermission(top, "stonesit.bypass.region", "stonesit.bypass.*", "GSit.ByPass.Region", "GSit.ByPass.*")
+                        && !claim.hasPermission(top.getUniqueId(), de.Z7534.ztone.claims.model.ClaimPermission.SIT)) {
+                    Player carrier = current;
+                    Player ejected = top;
+
+                    stopPlayerSit(ejected, StopReason.PLUGIN);
+
+                    ejected.sendMessage(config.getMessage("action-sit-region-error",
+                            "<prefix> <red>Du kannst in dieser Region nicht sitzen!</red>"));
+                    carrier.sendMessage(Text.line(config.getPrefix() + " <yellow>" + ejected.getName()
+                            + "</yellow> <red>wurde von deinem Kopf geworfen (keine Sit-Rechte auf diesem Claim).</red>"));
+                }
             }
             current = top;
         }
     }
 
     public boolean sitOnPlayer(Player player, Player target) {
+        return sitOnEntity(player, target);
+    }
+
+    public boolean sitOnEntity(Player player, Entity target) {
         if (player == null || target == null || !player.isValid() || !target.isValid()) {
             return false;
         }
+
+        // Bestehende Sit-Zustände des Spielers vorher sauber abbauen
+        Seat seat = getSeatByEntity(player);
+        if (seat != null) {
+            removeSeat(seat, StopReason.SWITCH);
+        }
+
+        StoneSitPose pose = getPoseByPlayer(player);
+        if (pose != null) {
+            removePose(pose, StopReason.SWITCH);
+        }
+
+        if (isPlayerInPlayerSitStack(player)) {
+            stopPlayerSit(player, StopReason.SWITCH, false, true);
+        }
+
+        // Ziel-Entity vor dem Draufsetzen von verwaisten Entities säubern
+        cleanStalePassengerEntities(target); if (!PassengerUtil.canMount(player, target)) { return false; }
 
         List<UUID> playerSitEntityIds = createPlayerSitEntities(player, target);
         if (playerSitEntityIds == null) {
@@ -870,12 +1121,11 @@ public final class SitManager {
         topToBottomStacks.put(player.getUniqueId(), new AbstractMap.SimpleImmutableEntry<>(target.getUniqueId(), playerSitEntityIds));
         ensurePlayerSitBanTaskRunning();
 
-        // Direkt prüfen, ob target in einem Claim steht, auf dem der neue Reiter gebannt ist!
         checkPlayerSitStackBans(player, target.getLocation());
         return true;
     }
 
-    private List<UUID> createPlayerSitEntities(Player player, Player target) {
+    private List<UUID> createPlayerSitEntities(Player player, Entity target) {
         World world = target.getWorld();
         final boolean[] mounted = {false};
 
@@ -901,11 +1151,11 @@ public final class SitManager {
         return List.of(sitEntity.getUniqueId());
     }
 
-    public boolean stopPlayerSit(Player source, StopReason stopReason) {
+    public boolean stopPlayerSit(Entity source, StopReason stopReason) {
         return stopPlayerSit(source, stopReason, true, true);
     }
 
-    public boolean stopPlayerSit(Player source, StopReason stopReason, boolean removePassengers, boolean removeVehicle) {
+    public boolean stopPlayerSit(Entity source, StopReason stopReason, boolean removePassengers, boolean removeVehicle) {
         if (source == null) {
             return true;
         }
@@ -916,13 +1166,41 @@ public final class SitManager {
             return true;
         }
 
+        // KICK-SCHUTZ & TELEPORT-SCHUTZ: Geschützte Admins dürfen unter keinen Umständen gekickt werden
+        if (stopReason == StopReason.KICKED || stopReason == StopReason.TELEPORT) {
+            if (passengers != null) {
+                Player topPlayer = Bukkit.getPlayer(passengers.getKey());
+                if (topPlayer != null && (isKickProtected(topPlayer) || isCarrierTeleporting(topPlayer.getUniqueId()))) {
+                    passengers = null;
+                }
+            }
+            if (vehicles != null && (isKickProtected(source) || isCarrierTeleporting(sourceUuid))) {
+                vehicles = null;
+            }
+            if (passengers == null && vehicles == null) {
+                return false;
+            }
+        }
+
         if (passengers != null) {
-            source.eject();
+            UUID topUuid = passengers.getKey();
+            internalDismounting.add(topUuid);
+            try {
+                source.eject();
+            } finally {
+                internalDismounting.remove(topUuid);
+            }
             bottomToTopStacks.remove(sourceUuid);
-            topToBottomStacks.remove(passengers.getKey());
+            topToBottomStacks.remove(topUuid);
             for (UUID passengerEntityId : passengers.getValue()) {
                 Entity passengerEntity = Bukkit.getEntity(passengerEntityId);
                 if (passengerEntity == null) continue;
+                internalDismounting.add(topUuid);
+                try {
+                    passengerEntity.eject();
+                } finally {
+                    internalDismounting.remove(topUuid);
+                }
                 if (!stopReason.isUsingEntityTask() || !plugin.isEnabled()) {
                     passengerEntity.remove();
                 } else {
@@ -932,7 +1210,12 @@ public final class SitManager {
         }
 
         if (vehicles != null) {
-            source.leaveVehicle();
+            internalDismounting.add(sourceUuid);
+            try {
+                source.leaveVehicle();
+            } finally {
+                internalDismounting.remove(sourceUuid);
+            }
             topToBottomStacks.remove(sourceUuid);
             bottomToTopStacks.remove(vehicles.getKey());
             for (UUID vehicleEntityId : vehicles.getValue()) {
@@ -951,6 +1234,14 @@ public final class SitManager {
         }
 
         return true;
+    }
+
+    public Map<UUID, Map.Entry<UUID, List<UUID>>> getBottomToTopStacks() {
+        return bottomToTopStacks;
+    }
+
+    public Map<UUID, Map.Entry<UUID, List<UUID>>> getTopToBottomStacks() {
+        return topToBottomStacks;
     }
 
     /**

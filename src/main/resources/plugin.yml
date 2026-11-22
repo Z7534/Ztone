@@ -1,11 +1,11 @@
-﻿name: Ztone
-version: '1.1.8'
+name: Ztone
+version: '1.1.14'
 main: de.Z7534.ztone.Ztone
 api-version: '26.2'
 authors: [Z7534]
 load: STARTUP
 description: All-in-One Ztone System (Clansystem, Clankasse, PvPManager, Claims, StoneAttack, Stonelog, MapControl, StoneVoice, PlayRewards, Deathchest, ClearLag, StoneSit, DragonEgg)
-softdepend: [Vault, PlaceholderAPI, LuckPerms, ProtocolLib, WorldGuard, GriefPrevention, Towny, Lands, Kingdoms, SimpleClans, HuskTowns, BountyHunters, NotBounties, CMI, Essentials, TAB, LibsDisguises, voicechat, floodgate, Plan, StoneSMPCore]
+softdepend: [Vault, PlaceholderAPI, LuckPerms, ProtocolLib, WorldGuard, GriefPrevention, Towny, Lands, Kingdoms, SimpleClans, HuskTowns, BountyHunters, NotBounties, CMI, Essentials, TAB, LibsDisguises, voicechat, floodgate, StoneSMPCore]
 
 commands:
   ztone:
@@ -69,6 +69,16 @@ commands:
     usage: /pvpclaimbypass [on|off|toggle|player|list]
     aliases: [claimpvpbypass, pvpclaim]
     permission: claims.admin.pvpbypass
+  claimnametags:
+    description: Schaltet Spieler-Nametags auf einem Claim als Admin an/aus
+    usage: /claimnametags [off|on|toggle|list|<spieler> <claimnr> [off|on]]
+    aliases: [claimnametag, claimsnametags, claimsnametag]
+    permission: claims.admin.nametags
+  claimnametags:
+    description: Schaltet Spieler-Nametags auf einem Claim als Admin an/aus
+    usage: /claimnametags [off|on|toggle|list|<spieler> <claimnr> [off|on]]
+    aliases: [claimnametag, claimsnametags, claimsnametag]
+    permission: claims.admin.nametags
 
   # Stoneattack Commands
   stoneattack:
@@ -348,14 +358,14 @@ permissions:
     description: Schaltet das Standard-PvP fÃ¼r eine Dimension ein/aus
     default: op
   stonelog.exempt:
-    description: Schließt den Spieler vollständig aus allen Stonelog-Aufzeichnungen aus
+    description: Schlieï¿½t den Spieler vollstï¿½ndig aus allen Stonelog-Aufzeichnungen aus
     default: op
 
   pvpmanager.feature.recycling:
     description: Zugriff auf das Item-Recycling-Feature
     default: op
   adminjoinvoice.alert:
-    description: Erhält eine Chat-Benachrichtigung, wenn ein Admin per /adminjoinvoice dem eigenen VC beitritt
+    description: Erhï¿½lt eine Chat-Benachrichtigung, wenn ein Admin per /adminjoinvoice dem eigenen VC beitritt
     default: op
 
   pvpmanager.bypass.lootprotection:
@@ -422,7 +432,10 @@ permissions:
       claims.admin.ban: true
       claims.admin.bypass: true
       claims.admin.bypass.other: true
+      claims.admin.bypass.sit: true
       claims.admin.pvpbypass: true
+      claims.admin.nametags: true
+      claims.admin.nametags: true
       claims.admin.reload: true
   claims.admin.addclaims:
     description: /staffclaim addclaims <spieler> <zahl>
@@ -454,12 +467,27 @@ permissions:
   claims.admin.bypass.other:
     description: Erlaubt /staffclaim bypass <on|off> <spieler> fÃ¼r andere Spieler
     default: op
+  claims.admin.bypass.sit:
+    description: Erlaubt das Sitzen/Liegen auf fremden Claims ohne Claim-Rechte (ausgenommen wenn auf dem Claim gebannt)
+    default: op
   claims.admin.pvpbypass:
     description: Erlaubt /claimspvpoverride (PvP auf Claims freigeben oder als Admin im Claim kÃ¤mpfen)
     default: op
   claims.admin.reload:
     description: /staffclaim reload (lÃ¤dt config.yml und messages.yml neu)
     default: op
+  claims.admin.nametags:
+    description: Erlaubt /claimnametags und /staffclaim nametags (Spieler-Nametags auf einem Claim deaktivieren/aktivieren)
+    default: op
+  claims.admin.nametags.bypass:
+    description: Eigener Nametag bleibt auch auf Claims mit deaktivierten Nametags sichtbar
+    default: false
+  claims.admin.nametags:
+    description: Erlaubt /claimnametags und /staffclaim nametags (Spieler-Nametags auf einem Claim deaktivieren/aktivieren)
+    default: op
+  claims.admin.nametags.bypass:
+    description: Eigener Nametag bleibt auch auf Claims mit deaktivierten Nametags sichtbar
+    default: false
 
   # Stoneattack Permissions
   stoneattack.admin:
@@ -529,6 +557,9 @@ permissions:
   deathchest.bypass.other:
     description: Erlaubt /deathchest bypass <on|off> <spieler> fÃ¼r andere Spieler
     default: op
+  claims.admin.bypass.sit:
+    description: Erlaubt das Sitzen/Liegen auf fremden Claims ohne Claim-Rechte (ausgenommen wenn auf dem Claim gebannt)
+    default: op
   deathchest.bypass.join:
     description: "Aktiviert /deathchest bypass automatisch beim Betreten des Servers (Standard: aus)"
     default: false
@@ -546,15 +577,18 @@ permissions:
       stonesit.sit.*: true
       stonesit.pose.*: true
       stonesit.playersit.*: true
+      stonesit.entitysit.*: true
       stonesit.kick.*: true
       stonesit.bypass.*: true
       stonesit.reload: true
       stonesit.admin: true
   stonesit.admin:
-    description: Admin-Zugriff auf StoneSit inkl. Schutz vor Sneak-Abwurf vom Kopf
+    description: Admin-Zugriff auf StoneSit inkl. Schutz vor Sneak-Abwurf und Kicken
     default: op
     children:
       stonesit.bypass.sneakeject: true
+      stonesit.bypass.kick: true
+      stonesit.entitysit.*: true
       stonesit.reload: true
   stonesit.sit.*:
     description: Alle Block-Sit Berechtigungen
@@ -592,6 +626,14 @@ permissions:
   stonesit.playersit:
     description: Erlaubt das Setzen auf andere Spieler per Rechtsklick
     default: true
+  stonesit.entitysit.*:
+    description: Alle EntitySit Berechtigungen
+    default: true
+    children:
+      stonesit.entitysit: true
+  stonesit.entitysit:
+    description: Erlaubt das Setzen auf Entities per Rechtsklick
+    default: true
   stonesit.kick.*:
     description: Erlaubt das Kicken sitzender/liegenden Spieler von BlÃ¶cken
     default: op
@@ -609,11 +651,16 @@ permissions:
     default: op
     children:
       stonesit.bypass.sneakeject: true
+      stonesit.bypass.kick: true
+      stonesit.entitysit.*: true
       stonesit.bypass.command: true
       stonesit.bypass.world: true
       stonesit.bypass.region: true
   stonesit.bypass.sneakeject:
     description: Verhindert, dass man als Admin durch Sneaken vom Kopf eines Spielers gekickt werden kann
+    default: op
+  stonesit.bypass.kick:
+    description: Verhindert, dass man als Admin von KÃ¶pfen, Teppichen, BlÃ¶cken oder Entities gekickt werden kann
     default: op
   stonesit.bypass.command:
     description: Umgeht die Command-Blacklist wÃ¤hrend des Sitzens/Liegens
@@ -640,6 +687,9 @@ permissions:
     default: op
   dragonegg.bypass.other:
     description: Erlaubt /dragonegg bypass <on|off> <spieler> fÃ¼r andere Spieler
+    default: op
+  claims.admin.bypass.sit:
+    description: Erlaubt das Sitzen/Liegen auf fremden Claims ohne Claim-Rechte (ausgenommen wenn auf dem Claim gebannt)
     default: op
   dragonegg.bypass.join:
     description: "Aktiviert /dragonegg bypass automatisch beim Betreten des Servers (Standard: aus)"

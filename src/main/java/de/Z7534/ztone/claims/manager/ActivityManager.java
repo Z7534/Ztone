@@ -19,6 +19,7 @@ public final class ActivityManager {
     private final JavaPlugin plugin;
     private final ClaimManager claimManager;
     private final ConfigManager config;
+    private ClaimNametagManager nametagManager;
 
     private final Map<UUID, Long> lastActivity = new HashMap<>();
     private final Map<UUID, Boolean> afk = new HashMap<>();
@@ -29,6 +30,10 @@ public final class ActivityManager {
         this.plugin = plugin;
         this.claimManager = claimManager;
         this.config = config;
+    }
+
+    public void setNametagManager(ClaimNametagManager nametagManager) {
+        this.nametagManager = nametagManager;
     }
 
     public void recordActivity(UUID uuid) {
@@ -75,6 +80,9 @@ public final class ActivityManager {
             }
 
             checkEntryHint(player, player.getLocation(), pd);
+            if (nametagManager != null) {
+                nametagManager.updatePlayer(player, player.getLocation());
+            }
 
             if (periodicSave) {
                 claimManager.savePlayerAsync(pd);

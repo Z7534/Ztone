@@ -14,7 +14,8 @@ public enum ClaimPermission {
     ENTITY_INTERACT("Rahmen, Armorstands, handeln - mit Entities interagieren"),
     FIRE_EXPLOSIONS("Feuer legen und TNT zünden"),
     BELLS_NOTEBLOCKS("Glocken, Notenblöcke und Co. verwenden"),
-    SPAWNER("Spawner benutzen und verwalten");
+    SPAWNER("Spawner benutzen und verwalten"),
+    SIT("Hinsetzen und Hinlegen");
 
     private final String description;
 
