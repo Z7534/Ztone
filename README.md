@@ -825,3 +825,9 @@ Die fertige Server-JAR befindet sich im Verzeichnis `build/libs/Ztone-1.1.14.jar
   * **Behoben:** Hatte ein Spieler auf einem Claim `CONTAINERS`-Rechte, aber keine `ITEMS`-Rechte (Items droppen/aufheben) und versuchte bei vollem Spielerinventar ein Item aus einem Container zu droppen (oder schloss den Container mit einem Item auf dem Cursor), verschwand das Item durch Bukkits `PlayerDropItemEvent`-Cancellation ersatzlos.
   * `InventoryClickEvent` blockiert Drop-Aktionen (`Q`, `Strg+Q`, Cursor-Drop außerhalb des Fensters) ohne `ITEMS`-Rechte nun direkt im Vorfeld, sodass das Item gar nicht erst aus dem Slot/Cursor entfernt wird.
   * Zusätzlich legt ein Fallback im `PlayerDropItemEvent` / `InventoryCloseEvent` nicht mehr ins Spielerinventar passende Items sicher zurück in den geöffneten Container, anstatt sie zu löschen.
+
+### 🎁 PlayRewards (Claim All Rewards im Hauptmenü)
+* **„Alle Belohnungen abholen“-Button im Haupt-GUI (`MainRewardMenu`, Slot 13):**
+  * Direkt in der Mitte des Hauptmenüs (Slot 13) befindet sich nun ein neuer Button mit eigenem Geschenkpaket-PlayerHead.
+  * Zeigt übersichtlich alle aktuell abholbereiten Belohnungen aus den drei Kategorien (Tägliche Belohnungen, Tägliche Streak, Spielzeit-Belohnungen) und leuchtet (Enchantment-Glint), sobald mindestens eine Belohnung abholbereit ist.
+  * Mit einem einzigen Klick werden sämtliche verfügbaren Belohnungen aller Kategorien auf einmal eingelöst (inkl. Inventar-Voll-Prüfung).

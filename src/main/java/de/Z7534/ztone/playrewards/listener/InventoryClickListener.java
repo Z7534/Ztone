@@ -140,12 +140,18 @@ public class InventoryClickListener implements Listener {
     }
 
     private void handleMainMenuClick(Player player, int slot) {
-        plugin.getRewardClaimService().playClickSound(player);
         if (slot == 11) {
+            plugin.getRewardClaimService().playClickSound(player);
             new DailyRewardMenu(plugin, player).open();
-        } else if (slot == 13 || slot == 22) {
+        } else if (slot == 13) {
+            if (plugin.getRewardClaimService().claimAllRewards(player)) {
+                new MainRewardMenu(plugin, player).open();
+            }
+        } else if (slot == 22) {
+            plugin.getRewardClaimService().playClickSound(player);
             new StreakRewardMenu(plugin, player).open();
         } else if (slot == 15) {
+            plugin.getRewardClaimService().playClickSound(player);
             new PlaytimeRewardMenu(plugin, player, 1).open();
         }
     }

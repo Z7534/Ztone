@@ -8,6 +8,7 @@ import de.Z7534.ztone.playrewards.util.TimeUtil;
 import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
+import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
@@ -27,6 +28,7 @@ public class MainRewardMenu implements InventoryHolder {
     public static final String HEAD_DAILY = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvOThjOGY4MmNjZjhkMmFjYjc5MDA4ZTE3ODM0MDAyZThkYzU2ZTczMmVhODljYzFkYjNiZGU0MjA2NjU4ZWY3ZCJ9fX0="; // Goldenes Geschenk
     public static final String HEAD_STREAK = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvMzFiNzUzNjhkYjlhNzYzMzJkYzZkOWU1YzAwZTIzMmZkNDIzOGNhMWEzMDE5ZTdiNTIxZjE0ZmZjODMzMGU3YiJ9fX0="; // Feuerball / Flamme
     public static final String HEAD_PLAYTIME = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvYzgxZGNkYjVhMDE3MzhiN2JjYzc0YTNjNWU3ZWQwMThhYjgyMTFkYTJhNTBlMWI2ZWRkNGQwYzgwNzUyNDJkMSJ9fX0="; // Goldene Uhr
+    public static final String HEAD_CLAIM_ALL = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNTcyNmQ5ZDA2MzJlNDBiZGE1YmNmNjU4MzliYTJjYzk4YTg3YmQ2MTljNTNhZGYwMDMxMGQ2ZmM3MWYwNDJiNSJ9fX0="; // Rotes Geschenkpaket mit Goldschleife
 
     private final PlayReward plugin;
     private final Player player;
@@ -49,6 +51,9 @@ public class MainRewardMenu implements InventoryHolder {
         long playtime = plugin.getPlaytimeService().getCachedPlaytimeSeconds(player.getUniqueId());
         long dailyPlaytime = plugin.getPlaytimeService().getDailyPlaytimeSeconds(player.getUniqueId());
         int availableDaily = plugin.getRewardClaimService().getAvailableDailyRewardsCount(player.getUniqueId());
+        int availableStreak = plugin.getRewardClaimService().getAvailableStreakRewardsCount(player.getUniqueId());
+        int availablePlaytime = plugin.getRewardClaimService().getAvailablePlaytimeRewardsCount(player.getUniqueId());
+        int totalAvailable = availableDaily + availableStreak + availablePlaytime;
         int streak = data != null ? data.getCurrentStreak() : 0;
         long hours = TimeUtil.getHours(playtime);
         String formattedDays = TimeUtil.formatDaysAndHours(playtime);
@@ -101,6 +106,33 @@ public class MainRewardMenu implements InventoryHolder {
         }
         inventory.setItem(11, dailyItem);
 
+        // Slot 13: Claim All Rewards (Direkt in der Mitte des Hauptmenüs)
+        ItemStack claimAllItem = HeadUtil.createHeadFromBase64(HEAD_CLAIM_ALL);
+        ItemMeta claimAllMeta = claimAllItem.getItemMeta();
+        if (claimAllMeta != null) {
+            claimAllMeta.displayName(MessageUtil.parse("<gradient:#55FF55:#00AA00><bold>Alle Belohnungen abholen</bold></gradient>"));
+            List<Component> lore = new ArrayList<>();
+            lore.add(MessageUtil.parse("<gray>Hole alle aktuell verfügbaren"));
+            lore.add(MessageUtil.parse("<gray>Belohnungen mit einem Klick ab!"));
+            lore.add(Component.empty());
+            lore.add(MessageUtil.parse("<gray>Tägliche Belohnungen: " + (availableDaily > 0 ? "<green><bold>" + availableDaily + "</bold></green>" : "<dark_gray>0</dark_gray>")));
+            lore.add(MessageUtil.parse("<gray>Tägliche Streak: " + (availableStreak > 0 ? "<green><bold>" + availableStreak + "</bold></green>" : "<dark_gray>0</dark_gray>")));
+            lore.add(MessageUtil.parse("<gray>Spielzeit-Belohnungen: " + (availablePlaytime > 0 ? "<green><bold>" + availablePlaytime + "</bold></green>" : "<dark_gray>0</dark_gray>")));
+            lore.add(Component.empty());
+            if (totalAvailable > 0) {
+                lore.add(MessageUtil.parse("<green><bold>✔ " + totalAvailable + " Belohnung(en) abholbereit!</bold></green>"));
+                lore.add(MessageUtil.parse("<yellow>➔ Klicke, um alle abzuholen!"));
+                claimAllMeta.addEnchant(Enchantment.LUCK_OF_THE_SEA, 1, true);
+                claimAllMeta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
+            } else {
+                lore.add(MessageUtil.parse("<red>✘ Aktuell keine Belohnungen abholbereit</red>"));
+            }
+            claimAllMeta.lore(lore);
+            claimAllMeta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_ADDITIONAL_TOOLTIP);
+            claimAllItem.setItemMeta(claimAllMeta);
+        }
+        inventory.setItem(13, claimAllItem);
+
         // Slot 15: Playtime Rewards (Wunderschöner goldener Uhr-Kopf)
         ItemStack playtimeItem = HeadUtil.createHeadFromBase64(HEAD_PLAYTIME);
         ItemMeta playtimeMeta = playtimeItem.getItemMeta();
@@ -112,6 +144,10 @@ public class MainRewardMenu implements InventoryHolder {
             lore.add(Component.empty());
             lore.add(MessageUtil.parse("<gray>Spielzeit in Stunden: <gold><bold>" + hours + " Stunden</bold></gold>"));
             lore.add(MessageUtil.parse("<gray>Formatiert in Tage: <aqua><bold>" + formattedDays + "</bold></aqua>"));
+            if (availablePlaytime > 0) {
+                lore.add(Component.empty());
+                lore.add(MessageUtil.parse("<green><bold>" + availablePlaytime + " Belohnung(en) abholbereit!</bold></green>"));
+            }
             lore.add(Component.empty());
             lore.add(MessageUtil.parse("<yellow>➔ Klicke zum Belohnungspfad"));
             playtimeMeta.lore(lore);
@@ -133,6 +169,10 @@ public class MainRewardMenu implements InventoryHolder {
             if (player.hasPermission("playrewards.streak.saver")) {
                 int saver = data != null ? data.getProtectionPointsLeft() : 0;
                 lore.add(MessageUtil.parse("<gray>Streak-Saver Schutzpunkte: <aqua>" + saver + "/1</aqua>"));
+            }
+            if (availableStreak > 0) {
+                lore.add(Component.empty());
+                lore.add(MessageUtil.parse("<green><bold>" + availableStreak + " Belohnung(en) abholbereit!</bold></green>"));
             }
             lore.add(Component.empty());
             lore.add(MessageUtil.parse("<yellow>➔ Klicke zum Öffnen"));

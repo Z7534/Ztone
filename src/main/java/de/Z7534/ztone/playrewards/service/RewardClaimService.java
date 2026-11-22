@@ -11,6 +11,8 @@ import org.bukkit.Registry;
 import org.bukkit.Sound;
 import org.bukkit.entity.Player;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -90,6 +92,119 @@ public class RewardClaimService {
             }
         }
         return count;
+    }
+
+    public int getAvailableStreakRewardsCount(UUID uuid) {
+        Player player = Bukkit.getPlayer(uuid);
+        if (player == null) return 0;
+        int count = 0;
+        for (RewardItem item : plugin.getConfigManager().getStreakConfig().getStreakRewards().values()) {
+            if (getStreakStatus(player, item) == RewardStatus.AVAILABLE) {
+                count++;
+            }
+        }
+        return count;
+    }
+
+    public int getAvailablePlaytimeRewardsCount(UUID uuid) {
+        Player player = Bukkit.getPlayer(uuid);
+        if (player == null) return 0;
+        int count = 0;
+        for (RewardItem item : plugin.getConfigManager().getPlaytimeConfig().getPlaytimeRewards()) {
+            if (getPlaytimeStatus(player, item) == RewardStatus.AVAILABLE) {
+                count++;
+            }
+        }
+        return count;
+    }
+
+    public int getTotalAvailableRewardsCount(UUID uuid) {
+        return getAvailableDailyRewardsCount(uuid)
+                + getAvailableStreakRewardsCount(uuid)
+                + getAvailablePlaytimeRewardsCount(uuid);
+    }
+
+    public boolean claimAllRewards(Player player) {
+        PlayerData data = plugin.getDatabaseManager().getCachedData(player.getUniqueId());
+        if (data == null) {
+            playLockedSound(player);
+            MessageUtil.sendMessage(player, plugin.getPrefix(), "<red>Deine Spielerdaten werden noch geladen. Bitte versuche es gleich erneut!");
+            return false;
+        }
+
+        List<RewardItem> availableDaily = new ArrayList<>();
+        for (RewardItem item : plugin.getConfigManager().getDailyConfig().getRewards().values()) {
+            if (getDailyStatus(player, item) == RewardStatus.AVAILABLE) {
+                availableDaily.add(item);
+            }
+        }
+
+        List<RewardItem> availableStreak = new ArrayList<>();
+        for (RewardItem item : plugin.getConfigManager().getStreakConfig().getStreakRewards().values()) {
+            if (getStreakStatus(player, item) == RewardStatus.AVAILABLE) {
+                availableStreak.add(item);
+            }
+        }
+
+        List<RewardItem> availablePlaytime = new ArrayList<>();
+        for (RewardItem item : plugin.getConfigManager().getPlaytimeConfig().getPlaytimeRewards()) {
+            if (getPlaytimeStatus(player, item) == RewardStatus.AVAILABLE) {
+                availablePlaytime.add(item);
+            }
+        }
+
+        int totalAvailable = availableDaily.size() + availableStreak.size() + availablePlaytime.size();
+        if (totalAvailable == 0) {
+            playLockedSound(player);
+            MessageUtil.sendMessage(player, plugin.getPrefix(), "<red>Du hast aktuell keine abholbereiten Belohnungen!");
+            return false;
+        }
+
+        int claimedCount = 0;
+        boolean inventoryBlocked = false;
+
+        for (RewardItem item : availableDaily) {
+            if (!handleInventoryCheck(player)) {
+                inventoryBlocked = true;
+                break;
+            }
+            data.getClaimedDailyTiers().add(item.getId());
+            executeRewardCommands(player, item);
+            claimedCount++;
+        }
+
+        if (!inventoryBlocked) {
+            for (RewardItem item : availableStreak) {
+                if (!handleInventoryCheck(player)) {
+                    inventoryBlocked = true;
+                    break;
+                }
+                data.getClaimedStreakMilestones().add(item.getRequiredStreakDays());
+                executeRewardCommands(player, item);
+                claimedCount++;
+            }
+        }
+
+        if (!inventoryBlocked) {
+            for (RewardItem item : availablePlaytime) {
+                if (!handleInventoryCheck(player)) {
+                    break;
+                }
+                data.getClaimedPlaytimeTiers().add(item.getId());
+                executeRewardCommands(player, item);
+                claimedCount++;
+            }
+        }
+
+        if (claimedCount > 0) {
+            plugin.getDatabaseManager().savePlayerDataAsync(data);
+            playSuccessSound(player);
+            MessageUtil.sendMessage(player, plugin.getPrefix(),
+                    "<green>Du hast erfolgreich <yellow><bold>" + claimedCount + "</bold></yellow> Belohnung(en) auf einmal abgeholt!");
+            return true;
+        }
+
+        return false;
     }
 
     public boolean claimDailyReward(Player player, RewardItem item) {
