@@ -1,5 +1,5 @@
 name: Ztone
-version: '1.1.14'
+version: '1.1.15'
 main: de.Z7534.ztone.Ztone
 api-version: '26.2'
 authors: [Z7534]
@@ -267,6 +267,9 @@ permissions:
         default: op
       clansystem.admin.demote:
         description: Erlaubt das Degradieren von Spielern in ihrem Clan Ã¼ber /clanadmin demote
+        default: op
+      clansystem.admin.bank:
+        description: Erlaubt das Verwalten der Clankasse ueber /clanadmin bank
         default: op
       clansystem.admin.bypass:
         description: Umgeht alle EinschrÃ¤nkungen
@@ -657,7 +660,7 @@ permissions:
       stonesit.bypass.world: true
       stonesit.bypass.region: true
   stonesit.bypass.sneakeject:
-    description: Verhindert, dass man als Admin durch Sneaken vom Kopf eines Spielers gekickt werden kann
+    description: Verhindert global (ohne Spielernamen) oder für einen bestimmten Kopf (stonesit.bypass.sneakeject.<spielername>, Groß-/Kleinschreibung egal) das Abwerfen vom Kopf
     default: op
   stonesit.bypass.kick:
     description: Verhindert, dass man als Admin von KÃ¶pfen, Teppichen, BlÃ¶cken oder Entities gekickt werden kann

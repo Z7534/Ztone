@@ -92,8 +92,9 @@ options:
     max-stack: 0
 
     # Wirft auf dem Kopf sitzende Spieler beim Sneaken (Schleichen) ab
-    # HINWEIS: Admins mit der Permission 'stonesit.bypass.sneakeject' (oder 'stonesit.admin')
-    # können durch Sneaken NICHT vom Kopf geworfen werden!
+    # HINWEIS: Mit 'stonesit.bypass.sneakeject' (global) oder 'stonesit.bypass.sneakeject.<spielername>'
+    # (nur für den Kopf dieses Spielers, Groß-/Kleinschreibung egal) kann man durch Sneaken
+    # NICHT vom Kopf geworfen werden!
     sneak-ejects: true
 
     # Setzt den Spieler beim Absteigen an die Position des untersten Spielers im Stapel
@@ -153,7 +154,7 @@ messages:
   action-pose-info: "<gold><lang:key.sneak></gold> <green>zum Aufstehen</green>"
 
   action-playersit-info: "<gold><lang:key.sneak></gold> <green>zum Aufstehen</green>"
-  action-playersit-admin-protected: "<prefix> <red>Du kannst diesen Admin nicht durch Schleichen vom Kopf werfen!</red>"
+  action-playersit-admin-protected: "<prefix> <red>Du kannst <yellow>{player}</yellow> nicht von deinem Kopf werfen!</red>"
   action-playersit-banned-claim: "<prefix> <red>Du wurdest vom Kopf geworfen, da du auf diesem Claim gebannt bist!</red>"
   action-playersit-carrier-banned-claim: "<prefix> <yellow>{player}</yellow> <red>wurde von deinem Kopf geworfen (auf dem Claim gebannt).</red>"
   action-playersit-target-banned-claim: "<prefix> <red>Du kannst dich hier nicht auf andere Spieler setzen, da du auf diesem Claim gebannt bist!</red>"

@@ -2,7 +2,9 @@ package de.Z7534.ztone.clansystem.gui;
 
 import de.Z7534.ztone.Ztone;
 import de.Z7534.ztone.clansystem.managers.LevelManager;
+import de.Z7534.ztone.clansystem.managers.MessageManager;
 import de.Z7534.ztone.clansystem.models.Clan;
+import de.Z7534.ztone.clansystem.models.ClanHome;
 import de.Z7534.ztone.clansystem.models.ClanMember;
 import de.Z7534.ztone.clansystem.models.Permission;
 import de.Z7534.ztone.clansystem.utils.ItemBuilder;
@@ -26,7 +28,6 @@ public class ClanMainGUI extends AbstractGUI {
 
         LevelManager levelManager = plugin.getLevelManager();
         int maxMembers = levelManager.getMaxMembers(clan.getLevel());
-        int maxHomes = levelManager.getMaxHomes(clan.getLevel());
         int maxWarps = levelManager.getMaxWarps(clan.getLevel()) + clan.getBonusWarps();
 
         boolean maxLevel = levelManager.isMaxLevel(clan.getLevel());
@@ -99,21 +100,112 @@ public class ClanMainGUI extends AbstractGUI {
                     .build());
         }
 
-        setItem(24, new ItemBuilder(Material.RED_BED)
-                .name("&c&l➔ Clan-Homes")
-                .lore(
-                        "&7Verwalte die Clan-Homes.",
-                        "&7Aktuell: &e" + clan.getHomeCount() + "&8/&e" + maxHomes,
-                        "",
-                        "&a▶ &7Klicke zum Öffnen"
-                )
-                .build(), () -> {
+        ClanHome home = clan.getHomes().values().stream().findFirst().orElse(null);
+        boolean canSetHome = clan.isLeader(player.getUniqueId())
+                || (member != null && member.hasPermission(Permission.SET_HOME));
+        boolean canDelHome = clan.isLeader(player.getUniqueId())
+                || (member != null && member.hasPermission(Permission.DEL_HOME));
+
+        if (home == null) {
+            java.util.List<String> homeLore = new java.util.ArrayList<>();
+            homeLore.add("&7Status: &cNicht gesetzt");
+            homeLore.add("");
+            if (canSetHome) {
+                homeLore.add("&7Setze das Clan-Home an");
+                homeLore.add("&7deiner aktuellen Position.");
+                homeLore.add("");
+                homeLore.add("&a▶ &7Klicke zum Setzen");
+                setItem(24, new ItemBuilder(Material.RED_BED)
+                        .name("&c&l➔ Clan-Home")
+                        .lore(homeLore)
+                        .build(), () -> {
+                    if (clan.isInDebt()) {
+                        plugin.getMessageManager().send(player, "clan.debt-lock-homes");
+                        return;
+                    }
+                    player.performCommand("clan sethome");
+                    refresh();
+                    player.updateInventory();
+                });
+            } else {
+                homeLore.add("&7Dein Clan hat noch kein");
+                homeLore.add("&7Clan-Home gesetzt.");
+                setItem(24, new ItemBuilder(Material.RED_BED)
+                        .name("&c&l➔ Clan-Home")
+                        .lore(homeLore)
+                        .build());
+            }
+        } else {
+            java.util.List<String> homeLore = new java.util.ArrayList<>();
+            homeLore.add("&7Welt: &e" + home.getWorldName());
+            homeLore.add("&7Position: &e" + (int) home.getX() + ", " + (int) home.getY() + ", " + (int) home.getZ());
+            homeLore.add("");
+            if (!canSetHome && !canDelHome) {
+                homeLore.add("&a▶ &7Klicke zum Teleportieren");
+            } else {
+                homeLore.add("&a▶ &7Linksklick: Teleportieren");
+                if (canSetHome) {
+                    homeLore.add("&e▶ &7Rechtsklick: Position aktualisieren");
+                }
+                if (canDelHome) {
+                    homeLore.add("&c▶ &7Shift + Rechtsklick: Löschen");
+                }
+            }
+
+            setItem(24, new ItemBuilder(Material.RED_BED)
+                    .name("&c&l➔ Clan-Home")
+                    .lore(homeLore)
+                    .glow()
+                    .build(), event -> {
                 if (clan.isInDebt()) {
                     plugin.getMessageManager().send(player, "clan.debt-lock-homes");
                     return;
                 }
-                new ClanHomesGUI(plugin, player, clan).open();
+
+                if (!canSetHome && !canDelHome) {
+                    player.closeInventory();
+                    player.performCommand("clan home");
+                    return;
+                }
+
+                if (event.isShiftClick() && event.isRightClick()) {
+                    if (!canDelHome) {
+                        plugin.getMessageManager().send(player, "general.no-permission");
+                        return;
+                    }
+                    new ConfirmGUI(plugin, player,
+                            "Clan-Home wirklich löschen?",
+                            () -> {
+                                if (clan.isInDebt()) {
+                                    plugin.getMessageManager().send(player, "clan.debt-lock-homes");
+                                    player.closeInventory();
+                                    return;
+                                }
+                                clan.removeHome(home.getName());
+                                plugin.getDatabaseManager().deleteHome(clan.getId(), home.getName());
+                                plugin.getMessageManager().send(player, "home.deleted",
+                                        MessageManager.of("name", home.getName()));
+                                new ClanMainGUI(plugin, player, clan).open();
+                            },
+                            () -> new ClanMainGUI(plugin, player, clan).open()
+                    ).open();
+                } else if (event.isRightClick()) {
+                    if (!canSetHome || !player.hasPermission("clansystem.home")) {
+                        plugin.getMessageManager().send(player, "general.no-permission");
+                        return;
+                    }
+                    home.setLocation(player.getLocation());
+                    plugin.getDatabaseManager().saveHome(home);
+                    plugin.getMessageManager().send(player, "home.position-updated",
+                            MessageManager.of("name", home.getName()));
+                    refresh();
+                    player.updateInventory();
+                } else if (event.isLeftClick()) {
+                    player.closeInventory();
+                    player.performCommand("clan home");
+                }
             });
+        }
 
         setItem(30, new ItemBuilder(Material.ENDER_PEARL)
                 .name("&5&l➔ Clan-Warps")

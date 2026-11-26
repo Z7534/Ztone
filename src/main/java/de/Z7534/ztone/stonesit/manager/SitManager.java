@@ -33,6 +33,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerTeleportEvent;
 import org.bukkit.event.world.TimeSkipEvent;
+import org.bukkit.permissions.PermissionAttachmentInfo;
 import org.bukkit.scheduler.BukkitTask;
 
 import java.util.*;
@@ -46,6 +47,8 @@ public final class SitManager {
     public static final String SIT_TAG = "StoneSit_Seat";
     public static final String POSE_TAG = "StoneSit_Pose";
     public static final String PLAYERSIT_ENTITY_TAG = "StoneSit_PlayerSitEntity";
+    public static final String PERM_BYPASS_SNEAKEJECT_PREFIX = "stonesit.bypass.sneakeject.";
+    private static final String LEGACY_PERM_BYPASS_SNEAKEJECT_PREFIX = "gsit.bypass.sneakeject.";
 
     private final Ztone plugin;
     private final StoneSitConfig config;
@@ -857,7 +860,7 @@ public final class SitManager {
             if (entry == null) break;
             UUID topUuid = entry.getKey();
             Player topPlayer = Bukkit.getPlayer(topUuid);
-            if (topPlayer != null && isKickProtected(topPlayer)) {
+            if (topPlayer != null && isSneakEjectProtectedAgainst(topPlayer, bottomEntity)) {
                 chain.add(topPlayer);
             }
             currentUuid = topUuid;
@@ -932,13 +935,13 @@ public final class SitManager {
             if (entry == null) break;
             UUID topUuid = entry.getKey();
             Player topPlayer = Bukkit.getPlayer(topUuid);
-            if (topPlayer != null && isKickProtected(topPlayer)) {
+            if (topPlayer != null && isSneakEjectProtectedAgainst(topPlayer, bottomPlayer)) {
                 return true;
             }
             currentUuid = topUuid;
         }
         for (Entity p : bottomPlayer.getPassengers()) {
-            if (p instanceof Player topPlayer && isKickProtected(topPlayer)) {
+            if (p instanceof Player topPlayer && isSneakEjectProtectedAgainst(topPlayer, bottomPlayer)) {
                 return true;
             }
         }
@@ -946,8 +949,14 @@ public final class SitManager {
     }
 
     public boolean hasVisibleSneakEjectProtectedPassenger(Player bottomPlayer) {
-        if (bottomPlayer == null) return false;
+        return !getVisibleSneakEjectProtectedPassengers(bottomPlayer).isEmpty();
+    }
+
+    public List<Player> getVisibleSneakEjectProtectedPassengers(Player bottomPlayer) {
+        if (bottomPlayer == null) return Collections.emptyList();
         cleanStalePassengerEntities(bottomPlayer);
+        List<Player> result = new ArrayList<>();
+        Set<UUID> seen = new HashSet<>();
         UUID currentUuid = bottomPlayer.getUniqueId();
         int safety = 0;
         while (currentUuid != null && safety++ < 64) {
@@ -955,17 +964,19 @@ public final class SitManager {
             if (entry == null) break;
             UUID topUuid = entry.getKey();
             Player topPlayer = Bukkit.getPlayer(topUuid);
-            if (topPlayer != null && isKickProtected(topPlayer) && !de.Z7534.ztone.util.VanishUtil.isVanished(topPlayer)) {
-                return true;
+            if (topPlayer != null && isSneakEjectProtectedAgainst(topPlayer, bottomPlayer)
+                    && !de.Z7534.ztone.util.VanishUtil.isVanished(topPlayer) && seen.add(topPlayer.getUniqueId())) {
+                result.add(topPlayer);
             }
             currentUuid = topUuid;
         }
         for (Entity p : bottomPlayer.getPassengers()) {
-            if (p instanceof Player topPlayer && isKickProtected(topPlayer) && !de.Z7534.ztone.util.VanishUtil.isVanished(topPlayer)) {
-                return true;
+            if (p instanceof Player topPlayer && isSneakEjectProtectedAgainst(topPlayer, bottomPlayer)
+                    && !de.Z7534.ztone.util.VanishUtil.isVanished(topPlayer) && seen.add(topPlayer.getUniqueId())) {
+                result.add(topPlayer);
             }
         }
-        return false;
+        return result;
     }
 
     public static boolean isKickProtected(Entity entity) {
@@ -984,6 +995,86 @@ public final class SitManager {
 
     public static boolean isSneakEjectProtected(Player player) {
         return isKickProtected(player);
+    }
+
+    /**
+     * Prüft, ob {@code rider} vor dem Herunterwerfen vom Kopf von {@code carrier} geschützt ist.
+     * Ohne Spielernamen (z. B. {@code stonesit.bypass.sneakeject}) gilt der Schutz global;
+     * mit Spielernamen ({@code stonesit.bypass.sneakeject.<spielername>}, Groß-/Kleinschreibung egal)
+     * gilt der Schutz ausschließlich auf dem Kopf dieses einen Spielers.
+     */
+    public static boolean isSneakEjectProtectedAgainst(Entity rider, Entity carrier) {
+        if (isKickProtected(rider)) {
+            return true;
+        }
+        if (!(rider instanceof Player riderPlayer) || !(carrier instanceof Player carrierPlayer)) {
+            return false;
+        }
+        return hasPlayerSpecificSneakEjectBypass(riderPlayer, carrierPlayer.getName());
+    }
+
+    public static boolean hasPlayerSpecificSneakEjectBypass(Player rider, String carrierName) {
+        if (rider == null || carrierName == null || carrierName.isBlank()) {
+            return false;
+        }
+        String targetLower = carrierName.toLowerCase(Locale.ROOT);
+        String permLower = PERM_BYPASS_SNEAKEJECT_PREFIX + targetLower;
+        String permExact = PERM_BYPASS_SNEAKEJECT_PREFIX + carrierName;
+        String legacyLower = LEGACY_PERM_BYPASS_SNEAKEJECT_PREFIX + targetLower;
+        String legacyExact = "GSit.ByPass.SneakEject." + carrierName;
+
+        if (rider.isPermissionSet(permLower)) {
+            return rider.hasPermission(permLower);
+        }
+        if (!permExact.equals(permLower) && rider.isPermissionSet(permExact)) {
+            return rider.hasPermission(permExact);
+        }
+        if (rider.hasPermission(permLower)
+                || (!permExact.equals(permLower) && rider.hasPermission(permExact))
+                || rider.hasPermission(legacyLower)
+                || rider.hasPermission(legacyExact)) {
+            return true;
+        }
+
+        for (PermissionAttachmentInfo info : rider.getEffectivePermissions()) {
+            String perm = info.getPermission();
+            if (perm.equalsIgnoreCase(permLower) || perm.equalsIgnoreCase(legacyLower)) {
+                return info.getValue();
+            }
+        }
+        return false;
+    }
+
+    public boolean isPlayerProtectedOnStack(Player rider, Entity dismountedEntity) {
+        if (rider == null) {
+            return false;
+        }
+        if (isKickProtected(rider)) {
+            return true;
+        }
+        UUID currentUuid = rider.getUniqueId();
+        int safety = 0;
+        while (currentUuid != null && safety++ < 64) {
+            Map.Entry<UUID, List<UUID>> entry = topToBottomStacks.get(currentUuid);
+            if (entry == null) break;
+            UUID vehicleUuid = entry.getKey();
+            Entity vehicle = Bukkit.getEntity(vehicleUuid);
+            if (vehicle != null && isSneakEjectProtectedAgainst(rider, vehicle)) {
+                return true;
+            }
+            currentUuid = vehicleUuid;
+        }
+        if (dismountedEntity != null) {
+            Entity vehicle = dismountedEntity.getVehicle();
+            safety = 0;
+            while (vehicle != null && safety++ < 64) {
+                if (isSneakEjectProtectedAgainst(rider, vehicle)) {
+                    return true;
+                }
+                vehicle = vehicle.getVehicle();
+            }
+        }
+        return false;
     }
 
     public void removeAllPlayerSitStacks() {
@@ -1170,12 +1261,23 @@ public final class SitManager {
         if (stopReason == StopReason.KICKED || stopReason == StopReason.TELEPORT) {
             if (passengers != null) {
                 Player topPlayer = Bukkit.getPlayer(passengers.getKey());
-                if (topPlayer != null && (isKickProtected(topPlayer) || isCarrierTeleporting(topPlayer.getUniqueId()))) {
+                boolean passengerProtected = topPlayer != null
+                        && (isSneakEjectProtectedAgainst(topPlayer, source) || isCarrierTeleporting(topPlayer.getUniqueId()));
+                if (!passengerProtected && stopReason == StopReason.KICKED && source instanceof Player sourcePlayer) {
+                    passengerProtected = hasSneakEjectProtectedPassenger(sourcePlayer);
+                }
+                if (passengerProtected) {
                     passengers = null;
                 }
             }
-            if (vehicles != null && (isKickProtected(source) || isCarrierTeleporting(sourceUuid))) {
-                vehicles = null;
+            if (vehicles != null) {
+                Entity vehicleEntity = Bukkit.getEntity(vehicles.getKey());
+                boolean vehicleProtected = isSneakEjectProtectedAgainst(source, vehicleEntity)
+                        || isCarrierTeleporting(sourceUuid)
+                        || (source instanceof Player sourcePlayer && isPlayerProtectedOnStack(sourcePlayer, null));
+                if (vehicleProtected) {
+                    vehicles = null;
+                }
             }
             if (passengers == null && vehicles == null) {
                 return false;

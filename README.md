@@ -1,6 +1,6 @@
 # 🛡️ Ztone – All-in-One Server-System
 
-Willkommen in der offiziellen Dokumentation für **Ztone** (Version 1.1.14).  
+Willkommen in der offiziellen Dokumentation für **Ztone** (Version 1.1.15).  
 Ztone ist eine hochgradig optimierte, modulare All-in-One-Lösung für Minecraft Paper-, Purpur- und Leaf-Server (kompatibel mit Java 21 & Java 25).
 
 ---
@@ -34,6 +34,7 @@ Ztone ist eine hochgradig optimierte, modulare All-in-One-Lösung für Minecraft
 26. [Changelog v1.1.12](#25-changelog-v1112)
 27. [Changelog v1.1.13](#26-changelog-v1113)
 28. [Changelog v1.1.14](#27-changelog-v1114)
+29. [Changelog v1.1.15](#28-changelog-v1115)
 
 ---
 
@@ -114,8 +115,8 @@ Ztone bündelt alle wichtigen Core-Features für moderne Survival- und SMP-Netzw
 | `/clanadmin demote <Spieler> [Clan]` | Degradiert einen Spieler im Clan | `clansystem.admin.demote` |
 | `/clanadmin addpoints <Clan> <Menge>` | Fügt einem Clan Ranglisten-Punkte hinzu | `clansystem.admin.points` |
 | `/clanadmin removepoints <Clan> <Menge>`| Zieht einem Clan Punkte ab | `clansystem.admin.points` |
-| `/clanadmin addmoney <Clan> <Betrag>` | Zahlt Geld auf die Clankasse ein | `clansystem.admin.bank` |
-| `/clanadmin removemoney <Clan> <Betrag>`| Hebt Geld von der Clankasse ab | `clansystem.admin.bank` |
+| `/clanadmin info <clan\|player> <Name>` | Zeigt detaillierte Clan-Infos inkl. Clankasse, Allianzen, aktiven Kriegen & Mitgliederliste | `clansystem.admin.info` |
+| `/clanadmin bank <set\|take\|give> <Clan> <Betrag>` | Setzt, reduziert oder erhöht den Clankassen-Stand eines Clans (inkl. Kassenbuch-Log & Suffixen wie `k`, `m`, `b`) | `clansystem.admin.bank` |
 | `/clanadmin setlevel <Clan> <Level>` | Setzt das Level eines Clans manuell | `clansystem.admin.level` |
 | `/clanadmin spy` | Schaltet den Clan- und Allianz-Chat-Spion ein/aus | `clansystem.admin.spy` |
 | `/clanadmin reset` | Bereinigt die gesamte Clan-Datenbank (Vorsicht!) | `clansystem.admin.reset` |
@@ -499,7 +500,7 @@ Alle Platzhalter erfordern das installierte Plugin **PlaceholderAPI**.
 # Kompilieren mit Gradle Shadow-Jar
 ./gradlew shadowJar
 ```
-Die fertige Server-JAR befindet sich im Verzeichnis `build/libs/Ztone-1.1.14.jar`.
+Die fertige Server-JAR befindet sich im Verzeichnis `build/libs/Ztone-1.1.15.jar`.
 
 ---
 
@@ -831,3 +832,24 @@ Die fertige Server-JAR befindet sich im Verzeichnis `build/libs/Ztone-1.1.14.jar
   * Direkt in der Mitte des Hauptmenüs (Slot 13) befindet sich nun ein neuer Button mit eigenem Geschenkpaket-PlayerHead.
   * Zeigt übersichtlich alle aktuell abholbereiten Belohnungen aus den drei Kategorien (Tägliche Belohnungen, Tägliche Streak, Spielzeit-Belohnungen) und leuchtet (Enchantment-Glint), sobald mindestens eine Belohnung abholbereit ist.
   * Mit einem einzigen Klick werden sämtliche verfügbaren Belohnungen aller Kategorien auf einmal eingelöst (inkl. Inventar-Voll-Prüfung).
+
+---
+
+## 28. Changelog v1.1.15
+
+### ⚔️ Clansystem (Admin-Info, Admin-Bank & Direkt-Home im Hauptmenü)
+* **Erweitertes `/clanadmin info`:**
+  * Zeigt nun zusätzlich den aktuellen **Clankassen-Stand** an (inkl. roter Hervorhebung und `(Schulden)`-Hinweis bei negativem Guthaben).
+  * Listet bestehende **Allianzen** direkt mit den farbigen Namen der verbündeten Clans auf.
+  * Listet aktive **Kriege** direkt mit den gegnerischen Clans, aktuellem Kill-Stand (`eigen:gegner`) sowie ggf. `[Vorbereitung]`-Status auf.
+* **Neuer Befehl `/clanadmin bank <set|take|give> <Clan> <Betrag>`:**
+  * Ermöglicht Administratoren die direkte Kontrolle über die Clankasse (inkl. Betrags-Suffixen wie `k`, `m`, `b`, `t` und Tab-Completion).
+  * Eigene Berechtigung `clansystem.admin.bank` (`default: op`, als Child unter `clansystem.admin`).
+  * Protokolliert jede Admin-Änderung im Clankassen-Transaktionsbuch (`/clan bank`) mit eigenem Typ (`Admin-Gutschrift`, `Admin-Abzug`, `Admin-Set`) und informiert den Clan automatisch bei Schulden-Aufhebung bzw. neu entstandenen Schulden.
+* **Clan-Home direkt im Hauptmenü (`ClanMainGUI`, Slot 24):**
+  * Die separaten Untermenüs `ClanHomesGUI` und `ClanHomeActionsGUI` wurden entfernt; `/clan homes` öffnet direkt das Hauptmenü.
+  * Ist noch kein Clan-Home gesetzt, können berechtigte Mitglieder (`SET_HOME`) es direkt per Klick im Hauptmenü setzen.
+  * Ist ein Clan-Home vorhanden, werden Welt & Koordinaten direkt im Hauptmenü angezeigt:
+    * **Linksklick:** Zum Clan-Home teleportieren
+    * **Rechtsklick** (`SET_HOME`): Position aktualisieren
+    * **Shift + Rechtsklick** (`DEL_HOME`): Clan-Home löschen (mit Bestätigungs-GUI)

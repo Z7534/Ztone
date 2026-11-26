@@ -1492,7 +1492,7 @@ public class ClanCommand implements CommandExecutor, TabCompleter {
 
 
 
-        new ClanHomesGUI(plugin, player, clan).open();
+        new ClanMainGUI(plugin, player, clan).open();
 
     }
 

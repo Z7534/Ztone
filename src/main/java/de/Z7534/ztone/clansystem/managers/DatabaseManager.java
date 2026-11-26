@@ -1414,7 +1414,7 @@ public class DatabaseManager {
                  PreparedStatement ps = conn.prepareStatement(sql)) {
 
                 ps.setInt(1, clanId);
-                ps.setString(2, playerUuid.toString());
+                ps.setString(2, (playerUuid != null ? playerUuid : new UUID(0L, 0L)).toString());
                 ps.setString(3, playerName != null ? playerName : "Unbekannt");
                 ps.setString(4, type.name());
                 ps.setDouble(5, amount);
@@ -1441,10 +1441,18 @@ public class DatabaseManager {
 
             ResultSet rs = ps.executeQuery();
             while (rs.next()) {
+                String uuidStr = rs.getString("player_uuid");
+                UUID uuid = null;
+                if (uuidStr != null && !uuidStr.isEmpty()) {
+                    try {
+                        uuid = UUID.fromString(uuidStr);
+                    } catch (IllegalArgumentException ignored) {
+                    }
+                }
                 ClanBankTransaction tx = new ClanBankTransaction(
                         rs.getInt("id"),
                         rs.getInt("clan_id"),
-                        UUID.fromString(rs.getString("player_uuid")),
+                        uuid,
                         rs.getString("player_name"),
                         ClanBankTransaction.Type.valueOf(rs.getString("action")),
                         rs.getDouble("amount"),

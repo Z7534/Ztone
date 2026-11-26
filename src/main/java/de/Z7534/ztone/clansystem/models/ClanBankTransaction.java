@@ -7,13 +7,19 @@ public class ClanBankTransaction {
     public enum Type {
         DEPOSIT,
         WITHDRAW,
-        TAX
+        TAX,
+        ADMIN_GIVE,
+        ADMIN_TAKE,
+        ADMIN_SET
     }
 
     public enum TransactionType {
         DEPOSIT,
         WITHDRAW,
-        TAX
+        TAX,
+        ADMIN_GIVE,
+        ADMIN_TAKE,
+        ADMIN_SET
     }
 
     private final int id;

@@ -70,6 +70,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 public final class SitListener implements Listener {
 
@@ -476,11 +477,15 @@ public final class SitListener implements Listener {
             return;
         }
 
-        // Admin-Schutz: Wenn ein Admin mit stonesit.bypass.sneakeject auf dem Kopf sitzt,
-        // kann er durch Sneaken NICHT vom Kopf geworfen werden!
+        // Admin-/Spieler-Schutz: Bei stonesit.bypass.sneakeject (global) oder
+        // stonesit.bypass.sneakeject.<spielername> (für diesen Kopf) kann nicht abgeworfen werden!
         if (sitManager.hasSneakEjectProtectedPassenger(player)) {
-            if (sitManager.hasVisibleSneakEjectProtectedPassenger(player)) {
-                config.sendMessage(player, "action-playersit-admin-protected");
+            List<Player> visibleProtected = sitManager.getVisibleSneakEjectProtectedPassengers(player);
+            if (!visibleProtected.isEmpty()) {
+                String names = visibleProtected.stream()
+                        .map(Player::getName)
+                        .collect(Collectors.joining(", "));
+                config.sendMessage(player, "action-playersit-admin-protected", Map.of("player", names));
             }
             return;
         }
@@ -566,8 +571,8 @@ public final class SitListener implements Listener {
             return;
         }
 
-        // KICK-SCHUTZ: Geschützte Admins dürfen nur freiwillig durch Sneaken aufstehen
-        if (SitManager.isKickProtected(player) && !player.isSneaking()) {
+        // KICK-SCHUTZ: Geschützte Spieler dürfen nur freiwillig durch Sneaken aufstehen
+        if (sitManager.isPlayerProtectedOnStack(player, dismounted) && !player.isSneaking()) {
             event.setCancelled(true);
             return;
         }
@@ -969,4 +974,3 @@ public final class SitListener implements Listener {
         }
     }
 }
-

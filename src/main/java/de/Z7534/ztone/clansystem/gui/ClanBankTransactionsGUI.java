@@ -84,22 +84,47 @@ public class ClanBankTransactionsGUI extends AbstractGUI {
                 Material mat;
                 String sign;
                 String typeName;
-                if (tx.getType() == ClanBankTransaction.Type.DEPOSIT) {
-                    mat = Material.LIME_DYE;
-                    sign = "&a+";
-                    typeName = "&aEinzahlung";
-                } else if (tx.getType() == ClanBankTransaction.Type.TAX) {
-                    mat = Material.ORANGE_DYE;
-                    sign = "&c-";
-                    typeName = "&6Steuern";
-                } else {
-                    mat = Material.RED_DYE;
-                    sign = "&c-";
-                    typeName = "&cAuszahlung";
+                String authorLabel;
+                switch (tx.getType()) {
+                    case DEPOSIT -> {
+                        mat = Material.LIME_DYE;
+                        sign = "&a+";
+                        typeName = "&aEinzahlung";
+                        authorLabel = "&7Spieler: &f" + tx.getPlayerName();
+                    }
+                    case TAX -> {
+                        mat = Material.ORANGE_DYE;
+                        sign = "&c-";
+                        typeName = "&6Steuern";
+                        authorLabel = "&7Grund: &fSteuerabzug";
+                    }
+                    case ADMIN_GIVE -> {
+                        mat = Material.LIGHT_BLUE_DYE;
+                        sign = "&a+";
+                        typeName = "&bAdmin-Gutschrift";
+                        authorLabel = "&7Admin: &f" + tx.getPlayerName();
+                    }
+                    case ADMIN_TAKE -> {
+                        mat = Material.MAGENTA_DYE;
+                        sign = "&c-";
+                        typeName = "&dAdmin-Abzug";
+                        authorLabel = "&7Admin: &f" + tx.getPlayerName();
+                    }
+                    case ADMIN_SET -> {
+                        mat = Material.YELLOW_DYE;
+                        sign = "&e=";
+                        typeName = "&eAdmin-Set";
+                        authorLabel = "&7Admin: &f" + tx.getPlayerName();
+                    }
+                    default -> {
+                        mat = Material.RED_DYE;
+                        sign = "&c-";
+                        typeName = "&cAuszahlung";
+                        authorLabel = "&7Spieler: &f" + tx.getPlayerName();
+                    }
                 }
 
                 String formattedAmount = eco != null ? eco.format(tx.getAmount()) : (tx.getAmount() + " $");
-                String authorLabel = tx.getType() == ClanBankTransaction.Type.TAX ? "&7Grund: &fSteuerabzug" : "&7Spieler: &f" + tx.getPlayerName();
 
                 setItem(slot, new ItemBuilder(mat)
                         .name(sign + " " + formattedAmount + " &8(" + typeName + "&8)")

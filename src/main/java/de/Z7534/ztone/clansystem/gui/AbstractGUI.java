@@ -14,6 +14,7 @@ import org.bukkit.inventory.ItemStack;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
+import java.util.function.Consumer;
 
 public abstract class AbstractGUI implements InventoryHolder {
 
@@ -22,6 +23,7 @@ public abstract class AbstractGUI implements InventoryHolder {
     protected Inventory inventory;
     protected final Map<Integer, Runnable> clickActions;
     protected final Map<Integer, Runnable> rightClickActions;
+    protected final Map<Integer, Consumer<InventoryClickEvent>> eventClickActions;
 
     private static final Map<UUID, AbstractGUI> openGuis = new HashMap<>();
 
@@ -30,6 +32,7 @@ public abstract class AbstractGUI implements InventoryHolder {
         this.player = player;
         this.clickActions = new HashMap<>();
         this.rightClickActions = new HashMap<>();
+        this.eventClickActions = new HashMap<>();
         this.inventory = Bukkit.createInventory(this, size, ColorUtils.colorize(title));
     }
 
@@ -45,6 +48,7 @@ public abstract class AbstractGUI implements InventoryHolder {
         inventory.clear();
         clickActions.clear();
         rightClickActions.clear();
+        eventClickActions.clear();
         setup();
     }
 
@@ -62,6 +66,12 @@ public abstract class AbstractGUI implements InventoryHolder {
 
         int slot = event.getRawSlot();
         if (slot < 0 || slot >= inventory.getSize()) {
+            return;
+        }
+
+        Consumer<InventoryClickEvent> eventAction = eventClickActions.get(slot);
+        if (eventAction != null) {
+            eventAction.accept(event);
             return;
         }
 
@@ -97,6 +107,13 @@ public abstract class AbstractGUI implements InventoryHolder {
         }
         if (onRightClick != null) {
             rightClickActions.put(slot, onRightClick);
+        }
+    }
+
+    protected void setItem(int slot, ItemStack item, Consumer<InventoryClickEvent> onClick) {
+        inventory.setItem(slot, item);
+        if (onClick != null) {
+            eventClickActions.put(slot, onClick);
         }
     }
 

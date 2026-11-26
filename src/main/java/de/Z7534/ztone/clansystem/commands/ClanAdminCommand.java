@@ -7,6 +7,7 @@ import de.Z7534.ztone.clansystem.managers.EconomyManager;
 import de.Z7534.ztone.clansystem.managers.ClanTaxManager;
 import de.Z7534.ztone.clansystem.managers.MessageManager;
 import de.Z7534.ztone.clansystem.models.Clan;
+import de.Z7534.ztone.clansystem.models.ClanBankTransaction;
 import de.Z7534.ztone.clansystem.models.ClanMember;
 import de.Z7534.ztone.clansystem.models.ClanRank;
 import de.Z7534.ztone.clansystem.models.ClanWar;
@@ -32,7 +33,9 @@ public class ClanAdminCommand implements CommandExecutor, TabCompleter {
 
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
-        if (!sender.hasPermission("clansystem.admin") && !sender.hasPermission("clansystem.admin.war")) {
+        if (!sender.hasPermission("clansystem.admin")
+                && !sender.hasPermission("clansystem.admin.war")
+                && !sender.hasPermission("clansystem.admin.bank")) {
             plugin.getMessageManager().send(sender, "general.no-permission");
             return true;
         }
@@ -63,6 +66,7 @@ public class ClanAdminCommand implements CommandExecutor, TabCompleter {
             case "promote" -> handlePromote(sender, args);
             case "demote" -> handleDemote(sender, args);
             case "taxes", "steuern" -> handleTaxes(sender, args);
+            case "bank" -> handleBank(sender, args);
             case "help", "?" -> sendHelp(sender);
             default -> sendHelp(sender);
         }
@@ -370,6 +374,15 @@ public class ClanAdminCommand implements CommandExecutor, TabCompleter {
         sender.sendMessage(de.Z7534.ztone.clansystem.utils.ColorUtils.colorize("&7Suffix: &r" + (clan.getSuffix().isEmpty() ? "&8Keiner" : clan.getColoredSuffix())));
         sender.sendMessage(de.Z7534.ztone.clansystem.utils.ColorUtils.colorize("&7Level: &e" + clan.getLevel()));
         sender.sendMessage(de.Z7534.ztone.clansystem.utils.ColorUtils.colorize("&7Punkte: &e" + clan.getPoints()));
+
+        EconomyManager eco = plugin.getEconomyManager();
+        String formattedBalance = eco != null
+                ? eco.format(clan.getBalance())
+                : String.format(Locale.GERMANY, "%,.2f $", clan.getBalance());
+        String bankColor = clan.isInDebt() ? "&c" : "&e";
+        String debtNote = clan.isInDebt() ? " &8(&cSchulden&8)" : "";
+        sender.sendMessage(ColorUtils.colorize("&7Clankasse: " + bankColor + formattedBalance + debtNote));
+
         sender.sendMessage(de.Z7534.ztone.clansystem.utils.ColorUtils.colorize("&7Mitglieder: &e" + clan.getMemberCount()));
         sender.sendMessage(de.Z7534.ztone.clansystem.utils.ColorUtils.colorize("&7Online: &a" + clan.getOnlineMembers().size()));
         sender.sendMessage(de.Z7534.ztone.clansystem.utils.ColorUtils.colorize("&7Beitrittsart: &e" + clan.getJoinType().name()));
@@ -378,8 +391,38 @@ public class ClanAdminCommand implements CommandExecutor, TabCompleter {
         String leaderName = leader != null ? leader.getName() : "Unbekannt";
         sender.sendMessage(de.Z7534.ztone.clansystem.utils.ColorUtils.colorize("&7Leader: &e" + leaderName));
 
-        sender.sendMessage(de.Z7534.ztone.clansystem.utils.ColorUtils.colorize("&7Allianzen: &e" + clan.getAllies().size()));
-        sender.sendMessage(de.Z7534.ztone.clansystem.utils.ColorUtils.colorize("&7Aktive Kriege: &c" + clan.getActiveWars().size()));
+        List<String> allyNames = clan.getAllies().stream()
+                .map(id -> plugin.getClanManager().getClan(id))
+                .filter(Objects::nonNull)
+                .map(Clan::getColoredName)
+                .collect(Collectors.toList());
+        if (allyNames.isEmpty()) {
+            sender.sendMessage(ColorUtils.colorize("&7Allianzen: &e" + clan.getAllies().size()));
+        } else {
+            sender.sendMessage(ColorUtils.colorize("&7Allianzen: &e" + allyNames.size()
+                    + " &8(&r" + String.join("&7, &r", allyNames) + "&8)"));
+        }
+
+        List<String> warEnemies = clan.getActiveWars().stream()
+                .map(id -> plugin.getClanManager().getClan(id))
+                .filter(Objects::nonNull)
+                .map(enemy -> {
+                    ClanWar war = plugin.getWarManager().getWarBetween(clan.getId(), enemy.getId());
+                    if (war != null) {
+                        int ownKills = war.isAttacker(clan.getId()) ? war.getTotalAttackerKills() : war.getTotalDefenderKills();
+                        int enemyKills = war.isAttacker(clan.getId()) ? war.getTotalDefenderKills() : war.getTotalAttackerKills();
+                        String phase = war.isInPreparation() ? " &7[Vorbereitung]" : "";
+                        return enemy.getColoredName() + " &8(&a" + ownKills + "&7:&c" + enemyKills + "&8)" + phase;
+                    }
+                    return enemy.getColoredName();
+                })
+                .collect(Collectors.toList());
+        if (warEnemies.isEmpty()) {
+            sender.sendMessage(ColorUtils.colorize("&7Aktive Kriege: &c" + clan.getActiveWars().size()));
+        } else {
+            sender.sendMessage(ColorUtils.colorize("&7Aktive Kriege: &c" + warEnemies.size()
+                    + " &8(&7gegen: &r" + String.join("&7, &r", warEnemies) + "&8)"));
+        }
         sender.sendMessage(de.Z7534.ztone.clansystem.utils.ColorUtils.colorize("&7Homes: &e" + clan.getHomeCount()));
         sender.sendMessage(de.Z7534.ztone.clansystem.utils.ColorUtils.colorize("&7Warps: &e" + clan.getWarpCount()));
         sender.sendMessage(de.Z7534.ztone.clansystem.utils.ColorUtils.colorize("&7Ränge: &e" + clan.getRanks().size()));
@@ -891,6 +934,120 @@ public class ClanAdminCommand implements CommandExecutor, TabCompleter {
                 MessageManager.of("usage", "/clanadmin taxes [run|info|setlevelbase]"));
     }
 
+    private void handleBank(CommandSender sender, String[] args) {
+        if (!sender.hasPermission("clansystem.admin.bank")) {
+            plugin.getMessageManager().send(sender, "general.no-permission");
+            return;
+        }
+
+        if (!plugin.getConfigManager().isClankasseEnabled()) {
+            plugin.getMessageManager().send(sender, "bank.not-available");
+            return;
+        }
+
+        if (args.length < 4) {
+            plugin.getMessageManager().send(sender, "general.invalid-usage",
+                    MessageManager.of("usage", "/clanadmin bank <set|take|give> <clan> <betrag>"));
+            return;
+        }
+
+        String action = args[1].toLowerCase();
+        if (!action.equals("set") && !action.equals("take") && !action.equals("give")) {
+            plugin.getMessageManager().send(sender, "general.invalid-usage",
+                    MessageManager.of("usage", "/clanadmin bank <set|take|give> <clan> <betrag>"));
+            return;
+        }
+
+        Clan clan = plugin.getClanManager().getClan(args[2]);
+        if (clan == null) {
+            plugin.getMessageManager().send(sender, "clan.not-found",
+                    MessageManager.of("clan", args[2]));
+            return;
+        }
+
+        String amountInput = args[3];
+        Double parsed;
+        boolean negativeSet = false;
+        if (action.equals("set") && amountInput.startsWith("-")) {
+            negativeSet = true;
+            parsed = EconomyManager.parseAmount(amountInput.substring(1));
+        } else {
+            parsed = EconomyManager.parseAmount(amountInput);
+        }
+
+        if (parsed == null || (!action.equals("set") && parsed <= 0)) {
+            plugin.getMessageManager().send(sender, "bank.invalid-amount");
+            return;
+        }
+
+        double amount = negativeSet ? -parsed : parsed;
+        boolean wasInDebt = clan.isInDebt();
+
+        double newBalance;
+        ClanBankTransaction.Type txType;
+        switch (action) {
+            case "set" -> {
+                newBalance = amount;
+                txType = ClanBankTransaction.Type.ADMIN_SET;
+            }
+            case "give" -> {
+                newBalance = clan.getBalance() + amount;
+                txType = ClanBankTransaction.Type.ADMIN_GIVE;
+            }
+            case "take" -> {
+                newBalance = clan.getBalance() - amount;
+                txType = ClanBankTransaction.Type.ADMIN_TAKE;
+            }
+            default -> {
+                return;
+            }
+        }
+
+        newBalance = Math.round(newBalance * 100.0) / 100.0;
+        if (newBalance == 0.0) {
+            newBalance = 0.0;
+        }
+        clan.setBalance(newBalance);
+        plugin.getClanManager().updateClanInDatabase(clan);
+
+        UUID actorUuid = (sender instanceof Player p) ? p.getUniqueId() : new UUID(0L, 0L);
+        String actorName = (sender instanceof Player p) ? p.getName() : "Konsole";
+        ClanBankTransaction tx = new ClanBankTransaction(
+                clan.getId(),
+                actorUuid,
+                actorName,
+                txType,
+                amount,
+                System.currentTimeMillis()
+        );
+        plugin.getDatabaseManager().logBankTransaction(tx);
+
+        EconomyManager eco = plugin.getEconomyManager();
+        String formattedAmount = eco != null
+                ? eco.format(Math.abs(amount))
+                : String.format(Locale.GERMANY, "%,.2f $", Math.abs(amount));
+        String formattedBalance = eco != null
+                ? eco.format(clan.getBalance())
+                : String.format(Locale.GERMANY, "%,.2f $", clan.getBalance());
+
+        switch (action) {
+            case "set" -> plugin.getMessageManager().send(sender, "admin.bank-set",
+                    MessageManager.of("clan", clan.getColoredName(), "balance", formattedBalance));
+            case "give" -> plugin.getMessageManager().send(sender, "admin.bank-give",
+                    MessageManager.of("clan", clan.getColoredName(), "amount", formattedAmount, "balance", formattedBalance));
+            case "take" -> plugin.getMessageManager().send(sender, "admin.bank-take",
+                    MessageManager.of("clan", clan.getColoredName(), "amount", formattedAmount, "balance", formattedBalance));
+        }
+
+        if (wasInDebt && !clan.isInDebt()) {
+            clan.broadcastMessage(plugin.getMessageManager().get("clan.debt-cleared"));
+        } else if (!wasInDebt && clan.isInDebt()) {
+            String debtFormatted = String.format(Locale.GERMANY, "%,.2f", clan.getDebt());
+            clan.broadcastMessage(plugin.getMessageManager().get("war.debt-warning",
+                    MessageManager.of("debt", debtFormatted)));
+        }
+    }
+
     private void sendHelp(CommandSender sender) {
         sender.sendMessage(de.Z7534.ztone.clansystem.utils.ColorUtils.colorize("&8&m----------&8[ &6Clan-Admin &8]&m----------"));
         sender.sendMessage(de.Z7534.ztone.clansystem.utils.ColorUtils.colorize("&e/clanadmin reload &8- &7Konfiguration neu laden"));
@@ -910,12 +1067,15 @@ public class ClanAdminCommand implements CommandExecutor, TabCompleter {
         sender.sendMessage(de.Z7534.ztone.clansystem.utils.ColorUtils.colorize("&e/clanadmin warp <clan> <list|warp> &8- &7Zu einem Clan-Warp teleportieren"));
         sender.sendMessage(de.Z7534.ztone.clansystem.utils.ColorUtils.colorize("&e/clanadmin promote <spieler> [clan] &8- &7Spieler im Clan befördern"));
         sender.sendMessage(de.Z7534.ztone.clansystem.utils.ColorUtils.colorize("&e/clanadmin demote <spieler> [clan] &8- &7Spieler im Clan degradieren"));
+        sender.sendMessage(de.Z7534.ztone.clansystem.utils.ColorUtils.colorize("&e/clanadmin bank <set|take|give> <clan> <betrag> &8- &7Clankasse verwalten"));
         sender.sendMessage(de.Z7534.ztone.clansystem.utils.ColorUtils.colorize("&8&m---------------------------------"));
     }
 
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
-        if (!sender.hasPermission("clansystem.admin") && !sender.hasPermission("clansystem.admin.war")) {
+        if (!sender.hasPermission("clansystem.admin")
+                && !sender.hasPermission("clansystem.admin.war")
+                && !sender.hasPermission("clansystem.admin.bank")) {
             return Collections.emptyList();
         }
 
@@ -925,7 +1085,7 @@ public class ClanAdminCommand implements CommandExecutor, TabCompleter {
             List<String> subCommands = Arrays.asList(
                     "reload", "delete", "war", "setlevel", "setleader", "chest", "addpoints",
                     "info", "forcejoin", "forceleave", "list", "settings", "bold",
-                    "home", "warp", "promote", "demote", "taxes", "steuern", "help"
+                    "home", "warp", "promote", "demote", "taxes", "steuern", "bank", "help"
             );
             String input = args[0].toLowerCase();
             completions = subCommands.stream()
@@ -938,6 +1098,11 @@ public class ClanAdminCommand implements CommandExecutor, TabCompleter {
             switch (subCommand) {
                 case "taxes", "steuern" -> {
                     completions = Arrays.asList("run", "info", "setlevelbase").stream()
+                            .filter(s -> s.startsWith(input))
+                            .collect(Collectors.toList());
+                }
+                case "bank" -> {
+                    completions = Arrays.asList("set", "take", "give").stream()
                             .filter(s -> s.startsWith(input))
                             .collect(Collectors.toList());
                 }
@@ -981,6 +1146,12 @@ public class ClanAdminCommand implements CommandExecutor, TabCompleter {
                             }
                         }
                     }
+                }
+                case "bank" -> {
+                    completions = plugin.getClanManager().getAllClans().stream()
+                            .map(Clan::getName)
+                            .filter(n -> n.toLowerCase().startsWith(input))
+                            .collect(Collectors.toList());
                 }
                 case "war" -> {
                     Clan baseClan = plugin.getClanManager().getClan(args[1]);

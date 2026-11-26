@@ -66,7 +66,11 @@ public final class StoneSitConfig {
 
     // Nachrichten
     private String prefix;
+    private final Map<String, String> rawMessages = new HashMap<>();
     private final Map<String, Component> parsedMessages = new HashMap<>();
+
+    private static final String LEGACY_ADMIN_PROTECTED_MSG = "<prefix> <red>Du kannst diesen Admin nicht durch Schleichen vom Kopf werfen!</red>";
+    private static final String DEFAULT_ADMIN_PROTECTED_MSG = "<prefix> <red>Du kannst <yellow>{player}</yellow> nicht von deinem Kopf werfen!</red>";
 
     public StoneSitConfig(Ztone plugin) {
         this.plugin = plugin;
@@ -143,7 +147,17 @@ public final class StoneSitConfig {
     private void loadMessages() {
         this.prefix = config.getString("messages.prefix",
                 "<gradient:#00C9FF:#92FE9D><bold>sᴛᴏɴᴇsɪᴛ</bold></gradient> <dark_gray>»</dark_gray>");
+        this.rawMessages.clear();
         this.parsedMessages.clear();
+
+        String currentProtectedMsg = config.getString("messages.action-playersit-admin-protected");
+        if (LEGACY_ADMIN_PROTECTED_MSG.equals(currentProtectedMsg)) {
+            config.set("messages.action-playersit-admin-protected", DEFAULT_ADMIN_PROTECTED_MSG);
+            try {
+                config.save(configFile);
+            } catch (Exception ignored) {
+            }
+        }
 
         var msgSection = config.getConfigurationSection("messages");
         if (msgSection != null) {
@@ -152,6 +166,7 @@ public final class StoneSitConfig {
                 String raw = msgSection.getString(key, "");
                 if (!raw.isEmpty()) {
                     String resolved = raw.replace("<prefix>", prefix);
+                    rawMessages.put(key, resolved);
                     parsedMessages.put(key, Text.line(resolved));
                 }
             }
@@ -163,6 +178,18 @@ public final class StoneSitConfig {
         if (comp != null) {
             sender.sendMessage(comp);
         }
+    }
+
+    public void sendMessage(org.bukkit.command.CommandSender sender, String key, Map<String, String> placeholders) {
+        String raw = rawMessages.get(key);
+        if (raw == null || raw.isEmpty()) {
+            return;
+        }
+        if (placeholders == null || placeholders.isEmpty()) {
+            sendMessage(sender, key);
+            return;
+        }
+        sender.sendMessage(Text.line(raw, placeholders));
     }
 
     public void sendActionBar(Player player, String key) {
